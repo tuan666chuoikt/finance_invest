@@ -7,3 +7,10 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+.env.*
+!.env.example
+node_modules/
+dist/
+data/
+*.parquet
+.finvest/sprints/*/activity.checkpoint

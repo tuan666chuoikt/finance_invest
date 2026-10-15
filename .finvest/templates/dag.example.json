@@ -1,0 +1,65 @@
+{
+  "sprint": "sprint-01",
+  "plan": "v1.0",
+  "dagRev": 1,
+  "tasks": [
+    {
+      "id": "C-market-data",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M-S1-1",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 1,
+      "manual": false,
+      "size": 180
+    },
+    {
+      "id": "BE-daily-crawl",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M-S1-1",
+      "after": ["C-market-data"],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 2,
+      "manual": false,
+      "size": 220
+    },
+    {
+      "id": "AI-whatif-core",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M-S1-2",
+      "after": ["C-market-data"],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 2,
+      "manual": false,
+      "size": 200
+    },
+    {
+      "id": "FE-whatif-form",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M-S1-2",
+      "after": ["AI-whatif-core"],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 3,
+      "manual": false,
+      "size": 160
+    }
+  ],
+  "_doc": {
+    "id": "unique task id; also the heading '#### <id> — title' in 2-tech-plan(.ai).md",
+    "side": "fe | be | ai (ai = services/analytics; reviewed by the BE lead)",
+    "after": "ids that must be MERGED into sprint-NN before this task starts",
+    "base": "optional branch to start from instead of sprint-NN (stacked work)",
+    "effort": "high only for design, money math, data correctness, auth, concurrency; else medium",
+    "leadModel": "opus only for contracts, money/return math, auth, ops; else sonnet",
+    "manual": "true = done by a human or outside the workflow; the watcher waits for its merge",
+    "size": "expected changed lines; the developer stops at 1.5x and asks for a split"
+  }
+}

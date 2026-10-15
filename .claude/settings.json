@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git fetch:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git worktree list:*)",
+      "Bash(ls:*)",
+      "Bash(rg:*)",
+      "Bash(sed -n:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(mkdir:*)",
+      "Bash(python3:*)",
+      "Bash(uv:*)",
+      "Bash(pytest:*)",
+      "Bash(node:*)",
+      "Bash(pnpm:*)",
+      "Bash(npx:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)",
+      "Bash(/home/stein/Desktop/Learning/finance_invest/.finvest/bin/q.sh:*)",
+      "Bash(/home/stein/Desktop/Learning/finance_invest/.finvest/bin/task.sh:*)",
+      "Bash(/home/stein/Desktop/Learning/finance_invest/.finvest/bin/log.sh:*)",
+      "Bash(/home/stein/Desktop/Learning/finance_invest/.finvest/bin/progress.py:*)",
+      "Bash(/home/stein/Desktop/Learning/finance_invest/.finvest/bin/cost.py:*)",
+      "Bash(/home/stein/Desktop/Learning/finance_invest/.finvest/bin/wait-merged.sh:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)"
+    ]
+  }
+}
