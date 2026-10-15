@@ -2,7 +2,7 @@
 name = "finvest-market-data"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["sqlalchemy>=2", "psycopg[binary]>=3.1"]
 
 [build-system]
 requires = ["hatchling"]
