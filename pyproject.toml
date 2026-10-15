@@ -1,0 +1,53 @@
+[project]
+name = "finvest"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["finvest-market-data", "finvest-crawler", "finvest-api"]
+
+[tool.uv.workspace]
+members = ["packages/market_data", "services/crawler", "apps/api"]
+
+[tool.uv.sources]
+finvest-market-data = { workspace = true }
+finvest-crawler = { workspace = true }
+finvest-api = { workspace = true }
+
+[dependency-groups]
+dev = ["pytest", "pytest-socket", "ruff", "mypy", "import-linter", "httpx"]
+
+[tool.ruff]
+line-length = 110
+extend-exclude = [".finvest"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+addopts = "--disable-socket --allow-unix-socket"
+testpaths = ["packages", "services", "apps"]
+markers = ["db: needs the compose db; excluded from the kernel"]
+
+[tool.mypy]
+files = ["packages/market_data/finvest_market_data/domain"]
+strict = true
+
+[tool.importlinter]
+root_packages = ["finvest_market_data", "finvest_crawler", "finvest_api"]
+
+[[tool.importlinter.contracts]]
+name = "domain imports no outer layer of market_data"
+type = "forbidden"
+source_modules = ["finvest_market_data.domain"]
+forbidden_modules = ["finvest_market_data.application", "finvest_market_data.infrastructure"]
+
+[[tool.importlinter.contracts]]
+name = "domain imports no app or service"
+type = "forbidden"
+source_modules = ["finvest_market_data.domain"]
+forbidden_modules = ["finvest_crawler", "finvest_api"]
+
+[[tool.importlinter.contracts]]
+name = "application reaches infrastructure only via ports"
+type = "forbidden"
+source_modules = ["finvest_market_data.application"]
+forbidden_modules = ["finvest_market_data.infrastructure", "finvest_crawler"]
