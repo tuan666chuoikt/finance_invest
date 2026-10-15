@@ -64,9 +64,14 @@ apps/ services/ packages/ code (sẽ được tạo từ sprint 1)
 ## Chạy (backend)
 
 ```
-uv sync
-cp .env.example .env
-make test-kernel                                  # offline: pytest + ruff + mypy + import-linter
-uv run finvest-crawl ticks --date 2026-10-16      # thoát 3 "not implemented" cho tới BE-feed-ticks
-uv run uvicorn finvest_api.main:app               # GET /api/health
+cp .env.example .env                              # đặt POSTGRES_PASSWORD
+make up                                           # db + api (build lần đầu mất vài phút)
+curl http://127.0.0.1:8000/api/health             # {"status":"ok","db":"ok",...}
+make crawl DATE=2026-10-23                        # cào tick cả phiên của một ngày
 ```
+
+- Dữ liệu nằm trên máy: `data/pg` (Postgres), `data/raw` (tick thô). Cả `data/` bị git bỏ qua.
+- Chỉ api mở cổng, và chỉ trên `127.0.0.1:8000`; Postgres không mở cổng nào ra ngoài compose.
+- Chạy lại một ngày: gõ lại `make crawl DATE=<ngày>`; ghi idempotent nên không trùng. Thứ bảy/chủ nhật thì in thông báo cuối tuần rồi thoát 0.
+- Khác: `make down`, `make logs`, `make db-shell`. `make down && make up` giữ nguyên dữ liệu.
+- Phát triển không dùng Docker: `uv sync`, `make test-kernel` (offline).
