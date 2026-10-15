@@ -1,0 +1,43 @@
+# Only the api is published, and only on loopback (ADR-S-001, system.md section 5).
+x-app-env: &app-env
+  FINVEST_DATABASE_URL: postgresql+psycopg://finvest:${POSTGRES_PASSWORD:?copy .env.example to .env}@db:5432/finvest
+
+services:
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: finvest
+      POSTGRES_DB: finvest
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copy .env.example to .env}
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U finvest -d finvest"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    image: finvest-app:local
+    command: sh -c "alembic -c apps/api/alembic.ini upgrade head && uvicorn finvest_api.main:app --host 0.0.0.0 --port 8000"
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  crawler:
+    build: .
+    image: finvest-app:local
+    profiles: ["tools"]
+    entrypoint: ["finvest-crawl"]
+    environment:
+      <<: *app-env
+      FINVEST_DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
