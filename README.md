@@ -60,3 +60,13 @@ CLAUDE.md                 luật cho Scrum Master (session chính)
 docs/                     tài liệu tiếng Việt cho người đọc
 apps/ services/ packages/ code (sẽ được tạo từ sprint 1)
 ```
+
+## Chạy (backend)
+
+```
+uv sync
+cp .env.example .env
+make test-kernel                                  # offline: pytest + ruff + mypy + import-linter
+uv run finvest-crawl ticks --date 2026-10-16      # thoát 3 "not implemented" cho tới BE-feed-ticks
+uv run uvicorn finvest_api.main:app               # GET /health
+```
