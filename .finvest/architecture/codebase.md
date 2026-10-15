@@ -1,0 +1,124 @@
+# Finvest — Codebase design
+
+Owner: `fi-software-architect`. Status: **v1, 2026-10-15**. Monorepo at `FI_ROOT=/home/stein/Desktop/Learning/finance_invest`.
+Decisions: ADR-S-007 (layout, layering, dependency rule). Agent-facing text is English; UI strings live in i18n files.
+
+## 1. Repository layout
+
+```
+finance_invest/
+  apps/
+    api/                      FastAPI app (BE)            python package `finvest_api`
+      finvest_api/{main.py, routes/, schemas/, deps.py}
+      migrations/             Alembic (owns the DB schema for every context)
+      tests/
+    web/                      React + Vite + TS (FE)
+      src/{app/, features/<screen>/, components/, i18n/{en.json,vi.json}, api/ (generated client)}
+      e2e/                    Playwright + axe
+  services/
+    crawler/                  python package `finvest_crawler` (BE)
+      finvest_crawler/{cli.py, feeds/, adapters/{kbs,vci,ssi}/, archive.py, manifest.py, ratelimit.py}
+      tests/fixtures/<source>/<endpoint>/<case>.json.gz
+    analytics/                python package `finvest_analytics` (AI engineer; design in architecture/analytics.md)
+  packages/
+    market_data/              python package `finvest_market_data` — DOMAIN + repositories for the market-data context
+    market_rules/             python package `finvest_rules` — VN rules, calendar, session phase (generated from vn-market.md)
+    contracts/                openapi.json (exported from the API) + generated TS types (`npm run gen`)
+  data/                       git-ignored: pg/ raw/ exports/
+  ops/{systemd/, nginx/}      timer templates, static web config
+  docker-compose.yml  Makefile  pyproject.toml (uv workspace)  package.json (web only)
+```
+
+Python is one **uv workspace** (`pyproject.toml` at root, members = the five python packages) so `apps/api` imports
+`finvest_market_data`, `finvest_rules`, `finvest_analytics` directly; one lock file (`uv.lock`) → one audit (F-032).
+
+## 2. Bounded contexts → packages
+
+| Context | Package(s) | Owns | Talks to |
+|---|---|---|---|
+| **market-data** | `finvest_market_data` (domain, repositories), `finvest_crawler` (adapters, feeds) | symbols, calendar, ticks, bars, corporate actions, adjusted series, data quality | `finvest_rules` (calendar/session), DB |
+| **market-rules** | `finvest_rules` | rule values with `effective_from`/`verified`, ceiling/floor/tick rounding, trading calendar, session phase | nothing (pure) |
+| **portfolio-sim** (R2) | `finvest_analytics.sim` | fills, lots, fees, tax, T+2, CA events, ledger | `finvest_rules`, market-data read models |
+| **backtest** (R4) | `finvest_analytics.backtest` | strategies, walk-forward, metrics | portfolio-sim, market-data |
+| **analytics / why-it-moved** (R5) | `finvest_analytics.explain` | decomposition, evidence | market-data, backtest metrics |
+| **board-ui** | `apps/web` | all screens, i18n, states | REST only |
+| **api** | `apps/api` | HTTP, schemas, jobs | every context above (application layer) |
+
+Rule: contexts share **data through the DB read models and Python value objects**, never through each other's
+internals; `finvest_analytics` never imports `finvest_crawler`.
+
+## 3. Layering (inside each Python package)
+
+```
+domain/        pure: entities, value objects (Money=int VND, Lot, Ratio), rules, ports (Protocols)   — no I/O, no pandas
+application/   use cases / feeds: orchestrate ports, idempotent upserts, manifests
+adapters/      httpx clients per source, unit conversion, Pydantic payload models, fixtures
+infrastructure/ SQLAlchemy repositories, archive (gzip files), rate limiter, clock
+```
+
+Dependency rule, enforced by **import-linter** (`[importlinter]` in `pyproject.toml`, run in the kernel):
+`domain` ← `application` ← `adapters`/`infrastructure` ← `apps/api`, `cli`. Forbidden: `domain → *`,
+`application → adapters|infrastructure` (only via ports), `finvest_rules → anything`, `finvest_analytics → finvest_crawler`.
+
+The `MarketDataSource` port (in `finvest_market_data.domain.ports`):
+
+```python
+class MarketDataSource(Protocol):
+    name: str
+    def symbols(self) -> list[SymbolRecord]: ...
+    def close_snapshot(self, trading_date: date) -> list[DailyBarNominal]: ...        # all symbols, VND
+    def ticks(self, symbol: str, trading_date: date) -> list[Tick]: ...              # current session only
+    def bars(self, symbols: list[str], grain: Literal["1m","1d"], to: date, count: int) -> list[Bar]: ...
+    def corporate_actions(self, symbol: str, since: date) -> list[CorporateActionRecord]: ...
+    def board(self, symbols: list[str]) -> list[BoardRow]: ...                       # R3
+```
+
+Each adapter implements the subset it has (data.md §1.2) and raises `Unsupported`; feeds pick the source per feed
+from config (`FINVEST_SOURCE_TICKS=kbs`, `FINVEST_SOURCE_BARS=vci`, `FINVEST_SOURCE_SNAPSHOT=ssi`). Adapters
+convert units at the boundary and document them in the module docstring (F-010).
+
+## 4. Conventions
+
+- Python 3.12, ruff (line 110), mypy `--strict` for `domain/` and `finvest_rules`; `Decimal`/`int` only in domain,
+  numpy allowed in `finvest_analytics` internals with integer VND arrays.
+- Time: `datetime` always tz-aware; `VN = ZoneInfo("Asia/Ho_Chi_Minh")`; storage UTC; `trading_date` is a `date`.
+- IDs/keys: natural keys (data.md §3); `source` column on every fetched row; `fetched_at` on every mutable source row.
+- Errors: domain raises typed exceptions; the API maps them to the envelope in `contracts/platform.md` §1.3.
+- Config: `pydantic-settings` from `.env` (git-ignored; no secrets exist in v1). Never print config at startup.
+- Web: feature folders; all strings via `t('key')`; numbers via one `formatVnd/formatPct/formatDate` module
+  (vi-VN always); no colour-only state (icon + text); every route has a `data-testid="route-<name>"`.
+- Commits: conventional (`feat(crawler): …`); one task = one branch `task/sprint-NN/<TASK>`.
+
+## 5. Test kernel (runs on every PR, offline, < 2 min) and full suite
+
+**BE kernel** (`make test-kernel`): `finvest_rules` unit tests (bands, ticks, rounding inward, calendar, phase);
+`finvest_market_data` domain tests (adjusted factors F-015 worked examples, tick dedupe, manifest checksum);
+adapter tests on fixtures with network disabled (`pytest-socket`); feed idempotence (run twice on the same fixture
+→ identical rows + checksum); import-linter; guardrail audit (no broker SDK in `uv.lock`, no non-allowlisted
+hosts in adapters). **From R2:** golden cases (PR-037) and Hypothesis property tests on fees/tax/lots.
+
+**FE kernel** (`npm run test`): Vitest unit tests (formatters, i18n **key-parity** test `en.json ⟷ vi.json`,
+state components), typecheck against generated contracts.
+
+**Full suite** (`make test`): kernel + Alembic migrate on a throwaway Timescale container + API tests (httpx against
+the app) + Playwright e2e (shell states, EN/VI switch, data-quality page states, rules page) + axe on every route +
+disclaimer-on-every-analysis-route test (F-032).
+
+## 6. Full-run paths (what a developer and the sponsor execute)
+
+| Path | Command | Proves |
+|---|---|---|
+| Start | `docker compose up -d` → http://127.0.0.1:8080 (prod) or `:5173` (dev) | F-030, N1 |
+| Crawl one date | `make crawl DATE=2026-10-14` → `docker compose run --rm crawler all --date 2026-10-14` | F-019 manual re-run |
+| One feed | `docker compose run --rm crawler ticks --date 2026-10-15 --only VN30` | F-017/F-018 |
+| Install timers | `make install-timers` (copies `ops/systemd/*` to `~/.config/systemd/user`, enables, lingers) | F-019 |
+| Generate rules | `uv run finvest-rules generate` → `packages/market_rules/finvest_rules/rules.generated.py` from `vn-market.md` | F-001 |
+| Export contracts | `make contracts` → `packages/contracts/openapi.json` + `apps/web/src/api/types.ts` | contract drift check (CI fails if dirty) |
+| Tests | `make test-kernel`, `make test`, `npm run test`, `npm run e2e` | §5 |
+
+## 7. Sprint-01 file ownership hint (for `/fi-sprint-plan`)
+
+Exclusive file sets that can run in parallel: `packages/market_rules/**` · `services/crawler/finvest_crawler/adapters/kbs/**`
+· `…/adapters/vci/**` · `…/adapters/ssi/**` · `services/crawler/finvest_crawler/{archive,manifest,ratelimit}.py` ·
+`apps/api/migrations/**` + `packages/market_data/**` (schema first) · `apps/web/src/{app,i18n}/**` · `docker-compose.yml`
++ `Makefile` + `ops/**`. Feeds (`feeds/ticks.py` …) come after the adapters and the schema.

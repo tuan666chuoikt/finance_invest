@@ -1,0 +1,10 @@
+2026-10-15 18:03 | po      | PRD                      | built     | 56 PR-### (31 M/17 S/8 C), 8 sponsor questions A5-A12 | product/prd.md
+2026-10-15 18:03 | po      | PRD                      | note      | correction: 60 PR-### (34 M/17 S/9 C), 8 questions A5-A12 | product/prd.md
+2026-10-15 18:18 | po      | PRD                      | changes   | PRD v2: A5-A12 applied; tick crawl best-effort (A7), EN/VI switch PR-137 (A8), news to R6 (A9), data in repo/data + backup Could (A12); 61 P | product/prd.md
+2026-10-15 18:21 | sm      | PRD                      | decision  | sponsor approved PRD v2 (61 PR) | product/prd.md
+2026-10-15 18:26 | pm      | BACKLOG                  | built     | 71 v1 stories/251 pts (R1 22/81) + 9 R6 ~41; 3 R1 UX specs; roadmap S01-S13 @20 [assumed]; A13-A14 | product/backlog.md
+2026-10-15 20:47 | sm      | BACKLOG                  | decision  | sponsor approved backlog; A13=5%, A14/A15=top30 by traded value | product/backlog.md
+2026-10-15 20:47 | pm      | BACKLOG                  | changes   | Applied A13 (rf 5%/yr editable) and A14+A15 (top-30 by 20-session avg traded value, weekly) to F-018/F-061/F-090; closed A13-A15; status App | -
+2026-10-15 21:05 | arch    | ARCH                     | built     | 9 ADRs; PG16+Timescale, own KBS/VCI/SSI adapters (vnstock unusable), FastAPI+React, systemd timers, polling board; A16-A18 | architecture/system.md
+2026-10-15 21:16 | ai-arch | ARCH                     | built     | analytics.md + contracts/analytics.md + ADR-A-001..006; vn-market verified 13/20 rules, 5 still [verify], HNX ETF tick 100->1d; A19-A21 aske | architecture/analytics.md
+2026-10-15 21:31 | sm      | ARCH                     | decision  | sponsor approved architecture; A16-A21 all option A | -
