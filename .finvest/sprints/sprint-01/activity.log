@@ -12,3 +12,16 @@
 2026-10-15 21:58 | dev     | BE-adapter-kbs           | pr-open   | kernel 34 passed (12 new), ruff/mypy/lint-imports ok; ~200 lines | 3-build.BE-adapter-kbs.md
 2026-10-15 21:58 | dev     | BE-schema                | pr-open   | db 6 passed, kernel 22 passed, ruff/mypy/lint-imports ok; ~410 lines vs 200 plan | 3-build.BE-schema.md
 2026-10-15 21:58 | lead    | BE-adapter-kbs           | merged    | 53e6d99; kernel 34 passed, 0 must-fix, 2 nits | sprints/sprint-01/3-pr.BE-adapter-kbs.md
+2026-10-15 22:01 | lead    | BE-schema                | changes   | 1 must-fix (db tests downgrade the app DB); kernel 34 passed, db 6 passed | 3-pr.BE-schema.md
+2026-10-15 22:02 | dev     | BE-adapter-vci-ssi       | pr-open   | kernel 63 passed (29 new), ruff+mypy+import-linter clean, 253 prod lines | 3-build.BE-adapter-vci-ssi.md
+2026-10-15 22:02 | dev     | BE-schema                | changes   | fix round 1: db tests guarded to *_test (6 skipped on finvest, 6 passed on finvest_test), side CHAR(1); kernel 34 passed | 3-build.BE-schema.md
+2026-10-15 22:03 | lead    | BE-adapter-vci-ssi       | merged    | 68c94c6; 0 must-fix, 4 nits; kernel 63 passed, ruff/mypy/lint-imports ok | sprints/sprint-01/3-pr.BE-adapter-vci-ssi.md
+2026-10-15 22:04 | lead    | BE-schema                | merged    | 21754d4; round 2 APPROVE, kernel 63 passed, db 6 passed + guard 6 skipped | 3-pr.BE-schema.md
+2026-10-15 22:08 | dev     | BE-compose               | pr-open   | compose up: health ok, only 127.0.0.1:8000, weekend crawl msg ok, restart keeps data | 3-build.BE-compose.md
+2026-10-15 22:11 | lead    | BE-compose               | changes   | 1 must-fix (stale crawler image); health ok 10s, kernel 63 passed | 3-pr.BE-compose.md
+2026-10-15 22:13 | fi-be-dev | BE-compose               | fix-round | shared image + crawl --build; head 4548ca9 | .finvest/sprints/sprint-01/3-build.BE-compose.md
+2026-10-15 22:15 | lead    | BE-compose               | merged    | f796d6d; round 2 APPROVE; health ok 4s, 63 passed, crawl rebuild proven | 3-pr.BE-compose.md
+2026-10-15 22:19 | dev     | BE-feed-ticks            | pr-open   | kernel 70 passed, db 7 passed, ruff/mypy/lint-imports ok; ~135 prod lines vs 240 plan | sprints/sprint-01/3-build.BE-feed-ticks.md
+2026-10-15 22:21 | lead    | BE-feed-ticks            | changes   | 2 must-fix (empty-tape probe marks session missed; universe SourceBlocked not recorded blocked); kernel 70 passed | .finvest/sprints/sprint-01/3-pr.BE-feed-ticks.md
+2026-10-15 22:22 | dev     | BE-feed-ticks            | pr-open   | fix round 1: both must-fix done, kernel 72 passed, ruff/mypy/lint-imports ok | 3-build.BE-feed-ticks.md
+2026-10-15 22:23 | lead    | BE-feed-ticks            | merged    | 36788eb; round 2 APPROVE, 2 must-fix resolved; kernel 72 passed, feed 12 passed | 3-pr.BE-feed-ticks.md

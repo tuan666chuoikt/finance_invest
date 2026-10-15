@@ -30,4 +30,9 @@ data.md §3 columns/PKs; platform.md §4 upsert, no DELETE; ADR-S-008 key (symbo
 `apps/api/pyproject.toml`, `packages/market_data/pyproject.toml`, `uv.lock` (dependencies only).
 
 ## Notes for tester
-Run: `docker run -d --rm -p 127.0.0.1:55432:5432 -e POSTGRES_USER=finvest -e POSTGRES_PASSWORD=finvest -e POSTGRES_DB=finvest timescale/timescaledb:2.17.2-pg16` then `FINVEST_DATABASE_URL=postgresql+psycopg://finvest:finvest@127.0.0.1:55432/finvest uv run pytest -m db`. The module fixture downgrades to base first, so use a throwaway DB.
+Run: `docker run -d --rm -p 127.0.0.1:55432:5432 -e POSTGRES_USER=finvest -e POSTGRES_PASSWORD=finvest -e POSTGRES_DB=finvest_test timescale/timescaledb:2.17.2-pg16` then `FINVEST_DATABASE_URL=postgresql+psycopg://finvest:finvest@127.0.0.1:55432/finvest_test uv run pytest -m db`. The module fixture downgrades to base first, so the db name must end in `_test`; otherwise the tests skip.
+
+## Fix round 1
+- Must-fix 1: db tests skip unless the URL's database name ends in `_test` (`make_url(URL).database`); nothing is touched otherwise. Proof: URL=.../finvest -> 6 skipped; URL=.../finvest_test -> 6 passed (timescaledb:2.17.2-pg16). Tester note updated to `finvest_test`.
+- Nit: `ticks.side` is now `CHAR(1)` (matches migration/card). Infrastructure mypy errors left (not gating).
+- Merged origin/sprint-01 (clean). `make test-kernel` exit 0 (34 passed, 6 deselected; ruff, mypy, lint-imports ok).
