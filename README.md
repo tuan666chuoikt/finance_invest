@@ -68,5 +68,5 @@ uv sync
 cp .env.example .env
 make test-kernel                                  # offline: pytest + ruff + mypy + import-linter
 uv run finvest-crawl ticks --date 2026-10-16      # thoát 3 "not implemented" cho tới BE-feed-ticks
-uv run uvicorn finvest_api.main:app               # GET /health
+uv run uvicorn finvest_api.main:app               # GET /api/health
 ```

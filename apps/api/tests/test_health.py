@@ -29,7 +29,7 @@ class _Engine:
 def _get(fail):
     app.dependency_overrides[get_engine] = lambda: _Engine(fail)
     try:
-        return TestClient(app).get("/health")
+        return TestClient(app).get("/api/health")
     finally:
         app.dependency_overrides.clear()
 
@@ -43,4 +43,5 @@ def test_health_ok():
 def test_health_db_down():
     r = _get(True)
     assert r.status_code == 503
+    assert set(r.json()["error"]) == {"code", "message", "details"}
     assert r.json()["error"]["code"] == "DB_UNAVAILABLE"

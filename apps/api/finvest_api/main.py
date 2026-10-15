@@ -16,7 +16,7 @@ def get_engine() -> Engine:
     return create_engine(url, pool_pre_ping=True, connect_args={"connect_timeout": 3})
 
 
-@app.get("/health")
+@app.get("/api/health")
 def health(engine: Engine = Depends(get_engine)):
     try:
         with engine.connect() as c:
