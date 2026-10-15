@@ -1,2 +1,14 @@
 2026-10-15 21:32 | pm      | SPRINT-01                | built     | Goal: ticks collected every evening; F-020,F-030,F-010,F-011,F-017 = 20/20 pts [assumed velocity]; M1-M3; no sponsor Qs | 1-sprint-plan.md
 2026-10-15 21:40 | arch    | SPRINT-01                | built     | 8 BE tasks (0 FE, 0 AI), 1560 lines; critical path scaffold>domain>schema>feed-ticks; PM calls 1+2 accepted; platform.md §4 clarified | 2-tech-plan.md
+2026-10-15 21:47 | sm      | build                    | started   | sprint-01 workflow wf_dba5af9f-97e, 8 BE tasks, 2 BE seats, portable mode | -
+2026-10-15 21:49 | dev     | BE-scaffold              | pr-open   | kernel green: 5 passed, ruff ok, mypy ok, 3 contracts kept | 3-build.BE-scaffold.md
+2026-10-15 21:51 | lead    | BE-scaffold              | changes   | 1 must-fix: /health not under /api base (404 on /api/health); kernel 5 passed, lint-imports 3 kept; H 941227c | 3-pr.BE-scaffold.md
+2026-10-15 21:51 | dev     | BE-scaffold              | note      | fix round 1: /api/health, kernel 5 passed | .finvest/sprints/sprint-01/3-build.BE-scaffold.md
+2026-10-15 21:52 | lead    | BE-scaffold              | merged    | 446bc78; round 2 approve, kernel 5 passed, lint-imports 3 kept | 3-pr.BE-scaffold.md
+2026-10-15 21:53 | dev     | BE-fetcher               | pr-open   | kernel 14 passed, ruff/mypy/import-linter ok | 3-build.BE-fetcher.md
+2026-10-15 21:53 | dev     | BE-domain                | pr-open   | kernel 13 passed, ruff ok, mypy strict ok, lint-imports ok; ~230 lines | 3-build.BE-domain.md
+2026-10-15 21:54 | lead    | BE-fetcher               | merged    | cf49a8e; kernel 14 passed, 0 must-fix | 3-pr.BE-fetcher.md
+2026-10-15 21:55 | lead    | BE-domain                | merged    | bfe14bc; 0 must-fix, 3 nits; kernel 22 passed, ruff/mypy/lint-imports ok | 3-pr.BE-domain.md
+2026-10-15 21:58 | dev     | BE-adapter-kbs           | pr-open   | kernel 34 passed (12 new), ruff/mypy/lint-imports ok; ~200 lines | 3-build.BE-adapter-kbs.md
+2026-10-15 21:58 | dev     | BE-schema                | pr-open   | db 6 passed, kernel 22 passed, ruff/mypy/lint-imports ok; ~410 lines vs 200 plan | 3-build.BE-schema.md
+2026-10-15 21:58 | lead    | BE-adapter-kbs           | merged    | 53e6d99; kernel 34 passed, 0 must-fix, 2 nits | sprints/sprint-01/3-pr.BE-adapter-kbs.md
