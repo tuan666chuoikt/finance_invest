@@ -121,6 +121,9 @@ symbols_skipped, reason}]` for every day of the month; `pending` = trading day n
   "symbols_fetched": 1537, "symbols_skipped": [ {"symbol": "ABC", "reason": "http_429"} ],
   "universe": {"source": "symbols table", "as_of": "2026-10-15T15:20:03+07:00", "count": 1541} }
 ```
+  `universe.source ∈ symbols table | vci:symbols/getAll (S01, before F-004) | cli:--only`; `checksum` canonical line =
+  `symbol,ts,seq,price,volume,side` with `ts` as `%Y-%m-%dT%H:%M:%S.%f+00:00` (UTC, 6 digits), `side` empty when
+  null; lines sorted bytewise, `\n`-joined, trailing `\n`; `requests` counts HTTP calls made (archive replays excluded).
   `status ∈ complete | partial | missed | blocked | failed`; `reason` for `missed` is one of `machine_off`,
   `source_no_longer_serves`, `source_blocked`, `holiday_misconfigured`. The DB row `crawl_sessions` mirrors the
   manifest; the manifest file is the audit copy.

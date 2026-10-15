@@ -10,7 +10,9 @@ export const meta = {
 //   leads: { fe: 1, be: 1 }            concurrent lead reviews per side (ai PRs go to the BE lead)
 //   skip: ['TASK', ...]                tasks to leave out
 //   only: ['TASK', ...]                run only these (plus nothing else); omit for all
-//   stage: { 'FE-board': 'fix' } }     SM override of an open task's first stage
+//   stage: { 'FE-board': 'fix' }      SM override of an open task's first stage
+//   portable: true }                   session not opened in FI_ROOT (fi-* agent types not registered):
+//                                      run general-purpose agents told to follow .claude/agents/<type>.md
 const A = args
 const R = '/home/stein/Desktop/Learning/finance_invest'
 const FD = `${R}/.finvest`
@@ -19,6 +21,10 @@ const WT = '/home/stein/Desktop/Learning/finance_invest-worktrees'
 const DEV = { fe: 'fi-fe-dev', be: 'fi-be-dev', ai: 'fi-ai-engineer' }
 const OWNER = { sa: ['fi-software-architect', 'fable'], ai: ['fi-ai-architect', 'fable'], pm: ['fi-pm', 'opus'], po: ['fi-po', 'fable'] }
 const OWNERS = { type: 'array', items: { type: 'string', enum: ['sa', 'ai', 'pm', 'po'] } }
+// shortcut: portable mode loses omitClaudeMd/maxTurns/cacheTtl from the agent frontmatter; open the session in FI_ROOT to get them.
+const run = (prompt, o) => A.portable && o.agentType
+  ? agent(`You are ${o.agentType}. First read ${R}/.claude/agents/${o.agentType}.md (your role definition) and follow it.\n\n${prompt}`, { ...o, agentType: 'general-purpose' })
+  : agent(prompt, o)
 const BUILD = { type: 'object', required: ['result', 'note'], properties: {
   result: { type: 'string', enum: ['DONE', 'CONSULTING', 'BLOCKED'] }, head: { type: 'string' }, pr: { type: 'string' },
   owners: OWNERS, blockedBy: { type: 'string', description: 'task id of an unmerged branch that edits the same lines, if that is the block' },
@@ -72,13 +78,13 @@ const chores = () => agent(`In ${R} run \`${FD}/bin/sm.sh finvest "docs(finvest)
 
 const leadSide = t => (t.side === 'fe' ? 'fe' : 'be')
 const dev = (t, prompt, label) => withSem(seats[t.side], () =>
-  agent(prompt, { label: `${label}:${t.id}`, phase: 'Build', agentType: DEV[t.side], model: 'sonnet', effort: t.effort || 'medium', schema: BUILD }))
+  run(prompt, { label: `${label}:${t.id}`, phase: 'Build', agentType: DEV[t.side], model: 'sonnet', effort: t.effort || 'medium', schema: BUILD }))
 const lead = t => withSem(leadSem[leadSide(t)], () =>
-  agent(leadPrompt(t, leadSide(t).toUpperCase()), { label: `lead-${leadSide(t)}:${t.id}`, phase: 'Review',
+  run(leadPrompt(t, leadSide(t).toUpperCase()), { label: `lead-${leadSide(t)}:${t.id}`, phase: 'Review',
     agentType: 'fi-tech-lead', model: t.leadModel || 'sonnet', effort: t.leadModel === 'opus' ? 'high' : (t.effort || 'medium'), schema: LEAD }))
 const consult = async (t, owners, where) => {
   const list = owners && owners.length ? owners : ['sa']
-  const answers = await parallel(list.map(o => () => agent(
+  const answers = await parallel(list.map(o => () => run(
     `Mode: consult. ${COMMON}\nFollow ${FD}/briefs/owner.md "Consult mode". Answer the questions addressed to you about task ${t.id} in ${where}. Update your own documents first (plan, dag.json, contracts, architecture or UX spec, archiving per the rules), then write SPRINT_DIR/3-consult.${t.id}.answer.${o}.md. Set needsSponsor=true if only the sponsor can decide.`,
     { label: `consult-${o}:${t.id}`, phase: 'Consult', agentType: OWNER[o][0], model: OWNER[o][1], schema: ANSWER })))
   const ok = answers.filter(Boolean)

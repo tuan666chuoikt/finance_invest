@@ -1,0 +1,15 @@
+{
+  "sprint": "sprint-01",
+  "plan": "v1.0",
+  "dagRev": 1,
+  "tasks": [
+    { "id": "BE-scaffold",        "side": "be", "lane": "BE-1", "milestone": "M1", "after": [],                                                        "effort": "medium", "leadModel": "opus",   "bothLeads": false, "priority": 1, "manual": false, "size": 180 },
+    { "id": "BE-domain",          "side": "be", "lane": "BE-1", "milestone": "M2", "after": ["BE-scaffold"],                                           "effort": "high",   "leadModel": "opus",   "bothLeads": false, "priority": 2, "manual": false, "size": 170 },
+    { "id": "BE-fetcher",         "side": "be", "lane": "BE-2", "milestone": "M2", "after": ["BE-scaffold"],                                           "effort": "medium", "leadModel": "sonnet", "bothLeads": false, "priority": 2, "manual": false, "size": 210 },
+    { "id": "BE-schema",          "side": "be", "lane": "BE-1", "milestone": "M1", "after": ["BE-domain"],                                             "effort": "high",   "leadModel": "opus",   "bothLeads": false, "priority": 3, "manual": false, "size": 200 },
+    { "id": "BE-adapter-kbs",     "side": "be", "lane": "BE-2", "milestone": "M2", "after": ["BE-domain", "BE-fetcher"],                               "effort": "high",   "leadModel": "sonnet", "bothLeads": false, "priority": 3, "manual": false, "size": 180 },
+    { "id": "BE-adapter-vci-ssi", "side": "be", "lane": "BE-2", "milestone": "M2", "after": ["BE-domain", "BE-fetcher"],                               "effort": "high",   "leadModel": "sonnet", "bothLeads": false, "priority": 4, "manual": false, "size": 230 },
+    { "id": "BE-compose",         "side": "be", "lane": "BE-1", "milestone": "M1", "after": ["BE-schema"],                                             "effort": "medium", "leadModel": "opus",   "bothLeads": false, "priority": 4, "manual": false, "size": 150 },
+    { "id": "BE-feed-ticks",      "side": "be", "lane": "BE-1", "milestone": "M3", "after": ["BE-schema", "BE-adapter-kbs", "BE-adapter-vci-ssi", "BE-compose"], "effort": "high", "leadModel": "opus", "bothLeads": false, "priority": 5, "manual": false, "size": 240 }
+  ]
+}

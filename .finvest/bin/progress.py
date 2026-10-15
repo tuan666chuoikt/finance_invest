@@ -67,11 +67,11 @@ if stories:
     for s in stories:
         pts = float(s[1]) if len(s) > 1 and s[1] else 0
         pts_all += pts
-        if all(t in merged for t in tasks_of(s)):
+        if tasks_of(s) and all(t in merged for t in tasks_of(s)):  # no tasks yet = not done
             pts_done += pts
     print(f'-- stories: {pts_done:g}/{pts_all:g} points have all tasks merged')
 for m in tsv('milestones.tsv'):
-    left = [t for t in tasks_of(m) if t not in merged]
+    left = [t for t in tasks_of(m) if t not in merged] if tasks_of(m) else ['(no tasks yet)']
     print(f"-- milestone {m[0]} {m[1] if len(m) > 1 else ''} due {m[2] if len(m) > 2 else '?'}: "
           + ('all merged' if not left else f'{len(left)} left: {", ".join(left[:8])}'))
 if '--mark' in args:

@@ -1,0 +1,5 @@
+F-020	1	Data folder under the repo, git-ignored	BE-scaffold,BE-compose
+F-030	3	Local docker compose, one-command start and crawl	BE-compose,BE-feed-ticks
+F-010	5	MarketDataSource adapter with fixtures and unit conversion	BE-domain,BE-adapter-kbs,BE-adapter-vci-ssi
+F-011	3	Rate limits, caching, backoff, stop on block	BE-fetcher
+F-017	8	Tick crawl after close with manifest	BE-schema,BE-feed-ticks
