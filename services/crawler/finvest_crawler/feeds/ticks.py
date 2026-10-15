@@ -25,8 +25,6 @@ FEED = "ticks"
 def _skip_reason(e: Exception) -> str:
     if isinstance(e, PayloadShapeError):
         return "payload_shape"
-    if isinstance(e, SourceNoLongerServes):
-        return "no_ticks"  # one symbol with an empty tape (halted); only the probe symbol means "missed"
     if isinstance(e, httpx.HTTPStatusError):
         return f"http_{e.response.status_code}"
     m = re.search(r"last status (\d+)", str(e))  # Fetcher's "failed after N tries" error
@@ -68,26 +66,31 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit) -> Manifest:
     run_id = repo.insert_crawl_run(conn, FEED, trading_date, started)
     commit()
     source = source_for("ticks", settings, fetcher)
+    blocked = False
     try:
         if only:
             names, uni_src, as_of = sorted(set(only)), "cli:--only", started
         else:
-            names = sorted(r.symbol for r in source_for("symbols", settings, fetcher).symbols())
-            uni_src, as_of = "vci:symbols/getAll", datetime.now(UTC)
+            uni_src, as_of, names = "vci:symbols/getAll", datetime.now(UTC), []
+            try:
+                names = sorted(r.symbol for r in source_for("symbols", settings, fetcher).symbols())
+            except SourceBlocked:
+                blocked = True  # no universe, nothing to fetch: record `blocked` below like an in-loop block
         # sorted symbols => per-symbol sorted lines concatenate into the globally sorted checksum input
         digest, rows, fetched = hashlib.sha256(), 0, 0
         skipped: list[tuple[str, str]] = []
-        status, reason = "complete", None
+        status, reason = ("blocked", "source_blocked") if blocked else ("complete", None)
         for i, sym in enumerate(names):
             t0, replays0 = time.perf_counter(), fetcher.replays
             try:
                 tape = source.ticks(sym, trading_date)
-            except SourceNoLongerServes:
-                if i:
-                    skipped.append((sym, "no_ticks"))
-                    continue
-                status, reason = "missed", "source_no_longer_serves"  # the probe: source moved on
-                break
+            except SourceNoLongerServes as e:
+                # empty tape (served_date None) = halted name: inconclusive, next stays the probe
+                if e.served_date is not None and not fetched:
+                    status, reason = "missed", "source_no_longer_serves"  # another session served: moved on
+                    break
+                skipped.append((sym, "no_ticks"))
+                continue
             except SourceBlocked:
                 skipped += [(s, "source_blocked") for s in names[i:]]
                 status, reason = "blocked", "source_blocked"

@@ -121,6 +121,21 @@ def test_blocked_stops_and_exit_code_2(tmp_path, monkeypatch):
     assert cli.main(["ticks", "--date", "2026-10-15"]) == 2
 
 
+def test_empty_first_tape_is_inconclusive_not_missed(tmp_path):
+    m, f, _ = run(tmp_path, serve({"FPT": b'{"data": []}'}))
+    assert (m.status, m.reason, m.symbols_fetched, m.rows, m.requests) == ("partial", None, 1, 50, 3)
+    assert m.symbols_skipped == (("FPT", "no_ticks"),)
+
+
+def test_universe_blocked_records_manifest_and_session(tmp_path):
+    h = lambda req: httpx.Response(429)  # noqa: E731
+    m, f, repo = run(tmp_path, h)
+    assert (m.status, m.reason, m.symbols_fetched, m.rows) == ("blocked", "source_blocked", 0, 0)
+    on_disk = json.loads((tmp_path / "raw/ticks/2026-10-15/_manifest.json").read_text())
+    assert on_disk["status"] == "blocked" and repo.sessions[("ticks", D)].status == "blocked"
+    assert repo.runs[1][0] == "blocked"
+
+
 def test_payload_shape_skips_one_symbol_only(tmp_path):
     bad = load("VNM").replace(b'"FMP"', b'"PRICE"')
     m, _, repo = run(tmp_path, serve({"VNM": bad}))
