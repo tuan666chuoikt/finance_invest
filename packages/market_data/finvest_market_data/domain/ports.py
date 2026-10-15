@@ -1,0 +1,37 @@
+"""The `MarketDataSource` port (codebase.md §3), S01 subset. Adapters raise `Unsupported` otherwise."""
+
+from datetime import date
+from pathlib import Path
+from typing import Literal, Protocol
+
+from finvest_market_data.domain.models import Bar, SymbolRecord, Tick
+
+
+class SourceError(Exception):
+    """Base of every source failure."""
+
+
+class Unsupported(SourceError):
+    """This source does not implement the requested method."""
+
+
+class SourceNoLongerServes(SourceError):
+    """The source can no longer serve the requested session (manifest reason `source_no_longer_serves`)."""
+
+
+class PayloadShapeError(SourceError):
+    """Payload failed schema validation; `raw_path` points at the saved raw bytes."""
+
+    def __init__(self, message: str, raw_path: Path) -> None:
+        super().__init__(f"{message} (raw: {raw_path})")
+        self.raw_path = raw_path
+
+
+class MarketDataSource(Protocol):
+    name: str
+
+    def symbols(self) -> list[SymbolRecord]: ...
+
+    def ticks(self, symbol: str, trading_date: date) -> list[Tick]: ...
+
+    def bars(self, symbols: list[str], grain: Literal["1m", "1d"], to: date, count: int) -> list[Bar]: ...
