@@ -16,7 +16,14 @@ class Unsupported(SourceError):
 
 
 class SourceNoLongerServes(SourceError):
-    """The source can no longer serve the requested session (manifest reason `source_no_longer_serves`)."""
+    """The source can no longer serve the requested session (manifest reason `source_no_longer_serves`).
+
+    `served_date` is the session the source did serve instead, or None when it served nothing.
+    """
+
+    def __init__(self, symbol: str, served_date: date | None = None) -> None:
+        super().__init__(f"{symbol}: source serves {served_date or 'no session'}, not the requested one")
+        self.symbol, self.served_date = symbol, served_date
 
 
 class PayloadShapeError(SourceError):
