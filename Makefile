@@ -18,6 +18,6 @@ down:
 logs:
 	docker compose logs -f --tail=100
 crawl:
-	docker compose run --rm crawler ticks --date $(DATE)
+	docker compose run --rm --build crawler ticks --date $(DATE)
 db-shell:
 	docker compose exec db psql -U finvest finvest
