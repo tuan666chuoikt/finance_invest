@@ -1,6 +1,7 @@
 """SQLAlchemy Core tables for the market-data store (data.md §3). Core only, no ORM (ADR-S-001)."""
 
 from sqlalchemy import (
+    CHAR,
     BigInteger,
     CheckConstraint,
     Column,
@@ -8,7 +9,6 @@ from sqlalchemy import (
     Identity,
     Integer,
     MetaData,
-    String,
     Table,
     Text,
     func,
@@ -27,7 +27,7 @@ ticks = Table(
     Column("seq", BigInteger, primary_key=True),
     Column("price", BigInteger, nullable=False),  # integer VND
     Column("volume", BigInteger, nullable=False),
-    Column("side", String(1)),
+    Column("side", CHAR(1)),
     Column("source", Text, nullable=False),
     CheckConstraint("side IN ('B','S')", name="ticks_side_check"),
 )

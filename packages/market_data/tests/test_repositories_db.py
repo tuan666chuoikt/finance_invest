@@ -12,6 +12,7 @@ from finvest_market_data.domain.models import Tick
 from finvest_market_data.infrastructure import repositories as repo
 from finvest_market_data.infrastructure.tables import ticks
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError
 
 URL = os.environ.get("FINVEST_DATABASE_URL")
@@ -19,6 +20,11 @@ pytestmark = [
     pytest.mark.db,
     pytest.mark.enable_socket,
     pytest.mark.skipif(not URL, reason="FINVEST_DATABASE_URL not set"),
+    # the fixture runs `alembic downgrade base` (drops every table): never on the real db
+    pytest.mark.skipif(
+        bool(URL) and not (make_url(URL).database or "").endswith("_test"),
+        reason="db name must end in _test (tests drop all tables)",
+    ),
 ]
 INI = Path(__file__).parents[3] / "apps" / "api" / "alembic.ini"
 D = date(2026, 10, 15)
