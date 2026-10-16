@@ -1,4 +1,4 @@
-"""Ticks feed: universe -> probe -> archive-first fetch -> upsert -> manifest (platform.md 4, ADR-S-008)."""
+"""Ticks feed: universe -> archive-first fetch -> upsert -> manifest (platform.md 4, ADR-S-008)."""
 
 import hashlib
 import json
@@ -6,6 +6,7 @@ import re
 import time
 from datetime import UTC, date, datetime
 from types import ModuleType
+from zoneinfo import ZoneInfo
 
 import httpx
 from finvest_market_data.domain.manifest import Manifest, canonical_line, dedupe
@@ -20,6 +21,7 @@ from finvest_crawler.ratelimit import TokenBucket
 from finvest_crawler.settings import Settings
 
 FEED = "ticks"
+VN = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
 def _skip_reason(e: Exception) -> str:
@@ -44,6 +46,7 @@ def run_ticks(
     fetcher: Fetcher | None = None,
     conn: Connection | None = None,
     repo: ModuleType = repositories,  # tests pass an in-memory fake with the same functions
+    today: date | None = None,  # VN calendar day; tests inject it
 ) -> Manifest:
     own_client = httpx.Client() if fetcher is None else None
     fetcher = fetcher or _fetcher(settings, own_client)  # type: ignore[arg-type]
@@ -52,7 +55,8 @@ def run_ticks(
     # we only commit what we opened: a caller-supplied conn keeps its own transaction
     commit = conn.commit if own_engine else (lambda: None)
     try:
-        return _run(settings, trading_date, only, fetcher, conn, repo, commit)
+        today = today or datetime.now(VN).date()
+        return _run(settings, trading_date, only, fetcher, conn, repo, commit, today)
     finally:
         if own_client:
             own_client.close()
@@ -61,8 +65,9 @@ def run_ticks(
             own_engine.dispose()
 
 
-def _run(settings, trading_date, only, fetcher, conn, repo, commit) -> Manifest:  # noqa: ANN001
+def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Manifest:  # noqa: ANN001
     started, req0 = datetime.now(UTC), fetcher.requests
+    repo.fail_unfinished_runs(conn, FEED, trading_date)
     run_id = repo.insert_crawl_run(conn, FEED, trading_date, started)
     commit()
     source = source_for("ticks", settings, fetcher)
@@ -73,7 +78,11 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit) -> Manifest:
         else:
             uni_src, as_of, names = "vci:symbols/getAll", datetime.now(UTC), []
             try:
-                names = sorted(r.symbol for r in source_for("symbols", settings, fetcher).symbols())
+                recs = source_for("symbols", settings, fetcher).symbols(trading_date)
+                names = sorted(r.symbol for r in recs)
+                # the archived file's mtime = when the universe was really fetched, stable across replays
+                mtime = fetcher.archive.path("symbols", trading_date, "getAll").stat().st_mtime
+                as_of = datetime.fromtimestamp(mtime, UTC)
             except SourceBlocked:
                 blocked = True  # no universe, nothing to fetch: record `blocked` below like an in-loop block
         # sorted symbols => per-symbol sorted lines concatenate into the globally sorted checksum input
@@ -85,9 +94,11 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit) -> Manifest:
             try:
                 tape = source.ticks(sym, trading_date)
             except SourceNoLongerServes as e:
-                # empty tape (served_date None) = halted name: inconclusive, next stays the probe
-                if e.served_date is not None and not fetched:
-                    status, reason = "missed", "source_no_longer_serves"  # another session served: moved on
+                # another session served, or an empty tape for a past day: the source moved on, stop.
+                # An empty tape today is a halted name or not yet open: inconclusive, carry on.
+                if e.served_date is not None or trading_date < today:
+                    status, reason = ("missed" if not fetched else "partial"), "source_no_longer_serves"
+                    skipped += [(s, "source_no_longer_serves") for s in names[i:]] if fetched else []
                     break
                 skipped.append((sym, "no_ticks"))
                 continue

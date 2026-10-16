@@ -35,6 +35,13 @@ class FakeRepo:
         self.runs[len(self.runs) + 1] = None
         return len(self.runs)
 
+    def fail_unfinished_runs(self, conn, feed, d):
+        n = 0
+        for i, r in self.runs.items():
+            if r is None:
+                self.runs[i], n = ("failed", "interrupted", 0, 0, None), n + 1
+        return n
+
     def finish_crawl_run(self, conn, id, status, reason, requests, rows, manifest_path):
         self.runs[id] = (status, reason, requests, rows, manifest_path)
 
@@ -75,11 +82,11 @@ def serve(overrides=None):
     return handler
 
 
-def run(tmp_path, handler=None, d=D, only=None, repo=None):
+def run(tmp_path, handler=None, d=D, only=None, repo=None, today=D):
     repo = repo or FakeRepo()
     f = make(tmp_path, handler or serve())
     s = Settings(_env_file=None, data_dir=tmp_path)
-    m = feed.run_ticks(s, d, only, fetcher=f, conn=MagicMock(), repo=repo)
+    m = feed.run_ticks(s, d, only, fetcher=f, conn=MagicMock(), repo=repo, today=today)
     return m, f, repo
 
 
@@ -101,14 +108,40 @@ def test_idempotent_rerun_replays_archive(tmp_path):
     m2, f2, _ = run(tmp_path, repo=repo)
     assert repo.ticks == before and m2.checksum == m1.checksum and m2.rows == 100
     assert (m2.requests, f2.replays) == (0, 3) and not repo.anomalies
+    # universe pinned by the archive
+    assert (m2.universe_count, m2.universe_as_of) == (m1.universe_count, m1.universe_as_of)
 
 
-def test_past_date_is_missed_after_probe(tmp_path):
+def test_unfinished_run_is_closed_before_the_next(tmp_path):
+    repo = FakeRepo()
+    repo.insert_crawl_run(None, "ticks", D, None)  # a crashed run, never finished
+    run(tmp_path, repo=repo)
+    assert repo.runs[1] == ("failed", "interrupted", 0, 0, None) and repo.runs[2][0] == "complete"
+
+
+def test_past_date_other_session_is_missed(tmp_path):
     m, f, repo = run(tmp_path, d=date(2026, 10, 14))
     assert (m.status, m.reason, m.symbols_fetched, m.rows, m.requests) == (
         "missed", "source_no_longer_serves", 0, 0, 2)
     assert (tmp_path / "raw/ticks/2026-10-14/_manifest.json").exists() and not repo.ticks
     assert repo.sessions[("ticks", date(2026, 10, 14))].status == "missed"
+
+
+def test_past_date_empty_tape_after_good_one_is_partial(tmp_path):
+    tomorrow = date(2026, 10, 16)
+    Archive(tmp_path / "raw").write("ticks", D, "FPT", load("FPT"))
+    m, f, repo = run(tmp_path, serve({"VNM": b'{"data": []}'}), today=tomorrow)
+    assert (m.status, m.reason, m.symbols_fetched, m.requests) == ("partial", "source_no_longer_serves", 1, 2)
+    assert f.replays == 1
+    assert m.symbols_skipped == (("VNM", "source_no_longer_serves"),)
+    assert (tmp_path / "raw/ticks/2026-10-15/FPT.json.gz").exists()
+    assert not (tmp_path / "raw/ticks/2026-10-15/VNM.json.gz").exists()
+
+
+def test_past_date_empty_first_tape_is_missed(tmp_path):
+    m, f, _ = run(tmp_path, serve({"FPT": b'{"data": []}'}), today=date(2026, 10, 16))
+    assert (m.status, m.reason, m.symbols_fetched, m.requests) == ("missed", "source_no_longer_serves", 0, 2)
+    assert m.symbols_skipped == () and not (tmp_path / "raw/ticks/2026-10-15/FPT.json.gz").exists()
 
 
 def test_blocked_stops_and_exit_code_2(tmp_path, monkeypatch):

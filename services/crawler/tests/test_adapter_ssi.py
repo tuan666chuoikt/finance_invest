@@ -67,6 +67,6 @@ def test_source_requests_and_archives(tmp_path):
     end = int(datetime(2026, 10, 15, 16, 59, 59, tzinfo=UTC).timestamp())  # end of 15 Oct, Asia/Ho_Chi_Minh
     assert (q["resolution"], q["symbol"], q["to"]) == ("1D", "FPT", str(end))
     assert (tmp_path / "bars_1d_ssi/2026-10-15/FPT-1d-20.json.gz").exists()
-    for call in (lambda: src.symbols(), lambda: src.ticks("FPT", D), lambda: src.bars(["FPT"], "1m", D, 1)):
+    for call in (lambda: src.symbols(D), lambda: src.ticks("FPT", D), lambda: src.bars(["FPT"], "1m", D, 1)):
         with pytest.raises(Unsupported):
             call()

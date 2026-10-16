@@ -87,8 +87,8 @@ def test_source_requests_and_archives(tmp_path):
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
     f = Fetcher(client, {"vci": TokenBucket(100)}, Archive(tmp_path), "ua")
-    src = VciSource(f, today=lambda: D)
-    assert len(src.symbols()) == 27
+    src = VciSource(f)
+    assert len(src.symbols(D)) == 27
     assert len(src.bars(["FPT"], "1d", D, 50)) == 50
     assert seen[0][:2] == ("GET", "https://trading.vietcap.com.vn/api/price/symbols/getAll")
     assert seen[1][:2] == ("POST", "https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart")
@@ -97,7 +97,7 @@ def test_source_requests_and_archives(tmp_path):
     assert body["to"] == int(datetime(2026, 10, 15, 16, 59, 59, tzinfo=UTC).timestamp())
     assert (tmp_path / "symbols/2026-10-15/getAll.json.gz").exists()
     assert (tmp_path / "bars_1d/2026-10-15/FPT-1d-50.json.gz").exists()
-    src.symbols()
+    src.symbols(D)
     assert len(seen) == 2  # second call replayed from the archive
     with pytest.raises(Unsupported):
         src.ticks("FPT", D)

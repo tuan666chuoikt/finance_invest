@@ -92,6 +92,30 @@ def test_source_requests_exactly_k1_url_and_archives(tmp_path):
     assert seen == ["https://kbbuddywts.kbsec.com.vn/iis-server/investment/trade/history/FPT?page=1&limit=50000"]
     assert (tmp_path / "ticks/2026-10-15/FPT.json.gz").exists()
     with pytest.raises(Unsupported):
-        src.symbols()
+        src.symbols(D)
     with pytest.raises(Unsupported):
         src.bars(["FPT"], "1d", D, 1)
+
+
+def _src(tmp_path, body):
+    h = lambda req: httpx.Response(200, content=body)  # noqa: E731
+    client = httpx.Client(transport=httpx.MockTransport(h))
+    f = Fetcher(client, {"kbs": TokenBucket(100)}, Archive(tmp_path), "ua")
+    return KbsSource(f), f
+
+
+@pytest.mark.parametrize("body,d", [(b'{"data":[]}', D), (payload(row()), date(2026, 10, 14))])
+def test_rejected_tape_is_never_archived(tmp_path, body, d):
+    src, f = _src(tmp_path, body)
+    with pytest.raises(SourceNoLongerServes):
+        src.ticks("FPT", d)
+    assert not f.archive.path("ticks", d, "FPT").exists()
+
+
+def test_accepted_tape_written_once_then_replayed(tmp_path):
+    src, f = _src(tmp_path, load("FPT-2026-10-15.json.gz"))
+    src.ticks("FPT", D)
+    p = f.archive.path("ticks", D, "FPT")
+    m = p.stat().st_mtime_ns
+    assert len(src.ticks("FPT", D)) == 50
+    assert (f.requests, f.replays, p.stat().st_mtime_ns) == (1, 1, m)

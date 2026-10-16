@@ -21,3 +21,12 @@ def test_manifest(tmp_path):
     p = Archive(tmp_path).write_manifest("ticks", D, {"b": 1, "a": 2})
     assert p.name == "_manifest.json"
     assert p.read_text() == json.dumps({"a": 2, "b": 1}, indent=2)
+
+
+def test_path_rejects_escaping_names(tmp_path):
+    import pytest
+    a = Archive(tmp_path)
+    for bad in ("../x", "a/b", "a\\b", ".hidden", ""):
+        with pytest.raises(ValueError):
+            a.path("ticks", D, bad)
+    a.path("ticks", D, "_manifest")
