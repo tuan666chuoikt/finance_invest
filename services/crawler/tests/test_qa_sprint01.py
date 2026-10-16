@@ -80,7 +80,6 @@ def test_f017_crashed_run_is_failed_not_absent(tmp_path):
     assert repo.runs[1][0] == "failed"
 
 
-@pytest.mark.xfail(strict=True, reason="QA-BUG-1: --only symbol is used unvalidated as archive filename and URL path")
 def test_f017_symbol_param_cannot_escape_archive(tmp_path):
     """Injection on the symbol param: --only is user input and becomes URL path + archive filename."""
     evil = "../../../../escaped"
@@ -163,3 +162,38 @@ def test_f030_compose_publishes_only_api_on_loopback():
 def test_f030_make_crawl_takes_date():
     mk = (ROOT / "Makefile").read_text()
     assert "ticks --date $(DATE)" in mk and "DATE ?=" in mk
+
+
+# ---- re-test after fixes (QA-BUG-2 / QA-BUG-3) -------------------------------------------------
+EMPTY = b'{"data":[]}'
+
+
+def test_qa_bug2_late_run_empty_tape_not_archived_and_not_replayed(tmp_path):
+    m, _, _ = run(tmp_path, serve({"VNM": EMPTY}), today=date(2026, 10, 16))
+    day = tmp_path / "raw/ticks/2026-10-15"
+    assert (m.status, m.reason) == ("partial", "source_no_longer_serves")
+    assert not list(day.glob("VNM*")), "empty tape of another session must not land under the old date"
+    m2, f2, _ = run(tmp_path, serve({"VNM": EMPTY}), today=date(2026, 10, 16))  # re-run: nothing frozen in archive
+    assert f2.requests >= 1 and not list(day.glob("VNM*")) and m2.reason == "source_no_longer_serves"
+
+
+def test_qa_bug3_universe_pinned_to_date_even_if_source_drifts(tmp_path):
+    repo = FakeRepo()
+    m1, _, _ = run(tmp_path, repo=repo)
+
+    def drifted(req):
+        if "getAll" in str(req.url):
+            return httpx.Response(200, content=b'{"data":[{"symbol":"DSH","type":"STOCK"}]}')
+        return serve()(req)
+
+    m2, f2, _ = run(tmp_path, drifted, repo=repo)
+    assert f2.requests == 0 and m2.universe_count == m1.universe_count and m2.checksum == m1.checksum
+    on = json.loads((tmp_path / "raw/ticks/2026-10-15/_manifest.json").read_text())["universe"]
+    assert on["count"] == m1.universe_count
+
+
+def test_qa_bug3_killed_run_is_closed_next_time(tmp_path):
+    repo = FakeRepo()
+    repo.runs[99] = None  # crawl_runs row left unfinished by a killed run
+    run(tmp_path, repo=repo)
+    assert repo.runs[99][0] == "failed"
