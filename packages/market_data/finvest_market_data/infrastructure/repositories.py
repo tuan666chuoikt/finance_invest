@@ -57,6 +57,20 @@ def insert_crawl_run(conn: Connection, feed: str, trading_date: date, started_at
     return conn.execute(stmt.returning(crawl_runs.c.id)).scalar_one()
 
 
+def fail_unfinished_runs(conn: Connection, feed: str, trading_date: date) -> int:
+    """Close runs a crash left open (status NULL) so they never read as in progress."""
+    r = conn.execute(
+        crawl_runs.update()
+        .where(
+            crawl_runs.c.feed == feed,
+            crawl_runs.c.trading_date == trading_date,
+            crawl_runs.c.status.is_(None),
+        )
+        .values(status="failed", reason="interrupted", finished_at=func.now())
+    )
+    return r.rowcount
+
+
 def finish_crawl_run(
     conn: Connection,
     id: int,

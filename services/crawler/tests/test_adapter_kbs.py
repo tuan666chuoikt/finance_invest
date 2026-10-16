@@ -92,7 +92,7 @@ def test_source_requests_exactly_k1_url_and_archives(tmp_path):
     assert seen == ["https://kbbuddywts.kbsec.com.vn/iis-server/investment/trade/history/FPT?page=1&limit=50000"]
     assert (tmp_path / "ticks/2026-10-15/FPT.json.gz").exists()
     with pytest.raises(Unsupported):
-        src.symbols()
+        src.symbols(D)
     with pytest.raises(Unsupported):
         src.bars(["FPT"], "1d", D, 1)
 

@@ -1,5 +1,4 @@
 import hashlib
-from collections.abc import Callable
 from datetime import UTC, date, datetime, time
 from pathlib import Path
 from typing import Literal
@@ -49,11 +48,11 @@ def parse_bars(payload: bytes, raw_path: Path = Path("<unarchived>")) -> list[Ba
 class VciSource:
     name = "vci"
 
-    def __init__(self, fetcher: Fetcher, today: Callable[[], date] = lambda: datetime.now(VN).date()) -> None:
-        self.fetcher, self.today = fetcher, today
+    def __init__(self, fetcher: Fetcher) -> None:
+        self.fetcher = fetcher
 
-    def symbols(self) -> list[SymbolRecord]:
-        f, d = self.fetcher, self.today()
+    def symbols(self, as_of: date) -> list[SymbolRecord]:
+        f, d = self.fetcher, as_of
         payload = f.get("vci", f"{BASE}/price/symbols/getAll", feed="symbols", trading_date=d, name="getAll")
         return parse_symbols(payload, f.archive.path("symbols", d, "getAll"))
 

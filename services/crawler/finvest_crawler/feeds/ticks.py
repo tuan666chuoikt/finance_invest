@@ -67,6 +67,7 @@ def run_ticks(
 
 def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Manifest:  # noqa: ANN001
     started, req0 = datetime.now(UTC), fetcher.requests
+    repo.fail_unfinished_runs(conn, FEED, trading_date)
     run_id = repo.insert_crawl_run(conn, FEED, trading_date, started)
     commit()
     source = source_for("ticks", settings, fetcher)
@@ -77,7 +78,11 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
         else:
             uni_src, as_of, names = "vci:symbols/getAll", datetime.now(UTC), []
             try:
-                names = sorted(r.symbol for r in source_for("symbols", settings, fetcher).symbols())
+                recs = source_for("symbols", settings, fetcher).symbols(trading_date)
+                names = sorted(r.symbol for r in recs)
+                # the archived file's mtime = when the universe was really fetched, stable across replays
+                mtime = fetcher.archive.path("symbols", trading_date, "getAll").stat().st_mtime
+                as_of = datetime.fromtimestamp(mtime, UTC)
             except SourceBlocked:
                 blocked = True  # no universe, nothing to fetch: record `blocked` below like an in-loop block
         # sorted symbols => per-symbol sorted lines concatenate into the globally sorted checksum input
