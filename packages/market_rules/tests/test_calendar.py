@@ -9,6 +9,7 @@ def test_holiday_weekend_trading():
     assert day(date(2026, 8, 22)).is_open is False
     assert day(date(2026, 10, 16)).kind == "trading"
     assert day(date(2026, 10, 18)).kind == "weekend"
+    assert day(date(2026, 1, 2)).kind == "trading"  # unverified press-only closure, not in contract (PR-002)
 
 
 def test_trading_days_inclusive():
