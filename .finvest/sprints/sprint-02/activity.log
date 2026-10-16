@@ -1,3 +1,24 @@
 2026-10-16 22:34 | sm      | SPRINT-02                | started   | planning sprint-02 (session continued per sponsor 'continous') | -
 2026-10-16 22:36 | pm      | SPRINT-02                | built     | goal: crawl runs itself, honest status, ref data; S02-1..4,F-003,F-019,F-004,F-012 = 21 pts; C1-C5 23:00 clocks; F-031->S03 | sprints/sprint-02/1-sprint-plan.md
 2026-10-16 22:47 | arch    | SPRINT-02                | built     | 12 tasks (10 code + 2 manual), 1,519 lines; chain QA-S01-tests>status>calendar>scheduler>symbols>bars; platform.md v1.4, ADR-S-009 amended | sprints/sprint-02/2-tech-plan.md
+2026-10-16 22:48 | sm      | build                    | started   | sprint-02 workflow wf_f1a92af0-b0b, 10 tasks + 2 manual, 2 BE seats | -
+2026-10-16 22:48 | dev     | QA-S01-tests             | pr-open   | test-kernel 99 passed, 1 file +199 | 3-build.QA-S01-tests.md
+2026-10-16 22:49 | dev     | OPS-host-user            | pr-open   | compose config ok, crawler --help exit 0, id -u=1000, 19 lines; live crawl not run | 3-build.OPS-host-user.md
+2026-10-16 22:49 | lead    | QA-S01-tests             | merged    | fe3068d; kernel 99 passed, 1 file +199 | 3-pr.QA-S01-tests.md
+2026-10-16 22:50 | dev     | BE-calendar              | pr-open   | kernel 102 passed, ruff/mypy/lint-imports ok | 3-build.BE-calendar.md
+2026-10-16 22:51 | dev     | S-index-members          | pr-open   | 5 fixtures, 0 code; VCI/SSI group endpoints answer (VN30 30 rows) | 3-build.S-index-members.md
+2026-10-16 22:52 | lead    | OPS-host-user            | changes   | 1 must-fix (root-owned data/ blocks crawler); kernel 99 passed; health 200; ownership 0 non-host files | 3-pr.OPS-host-user.md
+2026-10-16 22:52 | dev     | BE-status-no-trades      | pr-open   | kernel 100 passed, ruff/mypy clean; db 8 passed; diff +59/-12 (8 files) | 3-build.BE-status-no-trades.md
+2026-10-16 22:53 | lead    | BE-calendar              | changes   | 1 must-fix (2026-01-02 row not in contract); kernel 102 passed | .finvest/sprints/sprint-02/3-pr.BE-calendar.md
+2026-10-16 22:53 | be-dev  | BE-calendar              | pr-open   | fix round 1: removed 2026-01-02 row; kernel 102 passed | 3-build.BE-calendar.md
+2026-10-16 22:54 | lead    | S-index-members          | merged    | 0bddb4b; kernel 99 passed, 5 fixtures, 0 must-fix | sprints/sprint-02/3-pr.S-index-members.md
+2026-10-16 22:55 | dev     | OPS-host-user            | fix-round-1 | mkdir data dirs in make up/crawl; proof uid 0 files | 3-build.OPS-host-user.md
+2026-10-16 22:56 | lead    | BE-status-no-trades      | merged    | a203568; 0 must-fix, 2 nits; kernel 100 passed, db 8 passed | .finvest/sprints/sprint-02/3-pr.BE-status-no-trades.md
+2026-10-16 22:56 | lead    | BE-calendar              | merged    | round 2 approve, merge 2e85959; kernel 103 passed | 3-pr.BE-calendar.md
+2026-10-16 22:59 | lead    | OPS-host-user            | merged    | 24697db; kernel 103 passed, fresh-checkout crawl FPT 2383 rows, 0 non-user files | 3-pr.OPS-host-user.md
+2026-10-16 23:00 | dev     | BE-scheduler             | pr-open   | kernel 111 passed, ruff/mypy/imports green, +90/-2 lines | 3-build.BE-scheduler.md
+2026-10-16 23:03 | lead    | BE-scheduler             | changes   | 1 must-fix (20:00 retry dead: start=last+1); kernel 111 passed, db 8 passed | 3-pr.BE-scheduler.md
+2026-10-16 23:04 | dev     | BE-scheduler             | fix-round | catchup retries last day; test-kernel green | 3-build.BE-scheduler.md
+2026-10-16 23:06 | lead    | BE-scheduler             | changes   | round 2: 1 must-fix (stray .finvest 3-build committed in task branch); fix ok; kernel 113 passed, db 8 passed | 3-pr.BE-scheduler.md
+2026-10-16 23:07 | dev     | BE-scheduler             | changes   | fix round 2: stray 3-build removed from branch, .finvest diff empty | 3-build.BE-scheduler.md
+2026-10-16 23:08 | lead    | BE-scheduler             | merged    | 7a74581; r3 approve, 0 must-fix; kernel 113 passed, db 8 passed | 3-pr.BE-scheduler.md
