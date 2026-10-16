@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.2, 2026-10-16** (§4 clarified after REVIEW-01; v1.1 = `platform.prev-2.md`) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.3, 2026-10-16** (§4 status rule, S02-1; v1.2 = `platform.prev-3.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -122,7 +122,7 @@ symbols_skipped, reason}]` for every day of the month; `pending` = trading day n
 { "feed": "ticks", "trading_date": "2026-10-15", "source": "kbs", "started_at": "...", "finished_at": "...",
   "status": "complete", "reason": null, "requests": 1541, "rows": 2314567,
   "checksum": "sha256:<hex of canonical rows: symbol,ts,seq,price,volume,side sorted, one per line>",
-  "symbols_fetched": 1537, "symbols_skipped": [ {"symbol": "ABC", "reason": "http_429"} ],
+  "symbols_fetched": 1537, "symbols_no_trades": ["XYZ"], "symbols_skipped": [ {"symbol": "ABC", "reason": "http_429"} ],
   "universe": {"source": "symbols table", "as_of": "2026-10-15T15:20:03+07:00", "count": 1541} }
 ```
   `universe.source ∈ symbols table | vci:symbols/getAll (S01, before F-004) | cli:--only`; `checksum` canonical line =
@@ -131,9 +131,15 @@ symbols_skipped, reason}]` for every day of the month; `pending` = trading day n
   `status ∈ complete | partial | missed | blocked | failed`; `reason` for `missed` is one of `machine_off`,
   `source_no_longer_serves`, `source_blocked`, `holiday_misconfigured`. `reason` for `partial` is null unless the
   loop stopped early (`source_no_longer_serves`): the untouched symbols are then listed in `symbols_skipped` with
-  that reason. Per-symbol skip reasons: `http_<status> | payload_shape | timeout | no_ticks | source_blocked |
+  that reason. Per-symbol skip reasons: `http_<status> | payload_shape | timeout | source_blocked |
   source_no_longer_serves`. K1 serves the current session only, so for a `trading_date` before today (VN) an
-  empty or other-session tape is conclusive (`source_no_longer_serves`); for today an empty tape is `no_ticks`.
+  empty or other-session tape is conclusive (`source_no_longer_serves`); for today an empty tape is **no trades**:
+  the symbol goes to `symbols_no_trades` (sorted list, not a skip, contributes no rows, never archived so a re-run
+  asks again). Status rule: `complete` = every symbol in the universe is fetched or no-trade; `partial` = at least one
+  symbol in `symbols_skipped`; `symbols_fetched + len(symbols_no_trades) + len(symbols_skipped) = universe.count`
+  (except `--only`, where it equals the list given). S02-1 (v1.3): `no_ticks` was a skip reason and turned every
+  session with an illiquid name into `partial`. Caveat: "no trades" and "source answered empty by mistake" look
+  the same on the tape; cross-check against daily volume once F-012 lands.
   A run first closes unfinished `crawl_runs` rows of its `(feed, trading_date)` as `failed`, reason `interrupted`.
   The DB row `crawl_sessions` mirrors the manifest; the manifest file is the audit copy.
 - Normalisation (adapter responsibility): price → integer VND (SSI history ×1000; KBS/VCI already VND), volume →

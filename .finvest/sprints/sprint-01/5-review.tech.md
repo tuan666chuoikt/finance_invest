@@ -51,3 +51,31 @@ is not met until FIX-feed-past-date and FIX-universe-pinned merge and the M3 liv
 - FIX-universe-pinned (medium, sonnet; after FIX-feed-past-date) — F3, F6: `symbols(as_of)`, `as_of` from archive, close interrupted runs.
 - FIX-only-validate (low, sonnet) — F2, F5: `--only` regex at the CLI, `Archive.path` rejects separators.
 After the three merge: tester re-runs `make crawl DATE=<today after 15:30>` for the M3 numbers.
+
+## Re-review after fixes
+Reviewer: `fi-software-architect`. Head: origin/sprint-01 `c6dd737` (merges 2532ecf FIX-only-validate, 539fb15 FIX-feed-past-date,
+09dd626 FIX-universe-pinned). Verified by `git diff 36788eb origin/sprint-01` on the 8 source files, the three 3-pr.*.md, 4-test.be.md
+re-test (107/0, db 8/8) and the 2026-10-16 live run (exit 0, 911 fetched, 629 no_ticks, 145,184 ticks, 1540 requests, 0 blocks).
+
+| Finding | Verdict | Evidence in the diff |
+|---|---|---|
+| F1 archive before accept | **PASS** | `Fetcher.get(archive=False)` skips the write; `KbsSource.ticks` parses first and writes only when accepted and the path is absent (replay never rewrites). Other callers keep the default. ADR-S-008 "archive = cache of accepted payloads" now holds; tests `test_rejected_tape_is_never_archived`, `test_qa_bug2_*`. |
+| F2 `Archive.path` separators | **PASS** | Rejects empty, `/`, `\`, leading `.`, and any resolved path outside root. |
+| F3 universe under today | **PASS** | Port `symbols(as_of: date)`; `VciSource.symbols` archives under the feed's `trading_date`; `as_of` = archive mtime (stable across replays); `today` callable removed. kbs/ssi signatures updated. |
+| F4 single-probe rule / resume | **PASS** | Rule is now `served_date is not None or trading_date < today` (VN date, injectable); conclusive → `missed` (0 fetched) or `partial` + untouched `names[i:]` skipped `source_no_longer_serves`; no probe special case, so resume from archive is covered. |
+| F5 `--only` unvalidated | **PASS** | `_symbols` → `^[A-Z0-9]{1,10}$` after strip/upper, `ArgumentTypeError` (exit 2) before `run_ticks`. Nit kept: `--only ""` → all symbols. |
+| F6 killed run never closed | **PASS** | `repositories.fail_unfinished_runs` (status NULL → `failed`/`interrupted`, `finished_at=now()`) called before `insert_crawl_run`; db test `test_fail_unfinished_runs`. |
+
+Contracts: platform.md §4 v1.2 PASS (live manifest now matches the DB path: universe pinned, requests = 1540 = universe count, no foreign
+tapes archived); ADR-S-008 PASS. Residual nits, no task: `VN` zoneinfo defined twice (cli.py, feeds/ticks.py); when `missed` with 0 fetched the
+untouched symbols are not listed (whole session missed, acceptable); 1,186 stale 10-15 tapes on disk are data, S02-4.
+
+**Overall: PASS.** Sprint goal met: ticks of 2026-10-16 collected with a correct manifest.
+
+### S02-1 decision (contract owner): agreed, platform.md → v1.3
+The v1.2 rule "complete and any skip → partial" counted `no_ticks` as a skip, so any session with one illiquid name (629 of 1540 on 10-16,
+normal on UPCoM) reads `partial`. Corrected in §4 (v1.2 archived as `platform.prev-3.md`): `no_ticks` is removed from skip reasons; today +
+empty tape = **no trades** → new sorted list `symbols_no_trades`; `complete` = every symbol fetched or no-trade, `partial` = at least one
+real skip; invariant `symbols_fetched + no_trades + skipped = universe.count`. The 10-16 manifest is therefore `complete` under v1.3. Feed +
+tests + `crawl_sessions` column are S02 work (planned at sprint-02 planning, before F-021), not now. The PM's caveat (empty tape vs source
+mistake) is written into the contract with the F-012 cross-check.

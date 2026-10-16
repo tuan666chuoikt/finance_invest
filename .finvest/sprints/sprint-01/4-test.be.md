@@ -45,3 +45,13 @@ Run via project path `make up` / `make crawl DATE=2026-10-15`, data in `finance_
 
 ## Not tested / limits
 No separate VCI/SSI live smoke; holiday handling is S02 (F-003); mypy does not cover the crawler adapters (dev note).
+
+## Re-test after fixes (FIX-feed-past-date, FIX-universe-pinned, FIX-only-validate)
+Merged origin/sprint-01 into test/sprint-01/be. DB suite ran against a separate `finvest_test` database (created in the compose db; the tests refuse any name not ending `_test`); app DB untouched (ticks still 80336).
+- Full suite: **107 passed, 0 failed** (`-m db`: 8 passed, incl. migration round trip, upsert idempotency, `test_fail_unfinished_runs`, `test_two_runs_against_db`). ruff clean on my file.
+- **QA-BUG-1 FIXED**: strict xfail went XPASS; mark removed, test now a plain pass.
+- **QA-BUG-2 FIXED**: new `test_qa_bug2_late_run_empty_tape_not_archived_and_not_replayed` (past date, other-session empty tape: status partial/source_no_longer_serves, no `VNM*` file under the old date, re-run re-requests instead of replaying).
+- **QA-BUG-3 FIXED**: `test_qa_bug3_universe_pinned_to_date_even_if_source_drifts` (drifted universe response ignored, 0 requests, same count/checksum) and `test_qa_bug3_killed_run_is_closed_next_time`.
+- Residual (data, not code): the live archive for 2026-10-15 still holds stale small/empty `*.json.gz` tapes written before the fix (1186 files < 100 bytes); build note says delete manually. Not touched by me.
+- Not done on purpose: no 2026-10-16 crawl (Scrum Master's job after 15:30); N5 full-pass duration still unmeasured.
+**Verdict: PASS (re-test).**

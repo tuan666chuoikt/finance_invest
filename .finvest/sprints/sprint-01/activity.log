@@ -33,3 +33,7 @@
 2026-10-16 08:23 | lead    | FIX-feed-past-date       | merged    | 539fb15; 0 must-fix; kernel 81 passed, ruff/mypy/lint-imports green | 3-pr.FIX-feed-past-date.md
 2026-10-16 08:24 | dev     | FIX-universe-pinned      | pr-open   | 82 passed, ruff+mypy clean, 8 db skipped (no PG) | 3-build.FIX-universe-pinned.md
 2026-10-16 08:25 | lead    | FIX-universe-pinned      | merged    | 09dd626; 0 must-fix; pytest 82 passed, ruff/mypy/lint-imports green, db tests unrun | 3-pr.FIX-universe-pinned.md
+2026-10-16 14:51 | be-test | SPRINT-01                | green     | 107 pass/0 fail (db 8/8), QA-BUG-1/2/3 fixed | -
+2026-10-16 15:48 | sm      | M3-live                  | green     | crawl 2026-10-16: 911 fetched, 629 no_ticks, 145184 ticks, 777s, status partial, 0 errors | -
+2026-10-16 15:49 | pm      | REVIEW-01                | note      | 5/5 DONE, 20/20 pts; 'partial' on all-no_ticks = contract label flaw (architecture, S02-1), not a criterion fail; tech re-review PASS pendin | -
+2026-10-16 15:52 | arch    | REVIEW-01                | note      | re-review PASS: F1-F6 fixed in diff 36788eb..c6dd737, 107/0 tests, live 10-16 ok; S02-1 agreed, platform.md v1.3 (no_trades list, complete r | 5-review.tech.md
