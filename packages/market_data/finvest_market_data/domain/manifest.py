@@ -54,6 +54,7 @@ class Manifest:
     checksum: str
     symbols_fetched: int
     symbols_skipped: tuple[tuple[str, str], ...] = field(default_factory=tuple)  # (symbol, reason)
+    symbols_no_trades: tuple[str, ...] = ()  # sorted; today's empty tape, not a skip (platform.md §4)
     universe_source: str = ""
     universe_as_of: datetime | None = None
     universe_count: int = 0
@@ -71,6 +72,7 @@ class Manifest:
             "rows": self.rows,
             "checksum": self.checksum,
             "symbols_fetched": self.symbols_fetched,
+            "symbols_no_trades": list(self.symbols_no_trades),
             "symbols_skipped": [{"symbol": s, "reason": r} for s, r in self.symbols_skipped],
             "universe": {
                 "source": self.universe_source,

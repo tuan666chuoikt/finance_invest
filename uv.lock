@@ -12,6 +12,7 @@ members = [
     "finvest-api",
     "finvest-crawler",
     "finvest-market-data",
+    "finvest-rules",
 ]
 
 [[package]]
@@ -175,6 +176,7 @@ dependencies = [
     { name = "finvest-api" },
     { name = "finvest-crawler" },
     { name = "finvest-market-data" },
+    { name = "finvest-rules" },
 ]
 
 [package.dev-dependencies]
@@ -192,6 +194,7 @@ requires-dist = [
     { name = "finvest-api", editable = "apps/api" },
     { name = "finvest-crawler", editable = "services/crawler" },
     { name = "finvest-market-data", editable = "packages/market_data" },
+    { name = "finvest-rules", editable = "packages/market_rules" },
 ]
 
 [package.metadata.requires-dev]
@@ -233,6 +236,7 @@ version = "0.1.0"
 source = { editable = "services/crawler" }
 dependencies = [
     { name = "finvest-market-data" },
+    { name = "finvest-rules" },
     { name = "httpx" },
     { name = "pydantic-settings" },
     { name = "tzdata" },
@@ -241,6 +245,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "finvest-market-data", editable = "packages/market_data" },
+    { name = "finvest-rules", editable = "packages/market_rules" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "pydantic-settings", specifier = ">=2" },
     { name = "tzdata" },
@@ -260,6 +265,11 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.1" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
+
+[[package]]
+name = "finvest-rules"
+version = "0.1.0"
+source = { editable = "packages/market_rules" }
 
 [[package]]
 name = "grimp"

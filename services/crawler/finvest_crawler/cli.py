@@ -1,8 +1,11 @@
 import argparse
+import json
 import re
 import sys
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
+
+from finvest_rules.calendar import day
 
 from finvest_crawler.feeds.ticks import run_ticks
 from finvest_crawler.settings import Settings
@@ -27,8 +30,9 @@ def main(argv: list[str] | None = None) -> int:
                    type=_symbols)
     a = p.parse_args(argv)
 
-    if a.date.weekday() >= 5:  # holidays come with finvest_rules; weekend check only for now
-        print("not a trading day (weekend)")
+    cd = day(a.date)
+    if not cd.is_open:  # no manifest, no DB row (S01 decision (c))
+        print(json.dumps({"skipped": cd.kind, "name": cd.name}, ensure_ascii=False))
         return 0
     m = run_ticks(Settings(), a.date, a.only)
     return 2 if m.status == "blocked" else 0  # non-zero so the 20:00 retry timer sees the failure

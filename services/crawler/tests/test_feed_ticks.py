@@ -18,7 +18,8 @@ from finvest_market_data.domain.manifest import checksum
 FIX = Path(__file__).parent / "fixtures/feeds/ticks"
 D = date(2026, 10, 15)
 MANIFEST_KEYS = {"feed", "trading_date", "source", "started_at", "finished_at", "status", "reason",
-                 "requests", "rows", "checksum", "symbols_fetched", "symbols_skipped", "universe"}
+                 "requests", "rows", "checksum", "symbols_fetched", "symbols_no_trades", "symbols_skipped",
+                 "universe"}
 
 
 def load(name: str) -> bytes:
@@ -154,10 +155,20 @@ def test_blocked_stops_and_exit_code_2(tmp_path, monkeypatch):
     assert cli.main(["ticks", "--date", "2026-10-15"]) == 2
 
 
-def test_empty_first_tape_is_inconclusive_not_missed(tmp_path):
-    m, f, _ = run(tmp_path, serve({"FPT": b'{"data": []}'}))
-    assert (m.status, m.reason, m.symbols_fetched, m.rows, m.requests) == ("partial", None, 1, 50, 3)
-    assert m.symbols_skipped == (("FPT", "no_ticks"),)
+def test_empty_tape_today_is_no_trades_and_complete(tmp_path):
+    m, f, _ = run(tmp_path, serve({"VNM": b'{"data": []}'}))
+    assert (m.status, m.reason, m.symbols_fetched, m.rows, m.requests) == ("complete", None, 1, 50, 3)
+    assert m.symbols_no_trades == ("VNM",) and m.symbols_skipped == ()
+    on_disk = json.loads((tmp_path / "raw/ticks/2026-10-15/_manifest.json").read_text())
+    assert set(on_disk) == MANIFEST_KEYS and on_disk["symbols_no_trades"] == ["VNM"]
+    assert not (tmp_path / "raw/ticks/2026-10-15/VNM.json.gz").exists()  # never archived: a re-run asks again
+
+
+def test_no_trade_next_to_a_real_skip_is_partial(tmp_path):
+    h = serve({"FPT": b'{"data": []}', "VNM": lambda: httpx.Response(200, content=b'{"data":[{"x":1}]}')})
+    m, _, _ = run(tmp_path, h)
+    assert (m.status, m.symbols_fetched, m.symbols_no_trades) == ("partial", 0, ("FPT",))
+    assert m.symbols_skipped == (("VNM", "payload_shape"),)
 
 
 def test_universe_blocked_records_manifest_and_session(tmp_path):
@@ -229,4 +240,5 @@ def test_two_runs_against_db(tmp_path, monkeypatch):
         assert c.execute(text("SELECT count(*) FROM ticks")).scalar_one() == 100
         assert c.execute(text("SELECT count(*), min(checksum) FROM crawl_sessions")).one() == (1, m.checksum)
         assert c.execute(text("SELECT count(*) FROM data_anomalies")).scalar_one() == 0
+        assert c.execute(text("SELECT symbols_no_trades FROM crawl_sessions")).scalar_one() == 0
     eng.dispose()

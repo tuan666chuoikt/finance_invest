@@ -98,6 +98,7 @@ def upsert_crawl_session(conn: Connection, m: Manifest) -> None:
     vals = {
         "status": m.status,
         "symbols_fetched": m.symbols_fetched,
+        "symbols_no_trades": len(m.symbols_no_trades),
         "symbols_skipped": len(m.symbols_skipped),
         "rows": m.rows,
         "checksum": m.checksum,
