@@ -14,18 +14,25 @@ from finvest_crawler.fetch import Fetcher
 
 VN = ZoneInfo("Asia/Ho_Chi_Minh")
 BASE = "https://trading.vietcap.com.vn/api"
-BOARD = {"HSX": "HOSE", "HNX": "HNX", "UPCOM": "UPCOM"}  # DELISTED/BOND boards are dropped
+# BOND board is dropped; DELISTED is read only with include_delisted
+BOARD = {"HSX": "HOSE", "HNX": "HNX", "UPCOM": "UPCOM"}
 _SYMBOLS = TypeAdapter(list[VciSymbol])
 _BARS = TypeAdapter(list[VciBars])
 
 
-def parse_symbols(payload: bytes, raw_path: Path = Path("<unarchived>")) -> list[SymbolRecord]:
-    """Pure: V3 rows -> STOCK/ETF on HOSE/HNX/UPCOM; CW and delisted excluded (1-sprint-plan.md note 2)."""
+def parse_symbols(
+    payload: bytes, raw_path: Path = Path("<unarchived>"), include_delisted: bool = False
+) -> list[SymbolRecord]:
+    """Pure: V3 rows -> STOCK/ETF on HOSE/HNX/UPCOM; CW excluded (1-sprint-plan.md note 2).
+
+    `include_delisted` adds board DELISTED STOCK/ETF rows with `is_delisted=True`. V3 does not say where
+    they were listed: `exchange` is the placeholder UPCOM and the caller keeps the last known value.
+    """
     return [
-        SymbolRecord(r.symbol, BOARD[r.board], r.type, r.organName or "", r.enOrganName or "",
-                     r.icbCode2 or None, False, "vci")
+        SymbolRecord(r.symbol, BOARD.get(r.board, "UPCOM"), r.type, r.organName or "", r.enOrganName or "",
+                     r.icbCode2 or None, r.board == "DELISTED", "vci")
         for r in validate(_SYMBOLS, payload, raw_path)
-        if r.board in BOARD and r.type in ("STOCK", "ETF")
+        if (r.board in BOARD or (include_delisted and r.board == "DELISTED")) and r.type in ("STOCK", "ETF")
     ]
 
 
@@ -51,10 +58,10 @@ class VciSource:
     def __init__(self, fetcher: Fetcher) -> None:
         self.fetcher = fetcher
 
-    def symbols(self, as_of: date) -> list[SymbolRecord]:
+    def symbols(self, as_of: date, include_delisted: bool = False) -> list[SymbolRecord]:
         f, d = self.fetcher, as_of
         payload = f.get("vci", f"{BASE}/price/symbols/getAll", feed="symbols", trading_date=d, name="getAll")
-        return parse_symbols(payload, f.archive.path("symbols", d, "getAll"))
+        return parse_symbols(payload, f.archive.path("symbols", d, "getAll"), include_delisted)
 
     def ticks(self, symbol: str, trading_date: date) -> list[Tick]:
         raise Unsupported("vci ticks are out of scope in S01")

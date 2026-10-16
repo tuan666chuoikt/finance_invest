@@ -48,7 +48,7 @@ class KbsSource:
             f.archive.write("ticks", trading_date, symbol, payload)
         return ticks
 
-    def symbols(self, as_of: date) -> list[SymbolRecord]:
+    def symbols(self, as_of: date, include_delisted: bool = False) -> list[SymbolRecord]:
         raise Unsupported("kbs has no symbol list")
 
     def bars(self, symbols: list[str], grain: Literal["1m", "1d"], to: date, count: int) -> list[Bar]:

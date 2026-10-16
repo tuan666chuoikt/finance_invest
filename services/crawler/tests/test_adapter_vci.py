@@ -40,6 +40,15 @@ def test_symbols_fixture_filters_cw_delisted_and_other_boards():
     assert first.name_vi and first.name_en
 
 
+def test_symbols_include_delisted_adds_only_delisted_stocks():
+    raw = load("symbols_getAll/sample.json.gz")
+    syms = parse_symbols(raw, include_delisted=True)
+    gone = [s for s in syms if s.is_delisted]
+    assert len(syms) == 32 and len(gone) == 5  # hand count: 27 + 5 DELISTED STOCK; DELISTED CW, BOND stay out
+    assert {s.type for s in gone} == {"STOCK"} and {s.exchange for s in gone} == {"UPCOM"}  # placeholder
+    assert not any(s.is_delisted for s in parse_symbols(raw))
+
+
 def test_symbol_null_names_and_icb():
     row = {"symbol": "ABC", "type": "STOCK", "board": "UPCOM", "organName": None, "enOrganName": None,
            "icbCode2": None}

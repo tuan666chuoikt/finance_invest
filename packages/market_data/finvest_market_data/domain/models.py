@@ -1,7 +1,7 @@
 """Market-data value objects. Prices are integer VND (ADR-S-005), `ts` is UTC-aware (ADR-S-006)."""
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Literal
 
 
@@ -58,3 +58,5 @@ class SymbolRecord:
     icb_code2: str | None
     is_delisted: bool
     source: str
+    listed_at: date | None = None
+    delisted_at: date | None = None

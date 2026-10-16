@@ -66,3 +66,18 @@ def test_catchup_exit_2_when_a_day_raised(monkeypatch):
         raise CatchupFailed([], ["2026-10-14"])
     monkeypatch.setattr("finvest_crawler.cli.catchup", boom)
     assert main(["catchup"]) == 2
+
+
+def test_symbols_runs_the_feed_and_exits_2_when_blocked(monkeypatch):
+    from finvest_crawler.fetch import SourceBlocked
+
+    seen = []
+    monkeypatch.setattr("finvest_crawler.cli.run_symbols", lambda s, d: seen.append(str(d)))
+    assert main(["symbols", "--date", "2026-10-15"]) == 0
+    assert seen == ["2026-10-15"]
+
+    def blocked(s, d):
+        raise SourceBlocked("vci", 429)
+
+    monkeypatch.setattr("finvest_crawler.cli.run_symbols", blocked)
+    assert main(["symbols", "--date", "2026-10-15"]) == 2
