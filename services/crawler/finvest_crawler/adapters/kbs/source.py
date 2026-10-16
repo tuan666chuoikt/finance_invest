@@ -41,8 +41,12 @@ class KbsSource:
     def ticks(self, symbol: str, trading_date: date) -> list[Tick]:
         f = self.fetcher
         url = URL.format(symbol=symbol)
-        payload = f.get("kbs", url, feed="ticks", trading_date=trading_date, name=symbol)
-        return parse_ticks(payload, symbol, trading_date, f.archive.path("ticks", trading_date, symbol))
+        payload = f.get("kbs", url, feed="ticks", trading_date=trading_date, name=symbol, archive=False)
+        path = f.archive.path("ticks", trading_date, symbol)
+        ticks = parse_ticks(payload, symbol, trading_date, path)
+        if not path.exists():  # archive = cache of accepted tapes only (ADR-S-008, platform.md 4 v1.2)
+            f.archive.write("ticks", trading_date, symbol, payload)
+        return ticks
 
     def symbols(self) -> list[SymbolRecord]:
         raise Unsupported("kbs has no symbol list")

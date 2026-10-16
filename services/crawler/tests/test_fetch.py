@@ -93,3 +93,9 @@ def test_user_agent_and_allowlist(tmp_path):
     with pytest.raises(ValueError):
         f.get("kbs", "https://evil.example.com/x", feed="ticks", trading_date=D, name="z")
     assert len(seen) == 1
+
+
+def test_archive_false_returns_body_without_writing(tmp_path):
+    f, _, seen = make(tmp_path, [(200, b"{}")])
+    assert f.get("kbs", URL, feed="ticks", trading_date=D, name="a", archive=False) == b"{}"
+    assert len(seen) == 1 and f.requests == 1 and Archive(tmp_path).read("ticks", D, "a") is None

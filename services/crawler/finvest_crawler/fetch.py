@@ -35,7 +35,7 @@ class Fetcher:
         self.replays = 0
 
     def get(self, source: str, url: str, *, feed: str, trading_date: date, name: str,
-            method: str = "GET", json: object = None) -> bytes:
+            method: str = "GET", json: object = None, archive: bool = True) -> bytes:
         if urlparse(url).hostname not in ALLOWED_HOSTS:
             raise ValueError(f"host not allowed: {url}")
         hit = self.archive.read(feed, trading_date, name)
@@ -55,7 +55,8 @@ class Fetcher:
                     blocked, failed, status = 0, failed + 1, r.status_code
                 else:
                     r.raise_for_status()
-                    self.archive.write(feed, trading_date, name, r.content)
+                    if archive:  # archive=False: caller stores only after it accepted the payload
+                        self.archive.write(feed, trading_date, name, r.content)
                     return r.content
             except httpx.TimeoutException:
                 blocked, failed, status = 0, failed + 1, 0
