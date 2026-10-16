@@ -3,9 +3,13 @@ from finvest_crawler.cli import main
 from finvest_crawler.settings import Settings
 
 
-def test_weekend_exits_0(capsys):
+def test_closed_day_exits_0_with_skip_line(capsys, monkeypatch):
+    import pytest
+    monkeypatch.setattr("finvest_crawler.cli.run_ticks", lambda *a: pytest.fail("ran"))
     assert main(["ticks", "--date", "2026-10-18"]) == 0
-    assert "not a trading day (weekend)" in capsys.readouterr().out
+    assert '"skipped": "weekend"' in capsys.readouterr().out
+    assert main(["ticks", "--date", "2026-09-02"]) == 0
+    assert '"skipped": "holiday"' in capsys.readouterr().out
 
 
 def test_settings_defaults_and_no_url_in_repr():
