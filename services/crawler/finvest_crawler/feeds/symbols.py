@@ -9,12 +9,13 @@ import httpx
 from finvest_market_data.infrastructure import repositories
 from sqlalchemy import Connection
 
-from finvest_crawler.adapters.registry import source_for
+from finvest_crawler.adapters.registry import make_source, source_for
 from finvest_crawler.feeds.ticks import _fetcher
 from finvest_crawler.fetch import Fetcher, SourceBlocked
 from finvest_crawler.settings import Settings
 
 FEED = "symbols"
+INDEXES = ("VN30", "HNX30")  # confirmed by spike S-index-members (VN100 also exists; not needed yet)
 
 
 def run_symbols(
@@ -72,6 +73,14 @@ def _run(settings, run_date, fetcher, conn, repo, commit) -> int:  # noqa: ANN00
             repo.insert_anomaly(conn, sym, run_date, "delisted_exchange_unknown", None)
         for sym in relisted:
             repo.insert_anomaly(conn, sym, run_date, "relisted", None)
+        # step 2: S1 listing dates for symbols present in both sources (listed_at only fills NULLs)
+        have = {r.symbol for r in recs}
+        s1 = make_source("ssi", fetcher).symbols(run_date)
+        repo.upsert_listed_at(conn, {r.symbol: r.listed_at for r in s1 if r.listed_at and r.symbol in have})
+        # step 3: index constituents snapshot -> validity intervals
+        src = source_for("symbols", settings, fetcher)
+        for idx in INDEXES:
+            repo.sync_index_membership(conn, idx, set(src.index_members(idx, run_date)), run_date)
         n = len(recs)
         repo.finish_crawl_run(conn, run_id, status, reason, fetcher.requests - req0, n, None)
         commit()

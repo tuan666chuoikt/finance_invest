@@ -9,6 +9,7 @@ from sqlalchemy import (
     Connection,
     Engine,
     Numeric,
+    bindparam,
     case,
     create_engine,
     exists,
@@ -29,6 +30,9 @@ from finvest_market_data.infrastructure.tables import (
     index_1d,
     symbols,
     ticks,
+)
+from finvest_market_data.infrastructure.tables import (
+    symbol_index_membership as membership,
 )
 
 BATCH = 5_000  # 7 columns x 5,000 stays under psycopg's 65,535 bind-parameter cap
@@ -191,6 +195,38 @@ def mark_delisted(conn: Connection, present: set[str], run_date: date) -> int:
         .values(is_delisted=True, delisted_at=func.coalesce(symbols.c.delisted_at, run_date))
     )
     return r.rowcount
+
+
+def upsert_listed_at(conn: Connection, listed: dict[str, date]) -> int:
+    """Set `listed_at` only where it is NULL (source date is the truth, ours is never older)."""
+    if not listed:
+        return 0
+    q = (symbols.update().where(symbols.c.symbol == bindparam("s"), symbols.c.listed_at.is_(None))
+         .values(listed_at=bindparam("d")))
+    return conn.execute(q, [{"s": k, "d": v} for k, v in listed.items()]).rowcount
+
+
+def sync_index_membership(
+    conn: Connection, index_code: str, members: set[str], run_date: date
+) -> tuple[int, int]:
+    """Snapshot -> intervals: new symbol opens `[run_date, NULL)`, an open row whose symbol is gone closes
+    at `run_date`, unchanged writes nothing. Returns (opened, closed). Empty `members` is bad: no-op."""
+    if not members:
+        return 0, 0
+    cur = select(membership.c.symbol).where(
+        membership.c.index_code == index_code, membership.c.valid_to.is_(None))
+    open_ = {r[0] for r in conn.execute(cur)}
+    new = sorted(members - open_)
+    if new:
+        conn.execute(insert(membership).values(
+            [{"index_code": index_code, "symbol": s, "valid_from": run_date} for s in new]
+        ).on_conflict_do_nothing())
+    closed = conn.execute(
+        membership.update()
+        .where(membership.c.index_code == index_code, membership.c.valid_to.is_(None),
+               membership.c.symbol.not_in(members))
+        .values(valid_to=run_date)).rowcount
+    return len(new), closed
 
 
 def list_symbols(conn: Connection, include_delisted: bool = True) -> list[SymbolRecord]:

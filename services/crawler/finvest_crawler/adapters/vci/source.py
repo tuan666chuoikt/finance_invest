@@ -10,7 +10,7 @@ from finvest_market_data.domain.ports import PayloadShapeError, Unsupported
 from finvest_market_data.domain.units import to_vnd
 from pydantic import TypeAdapter
 
-from finvest_crawler.adapters.vci.payloads import VciBars, VciSymbol, validate
+from finvest_crawler.adapters.vci.payloads import VciBars, VciMember, VciSymbol, validate
 from finvest_crawler.fetch import Fetcher
 
 VN = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -19,6 +19,7 @@ BASE = "https://trading.vietcap.com.vn/api"
 BOARD = {"HSX": "HOSE", "HNX": "HNX", "UPCOM": "UPCOM"}
 _SYMBOLS = TypeAdapter(list[VciSymbol])
 _BARS = TypeAdapter(list[VciBars])
+_MEMBERS = TypeAdapter(list[VciMember])
 
 
 def parse_symbols(
@@ -77,6 +78,14 @@ class VciSource:
         f, d = self.fetcher, as_of
         payload = f.get("vci", f"{BASE}/price/symbols/getAll", feed="symbols", trading_date=d, name="getAll")
         return parse_symbols(payload, f.archive.path("symbols", d, "getAll"), include_delisted)
+
+    def index_members(self, index_code: str, as_of: date) -> list[str]:
+        """V6: current constituents only (no history). Unknown group = `[]`: empty means bad."""
+        f = self.fetcher
+        url = f"{BASE}/price/symbols/getByGroup?group={index_code}"
+        payload = f.get("vci", url, feed="index_members", trading_date=as_of, name=index_code)
+        rows = validate(_MEMBERS, payload, f.archive.path("index_members", as_of, index_code))
+        return sorted(r.symbol for r in rows)
 
     def ticks(self, symbol: str, trading_date: date) -> list[Tick]:
         raise Unsupported("vci ticks are out of scope in S01")
