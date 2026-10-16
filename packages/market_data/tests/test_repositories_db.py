@@ -2,13 +2,14 @@
 
 import os
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
 from finvest_market_data.domain.manifest import Manifest
-from finvest_market_data.domain.models import SymbolRecord, Tick
+from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
 from finvest_market_data.infrastructure import repositories as repo
 from finvest_market_data.infrastructure.tables import ticks
 from sqlalchemy import text
@@ -48,7 +49,8 @@ def eng():
 @pytest.fixture
 def conn(eng):
     with eng.begin() as c:
-        for t in ("ticks", "crawl_runs", "crawl_sessions", "data_anomalies", "symbols"):
+        for t in ("ticks", "crawl_runs", "crawl_sessions", "data_anomalies", "symbols", "bars_1d_src",
+                  "index_1d"):
             c.execute(text(f"TRUNCATE {t}"))
         yield c
 
@@ -69,6 +71,11 @@ def test_migration_round_trip_and_timescale(eng):
             .all()
         )
         assert "policy_compression" in jobs
+    command.downgrade(cfg, "0003")  # 0004 round-trips on its own
+    with eng.connect() as c:
+        got = c.execute(text("SELECT to_regclass('bars_1d_src'), to_regclass('index_1d')")).one()
+        assert got == (None, None)
+    command.upgrade(cfg, "head")
     command.downgrade(cfg, "0002")  # 0003 round-trips on its own
     with eng.connect() as c:
         assert c.execute(text("SELECT to_regclass('symbols')")).scalar_one() is None
@@ -165,3 +172,40 @@ def test_mark_delisted_only_absent_rows_and_empty_is_noop(conn):
 def test_symbols_check_constraints(conn):
     with pytest.raises(IntegrityError), conn.begin_nested():
         repo.upsert_symbols(conn, [sym("AAA", "NYSE")], T0)
+
+
+def bar(symbol: str, day: int = 15, c: int = 65001) -> Bar:
+    ts = datetime(2026, 10, day - 1, 17, 0, tzinfo=UTC)  # 00:00 Asia/Ho_Chi_Minh
+    return Bar(symbol, ts, 65819, 66637, 64819, c, 6618016, 474963630000, "vci")
+
+
+def test_upsert_bars_1d_src_is_versioned_by_fetched_at(conn):
+    bars = [bar("FPT", 15), bar("FPT", 16)]
+    for _ in range(2):  # same fetched_at: idempotent
+        repo.upsert_bars_1d_src(conn, bars, T0)
+    count = text("SELECT count(*) FROM bars_1d_src")
+    assert conn.execute(count).scalar_one() == 2
+    repo.upsert_bars_1d_src(conn, [bar("FPT", 15, c=65100)], T0)  # same version: overwritten in place
+    q = text("SELECT adj_c, value, trading_date FROM bars_1d_src WHERE trading_date='2026-10-15'")
+    assert conn.execute(q).one() == (65100, 474963630000, D)
+    repo.upsert_bars_1d_src(conn, bars, datetime(2026, 10, 16, 2, 0, tzinfo=UTC))  # later fetch: new versions
+    assert conn.execute(count).scalar_one() == 4
+
+
+def test_upsert_index_1d_latest_wins(conn):
+    def ib(c: str) -> IndexBar:
+        lv = Decimal
+        return IndexBar("VNINDEX", D, lv("1700.10"), lv("1720.55"), lv("1699.99"), lv(c), 5, None)
+
+    repo.upsert_index_1d(conn, [ib("1710.25")])
+    repo.upsert_index_1d(conn, [ib("1711.50")])
+    assert conn.execute(text("SELECT count(*), max(c) FROM index_1d")).one() == (1, Decimal("1711.50"))
+
+
+def test_daily_coverage_per_exchange_includes_delisted(conn):
+    repo.upsert_symbols(conn, [sym("AAA"), sym("BBB"), sym("CCC", delisted=True, delisted_at=D),
+                               sym("DDD", "HNX")], T0)
+    repo.upsert_bars_1d_src(conn, [bar("AAA"), bar("DDD")], T0)
+    assert {k: str(v) for k, v in repo.daily_coverage(conn).items()} == {"HOSE": "33.3", "HNX": "100.0"}
+    repo.upsert_bars_1d_src(conn, [bar("BBB")], T0)
+    assert str(repo.daily_coverage(conn)["HOSE"]) == "66.7"

@@ -2,17 +2,31 @@
 
 from collections.abc import Sequence
 from datetime import date, datetime
+from decimal import Decimal
 from itertools import batched
 
-from sqlalchemy import Connection, Engine, case, create_engine, func, literal_column, select, tuple_
+from sqlalchemy import (
+    Connection,
+    Engine,
+    Numeric,
+    case,
+    create_engine,
+    exists,
+    func,
+    literal_column,
+    select,
+    tuple_,
+)
 from sqlalchemy.dialects.postgresql import insert
 
 from finvest_market_data.domain.manifest import Manifest
-from finvest_market_data.domain.models import SymbolRecord, Tick
+from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
 from finvest_market_data.infrastructure.tables import (
+    bars_1d_src,
     crawl_runs,
     crawl_sessions,
     data_anomalies,
+    index_1d,
     symbols,
     ticks,
 )
@@ -188,3 +202,52 @@ def list_symbols(conn: Connection, include_delisted: bool = True) -> list[Symbol
                      r.source, r.listed_at, r.delisted_at)
         for r in conn.execute(q)
     ]
+
+
+def upsert_bars_1d_src(conn: Connection, bars: Sequence[Bar], fetched_at: datetime) -> None:
+    """One versioned snapshot per `fetched_at` (data.md §1.4 (2)): the same `fetched_at` overwrites in place,
+    a later one adds a version. Keys must be unique within `bars`."""
+    for chunk in batched(bars, BATCH):
+        ins = insert(bars_1d_src).values(
+            [
+                {"symbol": b.symbol, "trading_date": b.trading_date, "source": b.source,
+                 "fetched_at": fetched_at, "adj_o": b.o, "adj_h": b.h, "adj_l": b.l, "adj_c": b.c,
+                 "v": b.v, "value": b.value}
+                for b in chunk
+            ]
+        )
+        new = ins.excluded
+        conn.execute(
+            ins.on_conflict_do_update(
+                index_elements=["symbol", "trading_date", "source", "fetched_at"],
+                set_={k: getattr(new, k) for k in ("adj_o", "adj_h", "adj_l", "adj_c", "v", "value")},
+            )
+        )
+
+
+def upsert_index_1d(conn: Connection, bars: Sequence[IndexBar]) -> None:
+    """Latest wins per (index_code, trading_date); index levels are not versioned."""
+    for chunk in batched(bars, BATCH):
+        ins = insert(index_1d).values(
+            [
+                {"index_code": b.index_code, "trading_date": b.trading_date, "o": b.o, "h": b.h,
+                 "l": b.l, "c": b.c, "v": b.v, "value": b.value}
+                for b in chunk
+            ]
+        )
+        new = ins.excluded
+        conn.execute(
+            ins.on_conflict_do_update(
+                index_elements=["index_code", "trading_date"],
+                set_={k: getattr(new, k) for k in ("o", "h", "l", "c", "v", "value")},
+            )
+        )
+
+
+def daily_coverage(conn: Connection) -> dict[str, Decimal]:
+    """Per exchange: share of symbols (delisted included) with at least one `bars_1d_src` row, in percent
+    with 1 decimal. Feeds platform.md §2.3 `daily_coverage_pct`."""
+    covered = exists().where(bars_1d_src.c.symbol == symbols.c.symbol)
+    pct = func.round(100 * func.count().filter(covered) / func.count().cast(Numeric), 1)
+    q = select(symbols.c.exchange, pct).group_by(symbols.c.exchange)
+    return {r[0]: r[1] for r in conn.execute(q)}

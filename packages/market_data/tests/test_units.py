@@ -9,6 +9,7 @@ def test_to_vnd_examples() -> None:
     assert to_vnd("65182.5", "vnd") == 65183
     assert to_vnd(58000, "vnd") == 58000
     assert to_vnd(Decimal("0.0005"), "thousand_vnd") == 1  # 0.5 VND rounds half up
+    assert to_vnd("474963.63", "million_vnd") == 474963630000
 
 
 def test_to_shares() -> None:

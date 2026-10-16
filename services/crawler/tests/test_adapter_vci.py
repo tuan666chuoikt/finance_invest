@@ -6,7 +6,7 @@ from pathlib import Path
 import httpx
 import pytest
 from finvest_crawler.adapters.vci import VciSource
-from finvest_crawler.adapters.vci.source import parse_bars, parse_symbols
+from finvest_crawler.adapters.vci.source import parse_bars, parse_index_bars, parse_symbols
 from finvest_crawler.archive import Archive
 from finvest_crawler.fetch import Fetcher
 from finvest_crawler.ratelimit import TokenBucket
@@ -21,7 +21,8 @@ def load(name: str) -> bytes:
 
 
 def bars_payload(**over) -> bytes:
-    s = {"symbol": "FPT", "o": [1], "h": [1], "l": [1], "c": [1], "v": [10], "t": ["1792022400"]}
+    s = {"symbol": "FPT", "o": [1], "h": [1], "l": [1], "c": [1], "v": [10], "t": ["1792022400"],
+         "accumulatedValue": [0.001]}
     return json.dumps([{**s, **over}]).encode()
 
 
@@ -62,6 +63,33 @@ def test_bars_fixture_rounds_adjusted_floats_half_up():
     assert 65182 in {b.c for b in bars}  # fixture close 65182.47
     assert bars[-1].c == 58000 and bars[-1].v == 4964400  # integer close and volume unchanged
     assert bars[-1].ts == datetime(2026, 10, 14, 17, 0, tzinfo=UTC)  # 2026-10-15 00:00 Asia/Ho_Chi_Minh
+
+
+def test_bars_fixture_first_bar_and_nominal_value():
+    b = parse_bars(load("gap_chart/FPT-1d.json.gz"))[0]
+    assert (b.o, b.h, b.l, b.c, b.v) == (65819, 66637, 64819, 65001, 6618016)  # half-up from .84/.03/.83/.65
+    assert b.value == 474963630000  # accumulatedValue 474963.63 million VND
+    assert b.trading_date == date(2026, 8, 4)
+    assert b.l <= b.value // b.v <= b.h * 1.15  # 71768 VND: nominal price = adjusted close x 1.1 bonus
+
+
+def test_value_is_rounded_half_up_to_one_vnd():
+    (b,) = parse_bars(bars_payload(accumulatedValue=[0.0000015]))
+    assert b.value == 2  # 1.5 VND
+
+
+def test_index_bars_keep_two_decimals():
+    (b,) = parse_index_bars(bars_payload(
+        symbol="VNINDEX", o=[1700.104], h=[1720.555], l=[1699.99], c=[1710.25], accumulatedValue=[20000.5]))
+    assert (str(b.o), str(b.h), str(b.c), b.value) == ("1700.10", "1720.56", "1710.25", 20000500000)
+    assert (b.index_code, b.trading_date) == ("VNINDEX", date(2026, 10, 15))
+
+
+def test_missing_accumulated_value_is_a_shape_error():
+    raw = json.loads(bars_payload())
+    del raw[0]["accumulatedValue"]
+    with pytest.raises(PayloadShapeError):
+        parse_bars(json.dumps(raw).encode())
 
 
 @pytest.mark.parametrize(("c", "want"), [("65182.47", 65182), ("65182.5", 65183), ("58000", 58000)])

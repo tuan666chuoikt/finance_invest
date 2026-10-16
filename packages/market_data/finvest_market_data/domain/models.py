@@ -2,7 +2,11 @@
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Literal
+from zoneinfo import ZoneInfo
+
+VN = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
 def _require_utc(ts: datetime) -> None:
@@ -46,6 +50,24 @@ class Bar:
             raise ValueError("bar prices must be > 0")
         if self.v < 0:
             raise ValueError(f"volume must be >= 0, got {self.v}")
+
+    @property
+    def trading_date(self) -> date:
+        return self.ts.astimezone(VN).date()  # ADR-S-006
+
+
+@dataclass(frozen=True, slots=True)
+class IndexBar:
+    """Index level bar: levels keep 2 decimals (platform.md §1.2), unlike integer-VND stock bars."""
+
+    index_code: str
+    trading_date: date
+    o: Decimal
+    h: Decimal
+    l: Decimal  # noqa: E741 - OHLC convention
+    c: Decimal
+    v: int
+    value: int | None
 
 
 @dataclass(frozen=True, slots=True)

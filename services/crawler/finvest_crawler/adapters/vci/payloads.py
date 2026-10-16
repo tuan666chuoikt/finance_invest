@@ -12,7 +12,7 @@ V2 `POST .../api/chart/OHLCChart/gap-chart`: a list with one column-oriented obj
 `{"symbol", "o","h","l","c","v","t", "accumulatedVolume", "accumulatedValue", "minBatchTruncTime"}`.
 `o/h/l/c` are JSON numbers (VND, source-adjusted so floats like 65182.47 occur), `v` shares,
 `t` epoch seconds as STRINGS at 00:00 UTC of the trading day.
-`accumulatedValue` is in an unstated unit (million VND?) and is not used.
+`accumulatedValue` is nominal traded value in million VND (x 1e6 = VND; 474,963.63 on a 6,618,016-share day).
 """
 
 from decimal import Decimal
@@ -41,6 +41,7 @@ class VciBars(BaseModel):
     c: list[Decimal]
     v: list[int]
     t: list[int]
+    accumulatedValue: list[Decimal]  # million VND nominal
 
 
 def validate[T](adapter: TypeAdapter[T], payload: bytes, raw_path: Path, source: str = "vci") -> T:
