@@ -54,6 +54,7 @@ crawl_sessions = Table(
     Column("trading_date", Date, primary_key=True),
     Column("status", Text, nullable=False),
     Column("symbols_fetched", Integer),
+    Column("symbols_no_trades", Integer),
     Column("symbols_skipped", Integer),
     Column("rows", BigInteger),
     Column("checksum", Text),
