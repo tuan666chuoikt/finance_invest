@@ -10,6 +10,7 @@ Systemd timers, backups, TLS and nginx are out of scope for sprint 01 (F-019).
 container wrote:
 
     sudo chown -R $(id -u):$(id -g) data/raw data/exports
+    sudo chown $(id -u):$(id -g) data     # if data/ itself is root-owned (created by the Docker daemon); non-recursive
 
 `data/pg` is left alone on purpose: the postgres image manages its ownership itself (it must stay owned by the
 container's postgres user). Do not chown it.
