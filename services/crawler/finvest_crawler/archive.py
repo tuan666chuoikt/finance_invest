@@ -12,7 +12,12 @@ class Archive:
         self.root = Path(root)
 
     def path(self, feed: str, trading_date: date, name: str) -> Path:
-        return self.root / feed / trading_date.isoformat() / f"{name}.json.gz"
+        if not name or "/" in name or "\\" in name or name.startswith("."):
+            raise ValueError(f"bad archive name: {name!r}")
+        p = self.root / feed / trading_date.isoformat() / f"{name}.json.gz"
+        if not p.resolve().is_relative_to(self.root.resolve()):
+            raise ValueError(f"archive path escapes root: {name!r}")
+        return p
 
     def read(self, feed: str, trading_date: date, name: str) -> bytes | None:
         p = self.path(feed, trading_date, name)
