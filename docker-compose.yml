@@ -1,6 +1,7 @@
 # Only the api is published, and only on loopback (ADR-S-001, system.md section 5).
 x-app-env: &app-env
   FINVEST_DATABASE_URL: postgresql+psycopg://finvest:${POSTGRES_PASSWORD:?copy .env.example to .env}@db:5432/finvest
+  HOME: /tmp  # non-root user has no writable home
 
 services:
   db:
@@ -20,6 +21,7 @@ services:
   api:
     build: .
     image: finvest-app:local
+    user: "${FINVEST_UID:-1000}:${FINVEST_GID:-1000}"
     command: sh -c "alembic -c apps/api/alembic.ini upgrade head && uvicorn finvest_api.main:app --host 0.0.0.0 --port 8000"
     environment: *app-env
     ports:
@@ -32,6 +34,7 @@ services:
     build: .
     image: finvest-app:local
     profiles: ["tools"]
+    user: "${FINVEST_UID:-1000}:${FINVEST_GID:-1000}"
     entrypoint: ["finvest-crawl"]
     environment:
       <<: *app-env

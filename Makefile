@@ -1,3 +1,5 @@
+export FINVEST_UID ?= $(shell id -u)
+export FINVEST_GID ?= $(shell id -g)
 .PHONY: test-kernel test lint
 lint:
 	uv run ruff check .
