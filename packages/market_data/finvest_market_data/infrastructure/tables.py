@@ -10,6 +10,7 @@ from sqlalchemy import (
     Identity,
     Integer,
     MetaData,
+    Numeric,
     Table,
     Text,
     func,
@@ -90,4 +91,33 @@ symbols = Table(
     Column("fetched_at", TZ, nullable=False),
     CheckConstraint("exchange IN ('HOSE','HNX','UPCOM')", name="symbols_exchange_check"),
     CheckConstraint("type IN ('STOCK','ETF')", name="symbols_type_check"),
+)
+
+# versioned snapshots of the source-adjusted series (data.md §1.4 (2)); value = nominal VND
+bars_1d_src = Table(
+    "bars_1d_src",
+    metadata,
+    Column("symbol", Text, primary_key=True),
+    Column("trading_date", Date, primary_key=True),
+    Column("source", Text, primary_key=True),
+    Column("fetched_at", TZ, primary_key=True),
+    Column("adj_o", BigInteger, nullable=False),
+    Column("adj_h", BigInteger, nullable=False),
+    Column("adj_l", BigInteger, nullable=False),
+    Column("adj_c", BigInteger, nullable=False),
+    Column("v", BigInteger, nullable=False),
+    Column("value", BigInteger),
+)
+
+index_1d = Table(
+    "index_1d",
+    metadata,
+    Column("index_code", Text, primary_key=True),
+    Column("trading_date", Date, primary_key=True),
+    Column("o", Numeric(12, 2), nullable=False),
+    Column("h", Numeric(12, 2), nullable=False),
+    Column("l", Numeric(12, 2), nullable=False),
+    Column("c", Numeric(12, 2), nullable=False),
+    Column("v", BigInteger, nullable=False),
+    Column("value", BigInteger),
 )

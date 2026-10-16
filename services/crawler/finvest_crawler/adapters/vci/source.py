@@ -1,10 +1,11 @@
 import hashlib
 from datetime import UTC, date, datetime, time
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Literal
 from zoneinfo import ZoneInfo
 
-from finvest_market_data.domain.models import Bar, SymbolRecord, Tick
+from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
 from finvest_market_data.domain.ports import PayloadShapeError, Unsupported
 from finvest_market_data.domain.units import to_vnd
 from pydantic import TypeAdapter
@@ -36,20 +37,34 @@ def parse_symbols(
     ]
 
 
+def _rows(payload: bytes, raw_path: Path):
+    """Yield (symbol, trading day, o, h, l, c, v, value in VND) per V2 column-array row."""
+    for s in validate(_BARS, payload, raw_path):
+        cols = (s.o, s.h, s.l, s.c, s.v, s.accumulatedValue)
+        if any(len(x) != len(s.t) for x in cols):
+            raise PayloadShapeError(f"vci payload shape changed: {s.symbol} ragged arrays", raw_path)
+        for t, o, h, lo, c, v, av in zip(s.t, s.o, s.h, s.l, s.c, s.v, s.accumulatedValue, strict=True):
+            # t is 00:00 UTC of the trading day; accumulatedValue is million VND
+            yield s.symbol, datetime.fromtimestamp(t, UTC).date(), o, h, lo, c, v, to_vnd(av, "million_vnd")
+
+
 def parse_bars(payload: bytes, raw_path: Path = Path("<unarchived>")) -> list[Bar]:
     """Pure: V2 column arrays -> daily bars in integer VND (adjusted floats rounded half-up, data.md §1.4)."""
     bars = []
-    for s in validate(_BARS, payload, raw_path):
-        if not len(s.t) == len(s.o) == len(s.h) == len(s.l) == len(s.c) == len(s.v):
-            raise PayloadShapeError(f"vci payload shape changed: {s.symbol} ragged arrays", raw_path)
-        for t, o, h, lo, c, v in zip(s.t, s.o, s.h, s.l, s.c, s.v, strict=True):
-            day = datetime.fromtimestamp(t, UTC).date()  # t is 00:00 UTC of the trading day
-            try:
-                bars.append(Bar(s.symbol, datetime.combine(day, time(), VN).astimezone(UTC),
-                                *(to_vnd(x, "vnd") for x in (o, h, lo, c)), v, None, "vci"))
-            except ValueError as e:
-                raise PayloadShapeError(f"vci bar {s.symbol} {day}: {e}", raw_path) from e
+    for sym, day, o, h, lo, c, v, value in _rows(payload, raw_path):
+        try:
+            bars.append(Bar(sym, datetime.combine(day, time(), VN).astimezone(UTC),
+                            *(to_vnd(x, "vnd") for x in (o, h, lo, c)), v, value, "vci"))
+        except ValueError as e:
+            raise PayloadShapeError(f"vci bar {sym} {day}: {e}", raw_path) from e
     return bars
+
+
+def parse_index_bars(payload: bytes, raw_path: Path = Path("<unarchived>")) -> list[IndexBar]:
+    """Pure: V2 payload for index codes (VNINDEX...) -> levels at 2 decimals, half-up (platform.md §1.2)."""
+    q = Decimal("0.01")
+    return [IndexBar(sym, day, *(x.quantize(q, ROUND_HALF_UP) for x in (o, h, lo, c)), v, value)
+            for sym, day, o, h, lo, c, v, value in _rows(payload, raw_path)]
 
 
 class VciSource:
