@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Literal
 from zoneinfo import ZoneInfo
 
-from finvest_market_data.domain.models import Bar, SymbolRecord, Tick
+from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
 from finvest_market_data.domain.ports import SourceNoLongerServes, Unsupported
 
 from finvest_crawler.adapters.kbs.payloads import validate_envelope
@@ -53,3 +53,6 @@ class KbsSource:
 
     def bars(self, symbols: list[str], grain: Literal["1m", "1d"], to: date, count: int) -> list[Bar]:
         raise Unsupported("kbs adapter serves ticks only")
+
+    def index_bars(self, codes: list[str], to: date, count: int) -> list[IndexBar]:
+        raise Unsupported("kbs index bars are not implemented")

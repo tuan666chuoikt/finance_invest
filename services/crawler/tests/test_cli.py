@@ -81,3 +81,18 @@ def test_symbols_runs_the_feed_and_exits_2_when_blocked(monkeypatch):
 
     monkeypatch.setattr("finvest_crawler.cli.run_symbols", blocked)
     assert main(["symbols", "--date", "2026-10-15"]) == 2
+
+
+def test_bars_exit_code_follows_status(monkeypatch):
+    seen = []
+
+    def run(s, d, only=None):
+        seen.append((str(d), only))
+        return type("M", (), {"status": status})()
+
+    monkeypatch.setattr("finvest_crawler.cli.run_bars_1d", run)
+    status = "complete"
+    assert main(["bars", "--date", "2026-10-15", "--only", "fpt"]) == 0
+    assert seen == [("2026-10-15", ["FPT"])]
+    status = "blocked"
+    assert main(["bars", "--date", "2026-10-15"]) == 2

@@ -84,6 +84,15 @@ class VciSource:
     def bars(self, symbols: list[str], grain: Literal["1m", "1d"], to: date, count: int) -> list[Bar]:
         if grain != "1d":
             raise Unsupported("vci 1m bars are out of scope in S01")
+        payload, raw = self._gap_chart(symbols, to, count)
+        return parse_bars(payload, raw)
+
+    def index_bars(self, codes: list[str], to: date, count: int) -> list[IndexBar]:
+        """Index levels keep 2 decimals, so they cannot travel as integer-VND `Bar` (platform.md 1.2)."""
+        payload, raw = self._gap_chart(codes, to, count)
+        return parse_index_bars(payload, raw)
+
+    def _gap_chart(self, symbols: list[str], to: date, count: int) -> tuple[bytes, Path]:
         f = self.fetcher
         body = {"timeFrame": "ONE_DAY", "symbols": symbols, "countBack": count,
                 "to": int(datetime.combine(to, time(23, 59, 59), VN).timestamp())}
@@ -93,4 +102,4 @@ class VciSource:
         name = f"{key}-1d-{count}"
         payload = f.get("vci", f"{BASE}/chart/OHLCChart/gap-chart", feed="bars_1d", trading_date=to,
                         name=name, method="POST", json=body)
-        return parse_bars(payload, f.archive.path("bars_1d", to, name))
+        return payload, f.archive.path("bars_1d", to, name)

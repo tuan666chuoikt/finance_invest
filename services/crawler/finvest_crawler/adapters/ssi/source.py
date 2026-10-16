@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal
 from zoneinfo import ZoneInfo
 
-from finvest_market_data.domain.models import Bar, SymbolRecord, Tick
+from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
 from finvest_market_data.domain.ports import PayloadShapeError, Unsupported
 from finvest_market_data.domain.units import to_vnd
 from pydantic import TypeAdapter
@@ -64,3 +64,6 @@ class SsiSource:
             payload = f.get("ssi", url, feed="bars_1d_ssi", trading_date=to, name=name)
             out += parse_bars(payload, s, f.archive.path("bars_1d_ssi", to, name))[-count:]
         return out
+
+    def index_bars(self, codes: list[str], to: date, count: int) -> list[IndexBar]:
+        raise Unsupported("ssi index bars are not implemented")
