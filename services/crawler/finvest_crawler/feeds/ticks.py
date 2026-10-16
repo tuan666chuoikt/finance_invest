@@ -88,6 +88,7 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
         # sorted symbols => per-symbol sorted lines concatenate into the globally sorted checksum input
         digest, rows, fetched = hashlib.sha256(), 0, 0
         skipped: list[tuple[str, str]] = []
+        no_trades: list[str] = []
         status, reason = ("blocked", "source_blocked") if blocked else ("complete", None)
         for i, sym in enumerate(names):
             t0, replays0 = time.perf_counter(), fetcher.replays
@@ -95,12 +96,12 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
                 tape = source.ticks(sym, trading_date)
             except SourceNoLongerServes as e:
                 # another session served, or an empty tape for a past day: the source moved on, stop.
-                # An empty tape today is a halted name or not yet open: inconclusive, carry on.
+                # An empty tape today is no trades for that name (platform.md §4): not a skip, carry on.
                 if e.served_date is not None or trading_date < today:
                     status, reason = ("missed" if not fetched else "partial"), "source_no_longer_serves"
                     skipped += [(s, "source_no_longer_serves") for s in names[i:]] if fetched else []
                     break
-                skipped.append((sym, "no_ticks"))
+                no_trades.append(sym)
                 continue
             except SourceBlocked:
                 skipped += [(s, "source_blocked") for s in names[i:]]
@@ -121,9 +122,12 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
                               "ms": round((time.perf_counter() - t0) * 1000)}))
         if status == "complete" and skipped:
             status = "partial"
+        # no-trade is not a skip, so `complete` needs only an empty `skipped`; every symbol is accounted for
+        assert fetched + len(no_trades) + len(skipped) == len(names) or status == "missed", (
+            fetched, no_trades, skipped, len(names))
         m = Manifest(FEED, trading_date, source.name, started, datetime.now(UTC), status, reason,
                      fetcher.requests - req0, rows, "sha256:" + digest.hexdigest(), fetched, tuple(skipped),
-                     uni_src, as_of, len(names))
+                     tuple(no_trades), uni_src, as_of, len(names))
         path = fetcher.archive.write_manifest(FEED, trading_date, m.to_dict())
         repo.upsert_crawl_session(conn, m)
         repo.finish_crawl_run(conn, run_id, m.status, m.reason, m.requests, m.rows, str(path))

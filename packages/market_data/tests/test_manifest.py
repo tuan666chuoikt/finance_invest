@@ -56,13 +56,14 @@ def test_manifest_to_dict_keys_and_vn_time() -> None:
     t = datetime(2026, 10, 15, 8, 20, 3, tzinfo=UTC)
     m = Manifest(
         "ticks", date(2026, 10, 15), "kbs", t, t, "partial", None, 2, 3, "sha256:x", 1,
-        (("ABC", "http_429"),), "cli:--only", t, 1,
+        (("ABC", "http_429"),), ("XYZ",), "cli:--only", t, 1,
     )
     d = m.to_dict()
     assert list(d) == [
         "feed", "trading_date", "source", "started_at", "finished_at", "status", "reason", "requests",
-        "rows", "checksum", "symbols_fetched", "symbols_skipped", "universe",
+        "rows", "checksum", "symbols_fetched", "symbols_no_trades", "symbols_skipped", "universe",
     ]
     assert d["started_at"] == "2026-10-15T15:20:03+07:00"
+    assert d["symbols_no_trades"] == ["XYZ"]
     assert d["symbols_skipped"] == [{"symbol": "ABC", "reason": "http_429"}]
     assert d["universe"] == {"source": "cli:--only", "as_of": "2026-10-15T15:20:03+07:00", "count": 1}

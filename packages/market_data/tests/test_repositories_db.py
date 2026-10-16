@@ -69,6 +69,11 @@ def test_migration_round_trip_and_timescale(eng):
             .all()
         )
         assert "policy_compression" in jobs
+    command.downgrade(cfg, "-1")  # 0002 round-trips on its own
+    with eng.connect() as c:
+        cols = text("SELECT 1 FROM information_schema.columns WHERE column_name='symbols_no_trades'")
+        assert not c.execute(cols).first()
+    command.upgrade(cfg, "head")
 
 
 def test_upsert_ticks_idempotent_and_counts_changes(conn):
@@ -95,7 +100,8 @@ def test_side_check(conn):
 
 
 def manifest(status: str) -> Manifest:
-    return Manifest("ticks", D, "kbs", T0, T0, status, None, 10, 3, "sha256:ab", 2, (("ABC", "http_429"),))
+    skipped = (("ABC", "http_429"),)
+    return Manifest("ticks", D, "kbs", T0, T0, status, None, 10, 3, "sha256:ab", 2, skipped, ("XYZ",))
 
 
 def test_crawl_session_upsert_and_status(conn):
@@ -104,7 +110,7 @@ def test_crawl_session_upsert_and_status(conn):
     repo.upsert_crawl_session(conn, manifest("complete"))
     assert conn.execute(text("SELECT count(*) FROM crawl_sessions")).scalar_one() == 1
     assert repo.session_status(conn, "ticks", D) == "complete"
-    assert conn.execute(text("SELECT symbols_skipped FROM crawl_sessions")).scalar_one() == 1
+    assert conn.execute(text("SELECT symbols_skipped, symbols_no_trades FROM crawl_sessions")).one() == (1, 1)
 
 
 def test_fail_unfinished_runs(conn):
