@@ -5,8 +5,10 @@ import sys
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from finvest_market_data.infrastructure import repositories
 from finvest_rules.calendar import day
 
+from finvest_crawler.feeds.catchup import CatchupFailed, catchup
 from finvest_crawler.feeds.ticks import run_ticks
 from finvest_crawler.settings import Settings
 
@@ -28,7 +30,22 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--date", type=date.fromisoformat, default=datetime.now(VN).date())
     t.add_argument("--only", default=None, help="SYM,SYM",
                    type=_symbols)
+    sub.add_parser("catchup", help="crawl every trading day missed since the last session")
     a = p.parse_args(argv)
+
+    if a.cmd == "catchup":
+        settings = Settings()
+        eng = repositories.engine(settings.database_url)
+        try:
+            with eng.connect() as conn:
+                try:
+                    ms = catchup(settings, now_vn=datetime.now(VN), conn=conn)
+                except CatchupFailed as e:
+                    print(e)
+                    return 2
+        finally:
+            eng.dispose()
+        return 2 if any(m.status == "blocked" for m in ms) else 0
 
     cd = day(a.date)
     if not cd.is_open:  # no manifest, no DB row (S01 decision (c))

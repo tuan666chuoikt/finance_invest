@@ -121,3 +121,8 @@ def session_status(conn: Connection, feed: str, trading_date: date) -> str | Non
         crawl_sessions.c.feed == feed, crawl_sessions.c.trading_date == trading_date
     )
     return conn.execute(q).scalar_one_or_none()
+
+
+def last_session_date(conn: Connection, feed: str) -> date | None:
+    q = select(func.max(crawl_sessions.c.trading_date)).where(crawl_sessions.c.feed == feed)
+    return conn.execute(q).scalar()

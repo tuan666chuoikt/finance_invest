@@ -32,3 +32,40 @@ def test_only_bad_symbol_exits_2_without_running(monkeypatch):
     with pytest.raises(SystemExit) as e:
         main(["ticks", "--date", "2026-10-15", "--only", "../../x"])
     assert e.value.code == 2
+
+
+def test_catchup_help_exits_0(capsys):
+    import pytest
+    with pytest.raises(SystemExit) as e:
+        main(["catchup", "--help"])
+    assert e.value.code == 0
+
+
+def _fake_db(monkeypatch):
+    class Eng:
+        def connect(self):
+            from contextlib import nullcontext
+            return nullcontext()
+
+        def dispose(self):
+            pass
+    monkeypatch.setattr("finvest_crawler.cli.repositories.engine", lambda url: Eng())
+
+
+def test_catchup_exit_2_when_a_day_blocked(monkeypatch):
+    _fake_db(monkeypatch)
+    ms = [type("M", (), {"status": "complete"})(), type("M", (), {"status": "blocked"})()]
+    monkeypatch.setattr("finvest_crawler.cli.catchup", lambda *a, **k: ms)
+    assert main(["catchup"]) == 2
+    monkeypatch.setattr("finvest_crawler.cli.catchup", lambda *a, **k: ms[:1])
+    assert main(["catchup"]) == 0
+
+
+def test_catchup_exit_2_when_a_day_raised(monkeypatch):
+    from finvest_crawler.feeds.catchup import CatchupFailed
+    _fake_db(monkeypatch)
+
+    def boom(*a, **k):
+        raise CatchupFailed([], ["2026-10-14"])
+    monkeypatch.setattr("finvest_crawler.cli.catchup", boom)
+    assert main(["catchup"]) == 2

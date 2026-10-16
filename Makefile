@@ -12,7 +12,7 @@ test: test-kernel
 
 # docker compose (ops); mkdir first so the host user, not the Docker daemon (root), creates data/
 DATE ?= $(shell TZ=Asia/Ho_Chi_Minh date +%F)
-.PHONY: up down logs crawl db-shell
+.PHONY: up down logs crawl db-shell install-timers uninstall-timers
 up:
 	mkdir -p data/raw data/exports
 	docker compose up -d --build
@@ -25,3 +25,18 @@ crawl:
 	docker compose run --rm --build crawler ticks --date $(DATE)
 db-shell:
 	docker compose exec db psql -U finvest finvest
+
+# systemd user timer for `catchup` (ops/README.md); needs the db up (make up)
+UNITDIR := $(HOME)/.config/systemd/user
+install-timers:
+	mkdir -p $(UNITDIR) $(HOME)/.config/finvest data/raw data/exports
+	sed 's|__FI_ROOT__|$(CURDIR)|' ops/systemd/finvest-crawl.service > $(UNITDIR)/finvest-crawl.service
+	cp ops/systemd/finvest-crawl.timer $(UNITDIR)/
+	printf 'FINVEST_UID=%s\nFINVEST_GID=%s\n' $(FINVEST_UID) $(FINVEST_GID) > $(HOME)/.config/finvest/env
+	systemctl --user daemon-reload && systemctl --user enable --now finvest-crawl.timer
+	loginctl enable-linger $$USER
+	systemctl --user list-timers finvest-crawl.timer
+uninstall-timers:
+	-systemctl --user disable --now finvest-crawl.timer
+	rm -f $(UNITDIR)/finvest-crawl.service $(UNITDIR)/finvest-crawl.timer
+	systemctl --user daemon-reload
