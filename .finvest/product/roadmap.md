@@ -4,8 +4,9 @@ Owner: `fi-pm`. Source: `product/prd.md` §8 (Approved v2), `product/backlog.md`
 
 ## Velocity
 
-- **20 points per sprint `[assumed]`** — no sprint has run yet. Recalibrate at the sprint-01 retro from
-  points accepted (not started); re-plan this file if actual velocity differs by more than 25 %.
+- **20 points per sprint `[measured S01: 20/20 accepted]`** — kept at the sprint-01 retro (one data point,
+  needed a 3-task fix loop). Recalibrate each retro from points accepted (not started); re-plan this file if
+  actual velocity differs by more than 25 %.
 - Sprint length is one `/fi-sprint-plan` → `/fi-retro` cycle; calendar dates are not committed.
 
 ## Releases

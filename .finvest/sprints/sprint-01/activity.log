@@ -37,3 +37,4 @@
 2026-10-16 15:48 | sm      | M3-live                  | green     | crawl 2026-10-16: 911 fetched, 629 no_ticks, 145184 ticks, 777s, status partial, 0 errors | -
 2026-10-16 15:49 | pm      | REVIEW-01                | note      | 5/5 DONE, 20/20 pts; 'partial' on all-no_ticks = contract label flaw (architecture, S02-1), not a criterion fail; tech re-review PASS pendin | -
 2026-10-16 15:52 | arch    | REVIEW-01                | note      | re-review PASS: F1-F6 fixed in diff 36788eb..c6dd737, 107/0 tests, live 10-16 ok; S02-1 agreed, platform.md v1.3 (no_trades list, complete r | 5-review.tech.md
+2026-10-16 17:28 | pm      | RETRO-01                 | note      | velocity 20/20 kept (roadmap updated); 5 actions R1-R5 (lead no-green-no-merge, size stop, sa sizing+live-source fixtures, sm FI_ROOT+push g | -

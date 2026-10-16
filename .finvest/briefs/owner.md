@@ -50,7 +50,10 @@
 
 Set `Effort: high` only for design-heavy, money/return math, data correctness, auth or concurrency
 tasks; everything else `medium`. Set `Lead: opus` only for contracts, money/return calculations,
-auth, ops. Keep tasks ≤ ~250 changed lines; split otherwise. Every block must be readable alone through
+auth, ops. Keep tasks ≤ ~250 changed lines; split otherwise.
+Size counts production + test + migration lines. Every assumption about a live source's behaviour (which
+session a payload belongs to, what an empty response means, whether a list drifts by day) cites a recorded
+fixture or a data.md §1.2 line; uncited → an S-spike task before the build task (retro S01 R3). Every block must be readable alone through
 `task.sh <TASK>` — cite sections, do not rely on surrounding text.
 
 ## dag.json (software architect)

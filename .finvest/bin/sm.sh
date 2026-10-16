@@ -13,6 +13,7 @@ guard() { case "$1" in main|dev) echo "refused: never on $1"; exit 3;; esac; }
 case "$cmd" in
 push)
   guard "$br"
+  case "$br" in task/*|test/*) ;; *) echo "refused: push only task/* or test/* (sprint-* via sm.sh merge)"; exit 3;; esac
   git push -u origin "$br" 2>&1 | tail -3 ;;
 pr)
   T=${1:?sm.sh pr <TASK> [base]}; base=${2:-$SPRINT}

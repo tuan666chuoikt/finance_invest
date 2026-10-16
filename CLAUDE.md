@@ -64,7 +64,10 @@ Each ceremony stops at a **gate** for the sponsor. Cheapest corrections: PRD, th
 
 ## Running a sprint (token-lean)
 
-1. **One session per day.** Start from `.finvest/handoff.md` + `.finvest/bin/progress.py`. Before the
+1. **Start in FI_ROOT** (retro S01 R4): `cd /home/stein/Desktop/Learning/finance_invest` before starting
+   Claude Code; if `/agents` does not list fi-*, stop and restart there (the workflow's `portable` mode is a
+   fallback only). `/compact` or `/fi-handoff` after each phase.
+   **One session per day.** Start from `.finvest/handoff.md` + `.finvest/bin/progress.py`. Before the
    context gets large or at end of day, run `/fi-handoff` and stop. Never drag one session across days.
 2. **The workflow drives the build**, not you: `/fi-build` starts `finvest-sprint.workflow.js` in the
    background. It reads `dag.json`, starts every task whose `after` tasks are merged (within seat caps),

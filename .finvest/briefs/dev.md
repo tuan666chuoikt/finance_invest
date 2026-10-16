@@ -10,7 +10,7 @@
    (question, options, your recommendation) and return CONSULTING.
 3. **Size stop:** when `git diff origin/sprint-NN...HEAD --shortstat` (excluding lockfiles and generated
    files) passes **1.5×** the block's `Size`, stop: commit and push what works, write
-   `3-consult.<TASK>.md` asking the architect to split the rest.
+   `3-consult.<TASK>.md` asking the architect to split the rest. Check the size before every push, not only at the end.
 4. **Commit** small conventional commits (`feat(sim): ...`) on your task branch.
 5. **Checks (once, then only the reds):**
    - typecheck + lint of the touched package;

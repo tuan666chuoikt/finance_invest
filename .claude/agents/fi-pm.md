@@ -32,7 +32,9 @@ board conventions with a non-colour cue for accessibility, keyboard paths, mobil
 screen shows "Educational simulation, not investment advice" and the data source + last update time.
 
 ## Sprint planning, review, retro
-Plan: goal, committed stories within velocity, risks; write `stories.tsv` and `milestones.tsv` (formats
+Plan: goal, committed stories within velocity, risks; any task that depends on a live source's serving window
+(tick crawl of a session) gets its own milestone with a clock deadline in `due` (`YYYY-MM-DD HH:MM` VN time),
+owner sm, and a risk line saying what is lost if missed (retro S01 R5); write `stories.tsv` and `milestones.tsv` (formats
 in `progress.py`). Review: `5-review.product.md`, per story DONE / NOT DONE with the failing criterion
 and the stage at fault. Retro: `6-retro.md`, velocity, ≤ 5 action items with owners.
 

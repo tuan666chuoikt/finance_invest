@@ -54,3 +54,8 @@ Mapping: risk-free default 5%/year, editable. Backlog approved.
 > approve tất cả
 
 Mapping: A16-A (own adapters on public KBS/VCI/SSI endpoints), A17-A (no proprietary flows in v1), A18-A (reconstructed nominal prices, flagged), A19-A (5% x min(sale price, 10,000)), A20-A (E1VFVN30 benchmark), A21-A (cash dividends kept as cash by default). Architecture approved.
+
+## 2026-10-16 22:23 — answer to A22 (retro sprint-01)
+> A22 đồng ý hết
+
+Mapping: A22-R1..R5 approved as written in sprints/sprint-01/6-retro.md.
