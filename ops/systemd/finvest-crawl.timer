@@ -1,0 +1,10 @@
+[Unit]
+Description=Finvest ticks catch-up (15:30 crawl, 20:00 retry)
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 15:30:00 Asia/Ho_Chi_Minh
+OnCalendar=Mon..Fri *-*-* 20:00:00 Asia/Ho_Chi_Minh
+Persistent=true
+
+[Install]
+WantedBy=timers.target
