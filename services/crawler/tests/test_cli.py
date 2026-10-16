@@ -1,5 +1,4 @@
 import pytest
-
 from finvest_crawler.cli import main
 from finvest_crawler.settings import Settings
 
