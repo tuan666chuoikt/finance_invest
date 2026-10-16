@@ -107,6 +107,15 @@ def test_crawl_session_upsert_and_status(conn):
     assert conn.execute(text("SELECT symbols_skipped FROM crawl_sessions")).scalar_one() == 1
 
 
+def test_fail_unfinished_runs(conn):
+    rid = repo.insert_crawl_run(conn, "ticks", D, T0)
+    assert repo.fail_unfinished_runs(conn, "ticks", D) == 1
+    assert conn.execute(
+        text("SELECT status, reason, finished_at IS NOT NULL FROM crawl_runs WHERE id=:i"), {"i": rid}
+    ).one() == ("failed", "interrupted", True)
+    assert repo.fail_unfinished_runs(conn, "ticks", D) == 0
+
+
 def test_crawl_run_and_anomaly(conn):
     rid = repo.insert_crawl_run(conn, "ticks", D, T0)
     repo.finish_crawl_run(conn, rid, "ok", None, 5, 3, "data/raw/ticks/2026-10-15/_manifest.json")

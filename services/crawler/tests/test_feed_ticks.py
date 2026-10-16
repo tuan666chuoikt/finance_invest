@@ -35,6 +35,13 @@ class FakeRepo:
         self.runs[len(self.runs) + 1] = None
         return len(self.runs)
 
+    def fail_unfinished_runs(self, conn, feed, d):
+        n = 0
+        for i, r in self.runs.items():
+            if r is None:
+                self.runs[i], n = ("failed", "interrupted", 0, 0, None), n + 1
+        return n
+
     def finish_crawl_run(self, conn, id, status, reason, requests, rows, manifest_path):
         self.runs[id] = (status, reason, requests, rows, manifest_path)
 
@@ -101,6 +108,15 @@ def test_idempotent_rerun_replays_archive(tmp_path):
     m2, f2, _ = run(tmp_path, repo=repo)
     assert repo.ticks == before and m2.checksum == m1.checksum and m2.rows == 100
     assert (m2.requests, f2.replays) == (0, 3) and not repo.anomalies
+    # universe pinned by the archive
+    assert (m2.universe_count, m2.universe_as_of) == (m1.universe_count, m1.universe_as_of)
+
+
+def test_unfinished_run_is_closed_before_the_next(tmp_path):
+    repo = FakeRepo()
+    repo.insert_crawl_run(None, "ticks", D, None)  # a crashed run, never finished
+    run(tmp_path, repo=repo)
+    assert repo.runs[1] == ("failed", "interrupted", 0, 0, None) and repo.runs[2][0] == "complete"
 
 
 def test_past_date_other_session_is_missed(tmp_path):
