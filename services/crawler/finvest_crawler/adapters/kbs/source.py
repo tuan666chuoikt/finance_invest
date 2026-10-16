@@ -51,5 +51,8 @@ class KbsSource:
     def symbols(self, as_of: date, include_delisted: bool = False) -> list[SymbolRecord]:
         raise Unsupported("kbs has no symbol list")
 
+    def index_members(self, index_code: str, as_of: date) -> list[str]:
+        raise Unsupported("kbs has no index members")
+
     def bars(self, symbols: list[str], grain: Literal["1m", "1d"], to: date, count: int) -> list[Bar]:
         raise Unsupported("kbs adapter serves ticks only")

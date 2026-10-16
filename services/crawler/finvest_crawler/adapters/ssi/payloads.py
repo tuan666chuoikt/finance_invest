@@ -26,3 +26,19 @@ class SsiHistory(BaseModel):
 class SsiEnvelope(BaseModel):
     model_config = ConfigDict(extra="allow")
     data: SsiHistory
+
+
+class SsiRow(BaseModel):
+    """S1 row (data.md §1.2); `firstTradingDate` is a `yyyymmdd` string, "0" when unknown."""
+
+    model_config = ConfigDict(extra="allow")
+    stockSymbol: str
+    stockType: str
+    companyNameVi: str | None = None
+    companyNameEn: str | None = None
+    firstTradingDate: str | None = None
+
+
+class SsiExchange(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    data: list[SsiRow]

@@ -50,7 +50,7 @@ def eng():
 def conn(eng):
     with eng.begin() as c:
         for t in ("ticks", "crawl_runs", "crawl_sessions", "data_anomalies", "symbols", "bars_1d_src",
-                  "index_1d"):
+                  "index_1d", "symbol_index_membership"):
             c.execute(text(f"TRUNCATE {t}"))
         yield c
 
@@ -71,6 +71,10 @@ def test_migration_round_trip_and_timescale(eng):
             .all()
         )
         assert "policy_compression" in jobs
+    command.downgrade(cfg, "0004")  # 0005 round-trips on its own
+    with eng.connect() as c:
+        assert c.execute(text("SELECT to_regclass('symbol_index_membership')")).scalar_one() is None
+    command.upgrade(cfg, "head")
     command.downgrade(cfg, "0003")  # 0004 round-trips on its own
     with eng.connect() as c:
         got = c.execute(text("SELECT to_regclass('bars_1d_src'), to_regclass('index_1d')")).one()
@@ -209,3 +213,23 @@ def test_daily_coverage_per_exchange_includes_delisted(conn):
     assert {k: str(v) for k, v in repo.daily_coverage(conn).items()} == {"HOSE": "33.3", "HNX": "100.0"}
     repo.upsert_bars_1d_src(conn, [bar("BBB")], T0)
     assert str(repo.daily_coverage(conn)["HOSE"]) == "66.7"
+
+
+def test_upsert_listed_at_fills_only_null(conn):
+    repo.upsert_symbols(conn, [sym("AAA"), sym("BBB")], T0)
+    assert repo.upsert_listed_at(conn, {"AAA": date(2020, 1, 2), "ZZZ": D}) == 1  # unknown symbol ignored
+    assert repo.upsert_listed_at(conn, {"AAA": date(2021, 5, 5), "BBB": D}) == 1  # AAA already set: kept
+    got = {r.symbol: r.listed_at for r in repo.list_symbols(conn)}
+    assert got == {"AAA": date(2020, 1, 2), "BBB": D}
+
+
+def test_sync_index_membership_intervals_and_idempotence(conn):
+    d1, d2 = date(2026, 10, 15), date(2026, 10, 16)
+    assert repo.sync_index_membership(conn, "VN30", {"A", "B"}, d1) == (2, 0)
+    assert repo.sync_index_membership(conn, "VN30", {"B", "C"}, d2) == (1, 1)
+    q = text("SELECT symbol, valid_from, valid_to FROM symbol_index_membership ORDER BY symbol, valid_from")
+    want = [("A", d1, d2), ("B", d1, None), ("C", d2, None)]
+    assert [tuple(r) for r in conn.execute(q)] == want
+    assert repo.sync_index_membership(conn, "VN30", {"B", "C"}, d2) == (0, 0)  # rerun: no write
+    assert repo.sync_index_membership(conn, "VN30", set(), d2) == (0, 0)  # empty payload: no-op
+    assert [tuple(r) for r in conn.execute(q)] == want

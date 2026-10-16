@@ -26,10 +26,32 @@ SAMPLE = gzip.decompress((Path(__file__).parent / "fixtures/vci/symbols_getAll/s
 D1, D2, D3 = date(2026, 10, 15), date(2026, 10, 16), date(2026, 10, 17)
 
 
-def feed(tmp_path, conn, run_date, payload=SAMPLE, repo=repo):
+FIX = Path(__file__).parent / "fixtures"
+INDEX = {i: gzip.decompress((FIX / f"vci/index_members/{i}.json.gz").read_bytes()) for i in ("VN30", "HNX30")}
+
+
+def ssi_hose() -> bytes:
+    """The S1 fixture with its dated rows renamed to symbols the vci sample holds."""
+    rows = json.loads(gzip.decompress((FIX / "ssi/exchange/hose.json.gz").read_bytes()))
+    dated = [r for r in rows["data"] if r["firstTradingDate"] != "0"][:2]
+    for r, s in zip(dated, ("VOC", "VSH"), strict=True):
+        r["stockSymbol"] = s
+    return json.dumps({**rows, "data": dated}).encode()
+
+
+def feed(tmp_path, conn, run_date, payload=SAMPLE, repo=repo, members=INDEX):
+    def handler(req):
+        if req.url.host == "trading.vietcap.com.vn" and req.url.path.endswith("getByGroup"):
+            return httpx.Response(200, content=members[req.url.params["group"]])
+        if req.url.host == "iboard-query.ssi.com.vn":
+            hose = req.url.path.endswith("hose")
+            return httpx.Response(200, content=ssi_hose() if hose else b'{"data": []}')
+        return httpx.Response(200, content=payload)
+
     f = Fetcher(
-        httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(200, content=payload))),
-        {"vci": TokenBucket(1000)}, Archive(tmp_path / "raw"), "ua", sleep=lambda s: None)
+        httpx.Client(transport=httpx.MockTransport(handler)),
+        {"vci": TokenBucket(1000), "ssi": TokenBucket(1000)}, Archive(tmp_path / "raw"), "ua",
+        sleep=lambda s: None)
     run_symbols(Settings(_env_file=None, data_dir=tmp_path), run_date, fetcher=f, conn=conn, repo=repo)
     return f
 
@@ -71,10 +93,14 @@ class TestDb:
     def test_rerun_is_identical_and_replays(self, tmp_path, conn):
         f = feed(tmp_path, conn, D1)
         first = table(conn)
-        assert (f.requests, len(first)) == (1, 32)
+        assert (f.requests, len(first)) == (6, 32)  # V3 + 3 S1 + 2 indices
         assert sum(r.is_delisted for r in first) == 5
         f = feed(tmp_path, conn, D1)
-        assert (f.requests, f.replays) == (0, 1)
+        assert (f.requests, f.replays) == (0, 6)
+        listed = {r.symbol: r.listed_at for r in first if r.listed_at}
+        assert listed == {"VOC": date(2026, 5, 22), "VSH": date(2025, 12, 8)}
+        open_rows = text("SELECT count(*) FROM symbol_index_membership WHERE valid_to IS NULL")
+        assert conn.execute(open_rows).scalar_one() == 30 + 30
         assert table(conn) == first  # F-004 criterion 3: same rows, same fetched_at
         rules = conn.execute(text("SELECT rule, count(*) FROM data_anomalies GROUP BY rule")).all()
         assert rules == [("delisted_exchange_unknown", 5)]  # written once, not per run
