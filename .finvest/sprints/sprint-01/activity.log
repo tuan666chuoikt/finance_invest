@@ -25,3 +25,11 @@
 2026-10-15 22:21 | lead    | BE-feed-ticks            | changes   | 2 must-fix (empty-tape probe marks session missed; universe SourceBlocked not recorded blocked); kernel 70 passed | .finvest/sprints/sprint-01/3-pr.BE-feed-ticks.md
 2026-10-15 22:22 | dev     | BE-feed-ticks            | pr-open   | fix round 1: both must-fix done, kernel 72 passed, ruff/mypy/lint-imports ok | 3-build.BE-feed-ticks.md
 2026-10-15 22:23 | lead    | BE-feed-ticks            | merged    | 36788eb; round 2 APPROVE, 2 must-fix resolved; kernel 72 passed, feed 12 passed | 3-pr.BE-feed-ticks.md
+2026-10-16 08:13 | be-test | SPRINT-01                | red       | kernel 85 pass/1 xfail, db 7 pass; live crawl 10-15 PARTIAL 354/1540 symbols, 80272 ticks, 3 bugs | 4-test.be.md
+2026-10-16 08:18 | arch    | REVIEW-01                | note      | tech review FAIL: tasks 5 PASS/3 FAIL (fetcher, vci-ssi, feed-ticks); platform.md v1.2; 3 FIX tasks, dagRev 2 | 5-review.tech.md
+2026-10-16 08:20 | dev     | FIX-only-validate        | pr-open   | +41/-2 lines; pytest/ruff not runnable (no deps), logic checked by stdlib script | 3-build.FIX-only-validate.md
+2026-10-16 08:20 | dev     | FIX-feed-past-date       | pr-open   | pytest 78 passed (not db), ruff+mypy+lint-imports green, +71/-13 lines | 3-build.FIX-feed-past-date.md
+2026-10-16 08:20 | lead    | FIX-only-validate        | merged    | approve, merge 2532ecf; 0 must-fix; pytest not runnable in sandbox | 3-pr.FIX-only-validate.md
+2026-10-16 08:23 | lead    | FIX-feed-past-date       | merged    | 539fb15; 0 must-fix; kernel 81 passed, ruff/mypy/lint-imports green | 3-pr.FIX-feed-past-date.md
+2026-10-16 08:24 | dev     | FIX-universe-pinned      | pr-open   | 82 passed, ruff+mypy clean, 8 db skipped (no PG) | 3-build.FIX-universe-pinned.md
+2026-10-16 08:25 | lead    | FIX-universe-pinned      | merged    | 09dd626; 0 must-fix; pytest 82 passed, ruff/mypy/lint-imports green, db tests unrun | 3-pr.FIX-universe-pinned.md

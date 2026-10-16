@@ -1,6 +1,6 @@
 # Sprint 01 — Tech plan (FE/BE)
 
-Owner: `fi-software-architect`. Status: v1.0, 2026-10-15. Input: `1-sprint-plan.md` (F-020, F-030, F-010, F-011,
+Owner: `fi-software-architect`. Status: v1.1, 2026-10-16 (v1.0 + three FIX tasks after REVIEW-01). Input: `1-sprint-plan.md` (F-020, F-030, F-010, F-011,
 F-017; goal "ticks are being collected every evening"). Base branch for every task: `sprint-01`.
 
 ## Decisions for this sprint
@@ -346,3 +346,82 @@ run beside it on lane BE-2.
     < 45 min with `status ∈ complete|partial`, manifest at `data/raw/ticks/<date>/_manifest.json`.
 - Out of scope: scheduler/catch-up (F-019), priority order (F-018), holiday calendar (F-003), V1 fallback,
   `source_health`, any API endpoint, `close_snapshot`/`bars` feeds.
+
+## Fix tasks after REVIEW-01 (plan v1.1, 2026-10-16; see 5-review.tech.md, platform.md v1.2 §4)
+
+#### FIX-feed-past-date — archive only accepted tapes; past-date empty tape is conclusive; early stop with `partial/source_no_longer_serves`
+- Story: F-017 ; Side: be ; Effort: high ; Size: ~90 lines ; Lead: opus
+- Files: `services/crawler/finvest_crawler/fetch.py`, `services/crawler/finvest_crawler/adapters/kbs/source.py`,
+  `services/crawler/finvest_crawler/feeds/ticks.py`, `services/crawler/tests/test_fetch.py`,
+  `services/crawler/tests/test_adapter_kbs.py`, `services/crawler/tests/test_feed_ticks.py`
+- Change:
+  - `fetch.py`: `Fetcher.get(..., archive: bool = True)`; with `archive=False` a 200 body is returned but **not**
+    written (replay-read still happens first). Counters unchanged.
+  - `kbs/source.py` `KbsSource.ticks`: `get(..., archive=False)` → `parse_ticks(...)` → only when it accepted the
+    tape **and the file does not exist yet** `fetcher.archive.write("ticks", trading_date, symbol, payload)`. An
+    empty or other-session tape is therefore never stored under `trading_date` (platform.md §4 v1.2, QA-BUG-2).
+    `parse_ticks` unchanged (still raises `SourceNoLongerServes(symbol, served_date|None)`).
+  - `feeds/ticks.py`: replace the probe rule (`served_date is not None and not fetched`) with the date rule:
+    `conclusive = e.served_date is not None or trading_date < today_vn` (`today_vn = datetime.now(VN).date()`,
+    injectable via a `today` kw for tests). Not conclusive → skip `no_ticks`, continue. Conclusive → stop the
+    loop; `status = "missed" if fetched == 0 else "partial"`, `reason = "source_no_longer_serves"`; for `partial`
+    list `names[i:]` in `symbols_skipped` with reason `source_no_longer_serves`; manifest/session/run written as
+    today, exit 0. Remove the word "probe" from the docstring.
+- Contract: platform.md §4 v1.2 (archive-only-after-accept, `partial` reason, skip-reason list, K1 empty-tape rule);
+  ADR-S-008 (archive = cache of accepted payloads); data.md §1.2 K1.
+- Acceptance (offline, fixtures as in test_feed_ticks.py):
+  - `Fetcher.get(archive=False)` on a 200 → bytes returned, no file under `raw/`, `requests == 1`.
+  - KBS: tape `{"data":[]}` → `SourceNoLongerServes`, **no** `ticks/<date>/FPT.json.gz` written; a tape dated 10-15
+    requested for 10-14 → raises, nothing written; a good tape → written once, a second call replays (`replays == 1`)
+    and does not rewrite (mtime unchanged).
+  - Feed, `today=2026-10-16`, `trading_date=2026-10-15`, FPT archived (good tape), VNM served `{"data":[]}` → status
+    `partial`, reason `source_no_longer_serves`, `symbols_fetched == 1`, `symbols_skipped == [("VNM",
+    "source_no_longer_serves")]`, requests `== 1` (universe) + 1 (VNM) with FPT replayed, no `VNM.json.gz` on disk.
+  - Same with nothing archived and the first tape empty → `missed/source_no_longer_serves`, 0 fetched, 2 requests.
+  - `today == trading_date`, first tape empty → `no_ticks` skip, run continues (existing
+    `test_empty_first_tape_is_inconclusive_not_missed` stays green with `today=D`).
+  - Existing past-date test (`served_date=2026-10-15` for 10-14, 2 requests) stays green; kernel green.
+- Out of scope: universe archiving (FIX-universe-pinned), `--only` validation (FIX-only-validate), deleting the
+  1,186 stale empty tapes in the tester's data dir (manual; code never deletes).
+
+#### FIX-universe-pinned — universe archived under the trading date; `as_of` from the archive; close interrupted runs
+- Story: F-017 ; Side: be ; Effort: medium ; Size: ~70 lines ; Lead: sonnet
+- Files: `packages/market_data/finvest_market_data/domain/ports.py`,
+  `packages/market_data/finvest_market_data/infrastructure/repositories.py`,
+  `services/crawler/finvest_crawler/adapters/vci/source.py`, `services/crawler/finvest_crawler/adapters/kbs/source.py`,
+  `services/crawler/finvest_crawler/adapters/ssi/source.py`, `services/crawler/finvest_crawler/feeds/ticks.py`,
+  `services/crawler/tests/test_adapter_vci.py`, `services/crawler/tests/test_feed_ticks.py`,
+  `packages/market_data/tests/test_repositories_db.py`
+- Change:
+  - `ports.py`: `symbols(self, as_of: date) -> list[SymbolRecord]` (the session the list is for). KBS/SSI stubs take
+    the parameter and still raise `Unsupported`. `VciSource.symbols(as_of)` archives `feed="symbols",
+    trading_date=as_of, name="getAll"`; drop the `today` ctor kw (no longer used).
+  - `feeds/ticks.py`: call `symbols(trading_date)`; `universe.as_of = datetime.fromtimestamp(archive.path("symbols",
+    trading_date, "getAll").stat().st_mtime, UTC)` so a replayed universe reports when it was really fetched.
+  - `repositories.py`: `fail_unfinished_runs(conn, feed, trading_date) -> int`: `UPDATE crawl_runs SET status='failed',
+    reason='interrupted', finished_at=now() WHERE feed=… AND trading_date=… AND status IS NULL`; the feed calls it
+    right before `insert_crawl_run` (test FakeRepo gains the same function).
+- Contract: platform.md §4 v1.2 (universe keyed by `trading_date`, `interrupted` runs); data.md §3 `crawl_runs`;
+  codebase.md §3 (port change is additive: one dated parameter).
+- Acceptance:
+  - VCI: `symbols(date(2026,10,15))` writes `raw/symbols/2026-10-15/getAll.json.gz`; second call replays, 0 requests.
+  - Feed: two runs for 10-15 on the same fixtures → identical `universe.count` and `as_of`; second run `requests == 0`.
+  - `@pytest.mark.db`: insert a run with `status NULL`, call `fail_unfinished_runs` → returns 1, row `failed/interrupted`
+    with `finished_at` set; a second call returns 0.
+  - Feed offline: FakeRepo run left unfinished → next `run_ticks` closes it before inserting its own row.
+- Out of scope: `symbols` DB table (F-004), priority order (F-018).
+
+#### FIX-only-validate — `--only` symbols validated at the CLI; `Archive.path` rejects separators
+- Story: F-017 ; Side: be ; Effort: medium ; Size: ~25 lines ; Lead: sonnet
+- Files: `services/crawler/finvest_crawler/cli.py`, `services/crawler/finvest_crawler/archive.py`,
+  `services/crawler/tests/test_cli.py`, `services/crawler/tests/test_archive.py`
+- Change:
+  - `cli.py` `--only` type: each item must match `^[A-Z0-9]{1,10}$` after strip/upper, else
+    `argparse.ArgumentTypeError("bad symbol: …")` (exit 2 with usage).
+  - `archive.py` `Archive.path`: `ValueError` when `name` contains `/`, `\`, or starts with `.` (second guard for
+    every caller; `_manifest` stays valid). Also ensure the resolved path stays under `root`.
+- Contract: codebase.md §5 guardrails (input at the trust boundary); platform.md §4 archive path.
+- Acceptance: `cli.main(["ticks","--date","2026-10-15","--only","../../x"])` exits 2 without calling `run_ticks`;
+  `--only fpt, vnm` → `["FPT","VNM"]`; `Archive(tmp).path("ticks", d, "../x")` raises; the tester's strict-xfail
+  `test_f017_symbol_param_cannot_escape_archive` (branch test/sprint-01/be) passes once the mark is removed.
+- Out of scope: validating symbols that come from the VCI list (they are source data, archived as-is).

@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1, 2026-10-15** — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.2, 2026-10-16** (§4 clarified after REVIEW-01; v1.1 = `platform.prev-2.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -111,8 +111,12 @@ symbols_skipped, reason}]` for every day of the month; `pending` = trading day n
 ## 4. Crawler → DB and manifest contract (normative, R1)
 
 - Tables and natural keys: `architecture/data.md` §3. Writes are `INSERT … ON CONFLICT (natural key) DO UPDATE`
-  and set `fetched_at`; no `DELETE` except by an explicit `jobs` kind `purge` (not in v1).
+  and set `fetched_at` where the table has it (`ticks` has none: last write wins, ADR-S-008); no `DELETE` except by an explicit `jobs` kind `purge` (not in v1).
 - Raw archive path: `data/raw/<feed>/<YYYY-MM-DD>/<SYMBOL>.json.gz` (payload bytes exactly as received, gzip) and
+  — written **only after the adapter accepted the payload as that session's data** (an empty or other-session tape
+  is never archived under the requested date; REVIEW-01 QA-BUG-2). The universe is archived as
+  `data/raw/symbols/<trading_date>/getAll.json.gz`, keyed by the feed's `trading_date`, so a re-run replays the
+  same list (QA-BUG-3) —
   `data/raw/<feed>/<YYYY-MM-DD>/_manifest.json`:
 ```json
 { "feed": "ticks", "trading_date": "2026-10-15", "source": "kbs", "started_at": "...", "finished_at": "...",
@@ -125,8 +129,13 @@ symbols_skipped, reason}]` for every day of the month; `pending` = trading day n
   `symbol,ts,seq,price,volume,side` with `ts` as `%Y-%m-%dT%H:%M:%S.%f+00:00` (UTC, 6 digits), `side` empty when
   null; lines sorted bytewise, `\n`-joined, trailing `\n`; `requests` counts HTTP calls made (archive replays excluded).
   `status ∈ complete | partial | missed | blocked | failed`; `reason` for `missed` is one of `machine_off`,
-  `source_no_longer_serves`, `source_blocked`, `holiday_misconfigured`. The DB row `crawl_sessions` mirrors the
-  manifest; the manifest file is the audit copy.
+  `source_no_longer_serves`, `source_blocked`, `holiday_misconfigured`. `reason` for `partial` is null unless the
+  loop stopped early (`source_no_longer_serves`): the untouched symbols are then listed in `symbols_skipped` with
+  that reason. Per-symbol skip reasons: `http_<status> | payload_shape | timeout | no_ticks | source_blocked |
+  source_no_longer_serves`. K1 serves the current session only, so for a `trading_date` before today (VN) an
+  empty or other-session tape is conclusive (`source_no_longer_serves`); for today an empty tape is `no_ticks`.
+  A run first closes unfinished `crawl_runs` rows of its `(feed, trading_date)` as `failed`, reason `interrupted`.
+  The DB row `crawl_sessions` mirrors the manifest; the manifest file is the audit copy.
 - Normalisation (adapter responsibility): price → integer VND (SSI history ×1000; KBS/VCI already VND), volume →
   shares, `ts` → UTC from source-local time, `seq` = KBS accumulated volume after the trade (monotonic within the
   day) or VCI `id`; `side` → `B|S|null`.
