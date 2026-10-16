@@ -1,0 +1,8 @@
+S02-1	2	Tick status rule: no-trade symbols count as complete	-
+S02-2	1	Containers run as host user, data/ chowned	-
+S02-3	1	Live acceptance re-run 10-16 checksum, 10-14 missed	-
+S02-4	1	Clean 1,186 stale 10-15 tapes, re-manifest 10-15	-
+F-003	3	Trading calendar	-
+F-019	3	Best-effort scheduler	-
+F-004	5	Symbol master (all exchanges, delisted kept)	-
+F-012	5	Daily OHLCV back-fill	-

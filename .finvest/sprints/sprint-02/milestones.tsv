@@ -1,0 +1,9 @@
+M1	Honest status + host-owned data	2026-10-20 18:00	-
+M2	Calendar + scheduler live (timer fired once unattended)	2026-10-22 15:45	-
+M3	Symbol master + daily back-fill done	2026-10-23 18:00	-
+M4	Live checks + 10-15 cleanup	2026-10-23 18:00	-
+C1	Manual crawl 2026-10-19 session (sm; lost for good if missed)	2026-10-19 23:00	-
+C2	Manual crawl 2026-10-20 session (sm; lost for good if missed)	2026-10-20 23:00	-
+C3	Manual crawl 2026-10-21 session (sm; lost for good if missed)	2026-10-21 23:00	-
+C4	Crawl 2026-10-22 session, manual unless timer manifest present (sm)	2026-10-22 23:00	-
+C5	Crawl 2026-10-23 session, manual unless timer manifest present (sm)	2026-10-23 23:00	-
