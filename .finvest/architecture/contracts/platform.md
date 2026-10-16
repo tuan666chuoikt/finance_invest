@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.3, 2026-10-16** (§4 status rule, S02-1; v1.2 = `platform.prev-3.md`) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.4, 2026-10-16** (§4 `symbols`/`bars_1d` feed rows, S02 planning; v1.3 = `platform.prev-4.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -146,5 +146,15 @@ symbols_skipped, reason}]` for every day of the month; `pending` = trading day n
   shares, `ts` → UTC from source-local time, `seq` = KBS accumulated volume after the trade (monotonic within the
   day) or VCI `id`; `side` → `B|S|null`.
 - Idempotence check (test): running a feed twice on the same fixture yields identical table rows and checksum.
+- Other feeds (S02). `symbols` (F-004): one `crawl_runs` row per run (feed `symbols`, `trading_date` = run date VN), raw
+  archive `data/raw/symbols/<date>/getAll.json.gz` (already the ticks universe file) + `data/raw/symbols/<date>/<exchange>.json.gz`
+  for S1 listings; no manifest (nothing per-session to gap-list). A symbol absent from V3 or on board `DELISTED` gets
+  `is_delisted=true`, `delisted_at` = first run date it was observed so (never deleted; the source has no date).
+  `bars_1d` back-fill (F-012): manifest + `crawl_sessions` row with feed `bars_1d`, `trading_date` = run date, the same
+  JSON keys as ticks; `rows` = bars written, `symbols_no_trades` = symbols the source answered with zero bars, checksum
+  canonical line `symbol,trading_date,source,adj_o,adj_h,adj_l,adj_c,v,value` (ints, `value` empty when null). Prices
+  from V2 are source-adjusted decimals → rounded half-up to integer VND into `bars_1d_src`; `value` is **nominal**
+  matched value in VND (V2 `accumulatedValue` × 1,000,000, fixture `vci/gap_chart/FPT-1d`). `bars_1d_src.fetched_at`
+  = archive file mtime, so a replay rewrites the same version and a fresh fetch adds a new one (data.md §1.4 (2)).
 - Rate limiting: per-source token bucket (data.md §1.2); the adapter raises `SourceBlocked` after 3 consecutive
   429/403/HTML responses; the feed records `blocked` and exits non-zero (systemd shows failure; retry timer at 20:00).

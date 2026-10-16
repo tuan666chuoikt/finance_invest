@@ -15,3 +15,6 @@ clock/calendar to debug, and PR-020 explicitly asks for a timer. cron: no boot c
 
 ## Consequences
 A missed run shows as a failed unit and as a `missed` manifest; manual re-run is `make crawl DATE=`.
+
+## Amendment 2026-10-16 (S02 planning, F-019)
+One unit pair instead of two: `finvest-crawl.timer` carries both `OnCalendar` lines (15:30 and 20:00 Mon–Fri, Asia/Ho_Chi_Minh) with `Persistent=true`, and `finvest-crawl.service` runs `crawler catchup`, which walks every trading day (F-003 calendar) from the last `crawl_sessions` row to today and runs `ticks` for each day whose status is absent, `partial`, `blocked` or `failed` (`complete` and `missed` are final). `Persistent=true` fires the missed timer at boot, so no separate catch-up unit; the service waits up to 3 min for the docker daemon (`ExecStartPre`). Today is included only after 15:05 VN (put-through closes 15:00, VN§2) so a boot catch-up never archives a half session.

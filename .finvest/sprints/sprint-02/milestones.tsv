@@ -1,7 +1,7 @@
-M1	Honest status + host-owned data	2026-10-20 18:00	-
-M2	Calendar + scheduler live (timer fired once unattended)	2026-10-22 15:45	-
-M3	Symbol master + daily back-fill done	2026-10-23 18:00	-
-M4	Live checks + 10-15 cleanup	2026-10-23 18:00	-
+M1	Honest status + host-owned data	2026-10-20 18:00	QA-S01-tests,BE-status-no-trades,OPS-host-user
+M2	Calendar + scheduler live (timer fired once unattended)	2026-10-22 15:45	BE-calendar,BE-scheduler
+M3	Symbol master + daily back-fill done	2026-10-23 18:00	BE-symbols-feed,S-index-members,BE-symbols-enrich,BE-bars-store,BE-bars-backfill
+M4	Live checks + 10-15 cleanup	2026-10-23 18:00	QA-S02-live,OPS-cleanup-1015
 C1	Manual crawl 2026-10-19 session (sm; lost for good if missed)	2026-10-19 23:00	-
 C2	Manual crawl 2026-10-20 session (sm; lost for good if missed)	2026-10-20 23:00	-
 C3	Manual crawl 2026-10-21 session (sm; lost for good if missed)	2026-10-21 23:00	-

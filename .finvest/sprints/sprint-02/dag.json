@@ -1,0 +1,188 @@
+{
+  "sprint": "sprint-02",
+  "plan": "v1.0",
+  "dagRev": 1,
+  "tasks": [
+    {
+      "id": "QA-S01-tests",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 199
+    },
+    {
+      "id": "OPS-host-user",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 30
+    },
+    {
+      "id": "BE-calendar",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 150
+    },
+    {
+      "id": "S-index-members",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M3",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 40
+    },
+    {
+      "id": "BE-status-no-trades",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M1",
+      "after": [
+        "QA-S01-tests"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 120
+    },
+    {
+      "id": "BE-scheduler",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [
+        "BE-calendar",
+        "OPS-host-user",
+        "BE-status-no-trades"
+      ],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": false,
+      "size": 200
+    },
+    {
+      "id": "BE-symbols-feed",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M3",
+      "after": [
+        "BE-status-no-trades",
+        "BE-scheduler"
+      ],
+      "effort": "high",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 4,
+      "manual": false,
+      "size": 230
+    },
+    {
+      "id": "BE-bars-store",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M3",
+      "after": [
+        "BE-symbols-feed"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 5,
+      "manual": false,
+      "size": 150
+    },
+    {
+      "id": "BE-bars-backfill",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M3",
+      "after": [
+        "BE-bars-store"
+      ],
+      "effort": "high",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 6,
+      "manual": false,
+      "size": 200
+    },
+    {
+      "id": "BE-symbols-enrich",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M3",
+      "after": [
+        "BE-bars-store",
+        "S-index-members"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 6,
+      "manual": false,
+      "size": 200
+    },
+    {
+      "id": "QA-S02-live",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M4",
+      "after": [
+        "BE-status-no-trades"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": true,
+      "size": 0
+    },
+    {
+      "id": "OPS-cleanup-1015",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M4",
+      "after": [
+        "OPS-host-user",
+        "BE-status-no-trades"
+      ],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": true,
+      "size": 0
+    }
+  ],
+  "_doc": {
+    "manual": "QA-S02-live (tester, 4-test.be.md) and OPS-cleanup-1015 (sm/sponsor) are human steps; the SM logs their `merged` line when done. C1\u2013C5 clock milestones are SM work, not tasks.",
+    "size": "prod + test + migration lines (retro R3); the developer stops at 1.5x and consults"
+  }
+}

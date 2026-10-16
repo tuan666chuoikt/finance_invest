@@ -1,2 +1,3 @@
 2026-10-16 22:34 | sm      | SPRINT-02                | started   | planning sprint-02 (session continued per sponsor 'continous') | -
 2026-10-16 22:36 | pm      | SPRINT-02                | built     | goal: crawl runs itself, honest status, ref data; S02-1..4,F-003,F-019,F-004,F-012 = 21 pts; C1-C5 23:00 clocks; F-031->S03 | sprints/sprint-02/1-sprint-plan.md
+2026-10-16 22:47 | arch    | SPRINT-02                | built     | 12 tasks (10 code + 2 manual), 1,519 lines; chain QA-S01-tests>status>calendar>scheduler>symbols>bars; platform.md v1.4, ADR-S-009 amended | sprints/sprint-02/2-tech-plan.md

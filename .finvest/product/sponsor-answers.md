@@ -59,3 +59,8 @@ Mapping: A16-A (own adapters on public KBS/VCI/SSI endpoints), A17-A (no proprie
 > A22 đồng ý hết
 
 Mapping: A22-R1..R5 approved as written in sprints/sprint-01/6-retro.md.
+
+## 2026-10-16 22:47 — merge + autonomy
+> merge sprint-01 vào main, bắt đầu sprint-02 đi, sau này nếu không có gì quan trọng bạn cứ chạy đừng hỏi tôi
+
+Mapping: SM merged sprint-01 into main (fast-forward). Standing rule: SM proceeds through ceremonies/gates without asking unless something important (scope, money, data loss, risk, irreversible) needs the sponsor.
