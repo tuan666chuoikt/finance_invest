@@ -1,7 +1,7 @@
 # ops
 
 Deployment is `docker-compose.yml` at the repo root (db, api, crawler; crawler is in the `tools` profile so `make up` does not start it).
-Backups, TLS and nginx are out of scope for sprint 01 (F-019).
+Backups, TLS and nginx are out of scope for now.
 
 ## File ownership
 
@@ -17,7 +17,7 @@ container's postgres user). Do not chown it.
 
 ## Scheduled crawl (F-019)
 
-`finvest-crawl catchup` runs `ticks` for every trading day since the last recorded session (today only, if there is none),
+`finvest-crawl catchup` runs `ticks` for every trading day from the last recorded session day (inclusive; today only, if there is none),
 skipping `complete` and `missed` days; it exits 2 if a day ended `blocked` or raised. A systemd user timer runs it
 Mon-Fri at 15:30 and 20:00 Asia/Ho_Chi_Minh (`Persistent=true` replays a run missed while the machine was off).
 
@@ -26,5 +26,7 @@ Mon-Fri at 15:30 and 20:00 Asia/Ho_Chi_Minh (`Persistent=true` replays a run mis
     systemctl --user list-timers finvest-crawl.timer
     journalctl --user -u finvest-crawl.service
     make uninstall-timers
+
+The timer runs the image without `--build`: after a code change, run `make up` to rebuild it.
 
 A manual re-run of one day stays `make crawl DATE=YYYY-MM-DD`.

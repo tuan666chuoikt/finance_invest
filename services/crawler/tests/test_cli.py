@@ -1,10 +1,10 @@
+import pytest
 
 from finvest_crawler.cli import main
 from finvest_crawler.settings import Settings
 
 
 def test_closed_day_exits_0_with_skip_line(capsys, monkeypatch):
-    import pytest
     monkeypatch.setattr("finvest_crawler.cli.run_ticks", lambda *a: pytest.fail("ran"))
     assert main(["ticks", "--date", "2026-10-18"]) == 0
     assert '"skipped": "weekend"' in capsys.readouterr().out
@@ -27,7 +27,6 @@ def test_only_normalised(monkeypatch):
 
 
 def test_only_bad_symbol_exits_2_without_running(monkeypatch):
-    import pytest
     monkeypatch.setattr("finvest_crawler.cli.run_ticks", lambda *a: pytest.fail("ran"))
     with pytest.raises(SystemExit) as e:
         main(["ticks", "--date", "2026-10-15", "--only", "../../x"])
@@ -35,7 +34,6 @@ def test_only_bad_symbol_exits_2_without_running(monkeypatch):
 
 
 def test_catchup_help_exits_0(capsys):
-    import pytest
     with pytest.raises(SystemExit) as e:
         main(["catchup", "--help"])
     assert e.value.code == 0

@@ -29,7 +29,7 @@ def catchup(
     today = now_vn.date()
     last = repo.last_session_date(conn, FEED)
     # no history => only today: never back-walk silently into the past
-    start = last + timedelta(1) if last else today
+    start = last or today  # the last day counts too: it may be partial/blocked (ADR-S-009)
     end = today if now_vn.time() >= CUTOFF else today - timedelta(1)
     out: list[Manifest] = []
     failed: list[str] = []

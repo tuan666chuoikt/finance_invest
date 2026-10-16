@@ -10,7 +10,8 @@ VN = ZoneInfo("Asia/Ho_Chi_Minh")
 
 class Repo:
     def __init__(self, last, status=None):
-        self.last, self.status = last, status or {}
+        # like a real repo: the last day has a row (complete unless the test says otherwise)
+        self.last, self.status = last, {last: "complete", **(status or {})}
 
     def last_session_date(self, conn, feed):
         return self.last
@@ -47,10 +48,9 @@ def test_no_history_only_today():
 
 
 def test_complete_and_missed_skipped_others_run():
-    st = {date(2026, 10, 12): "complete", date(2026, 10, 13): "missed", date(2026, 10, 14): "partial",
-          date(2026, 10, 15): "blocked"}
-    ran, _ = _go(Repo(date(2026, 10, 11), st), datetime(2026, 10, 16, 20, 0, tzinfo=VN))
-    assert ran == [date(2026, 10, 14), date(2026, 10, 15), date(2026, 10, 16)]
+    st = {date(2026, 10, 12): "complete", date(2026, 10, 13): "missed", date(2026, 10, 15): "partial"}
+    ran, _ = _go(Repo(date(2026, 10, 15), st), datetime(2026, 10, 16, 20, 0, tzinfo=VN))
+    assert ran == [date(2026, 10, 15), date(2026, 10, 16)]
 
 
 def test_raising_day_logged_others_still_run():
@@ -67,3 +67,15 @@ def test_raising_day_logged_others_still_run():
                 repo=Repo(date(2026, 10, 13)), run=run)
     assert ran == [date(2026, 10, 14), date(2026, 10, 15), date(2026, 10, 16)]
     assert len(e.value.manifests) == 2
+
+
+def test_last_day_blocked_is_retried_at_20h():
+    st = {date(2026, 10, 16): "blocked"}
+    ran, _ = _go(Repo(date(2026, 10, 16), st), datetime(2026, 10, 16, 20, 0, tzinfo=VN))
+    assert ran == [date(2026, 10, 16)]
+
+
+def test_last_day_complete_runs_nothing():
+    st = {date(2026, 10, 16): "complete"}
+    ran, _ = _go(Repo(date(2026, 10, 16), st), datetime(2026, 10, 16, 20, 0, tzinfo=VN))
+    assert ran == []
