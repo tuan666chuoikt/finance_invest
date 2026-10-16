@@ -8,7 +8,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from finvest_market_data.domain.manifest import Manifest
-from finvest_market_data.domain.models import Tick
+from finvest_market_data.domain.models import SymbolRecord, Tick
 from finvest_market_data.infrastructure import repositories as repo
 from finvest_market_data.infrastructure.tables import ticks
 from sqlalchemy import text
@@ -48,7 +48,7 @@ def eng():
 @pytest.fixture
 def conn(eng):
     with eng.begin() as c:
-        for t in ("ticks", "crawl_runs", "crawl_sessions", "data_anomalies"):
+        for t in ("ticks", "crawl_runs", "crawl_sessions", "data_anomalies", "symbols"):
             c.execute(text(f"TRUNCATE {t}"))
         yield c
 
@@ -69,7 +69,10 @@ def test_migration_round_trip_and_timescale(eng):
             .all()
         )
         assert "policy_compression" in jobs
-    command.downgrade(cfg, "-1")  # 0002 round-trips on its own
+    command.downgrade(cfg, "0002")  # 0003 round-trips on its own
+    with eng.connect() as c:
+        assert c.execute(text("SELECT to_regclass('symbols')")).scalar_one() is None
+    command.downgrade(cfg, "0001")  # and so does 0002
     with eng.connect() as c:
         cols = text("SELECT 1 FROM information_schema.columns WHERE column_name='symbols_no_trades'")
         assert not c.execute(cols).first()
@@ -130,3 +133,35 @@ def test_crawl_run_and_anomaly(conn):
     ).one() == ("ok", True)
     repo.insert_anomaly(conn, "FPT", D, "duplicate_tick", "seq=2")
     assert conn.execute(text("SELECT rule FROM data_anomalies")).scalar_one() == "duplicate_tick"
+
+
+def sym(symbol: str, exchange="HOSE", delisted=False, delisted_at=None) -> SymbolRecord:
+    return SymbolRecord(symbol, exchange, "STOCK", "Tên", "Name", "5500", delisted, "vci",  # type: ignore[arg-type]
+                        None, delisted_at)
+
+
+def test_upsert_symbols_keeps_exchange_and_delisted_at(conn):
+    repo.upsert_symbols(conn, [sym("AAA", "HNX"), sym("BBB")], T0)
+    d1, d2 = date(2026, 10, 15), date(2026, 10, 16)
+    # V3 lists AAA as delisted without an exchange (placeholder UPCOM): the stored HNX stays
+    repo.upsert_symbols(conn, [sym("AAA", "UPCOM", True, d1)], T0)
+    repo.upsert_symbols(conn, [sym("AAA", "UPCOM", True, d2)], T0)  # a later run never moves delisted_at
+    q = text("SELECT exchange, is_delisted, delisted_at FROM symbols WHERE symbol='AAA'")
+    assert conn.execute(q).one() == ("HNX", True, d1)
+    repo.upsert_symbols(conn, [sym("AAA", "HOSE")], T0)  # re-listed: flag flips, the date stays
+    assert conn.execute(q).one() == ("HOSE", False, d1)
+    assert [r.symbol for r in repo.list_symbols(conn, include_delisted=False)] == ["AAA", "BBB"]
+
+
+def test_mark_delisted_only_absent_rows_and_empty_is_noop(conn):
+    repo.upsert_symbols(conn, [sym("AAA"), sym("BBB"), sym("CCC", delisted=True, delisted_at=D)], T0)
+    assert repo.mark_delisted(conn, set(), D) == 0
+    assert repo.mark_delisted(conn, {"AAA", "CCC"}, date(2026, 10, 16)) == 1
+    got = {r.symbol: (r.is_delisted, r.delisted_at) for r in repo.list_symbols(conn)}
+    assert got == {"AAA": (False, None), "BBB": (True, date(2026, 10, 16)), "CCC": (True, D)}
+    assert repo.mark_delisted(conn, {"AAA"}, date(2026, 10, 17)) == 0  # already delisted rows are left alone
+
+
+def test_symbols_check_constraints(conn):
+    with pytest.raises(IntegrityError), conn.begin_nested():
+        repo.upsert_symbols(conn, [sym("AAA", "NYSE")], T0)

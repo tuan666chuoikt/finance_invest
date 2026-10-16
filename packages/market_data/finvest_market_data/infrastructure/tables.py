@@ -3,6 +3,7 @@
 from sqlalchemy import (
     CHAR,
     BigInteger,
+    Boolean,
     CheckConstraint,
     Column,
     Date,
@@ -71,4 +72,22 @@ data_anomalies = Table(
     Column("value", Text),
     Column("detected_at", TZ, nullable=False, server_default=func.now()),
     Column("resolved_at", TZ),
+)
+
+symbols = Table(
+    "symbols",
+    metadata,
+    Column("symbol", Text, primary_key=True),
+    Column("exchange", Text, nullable=False),
+    Column("type", Text, nullable=False),  # STOCK|ETF
+    Column("name_vi", Text, nullable=False),
+    Column("name_en", Text, nullable=False),
+    Column("icb_code2", Text),
+    Column("listed_at", Date),
+    Column("delisted_at", Date),
+    Column("is_delisted", Boolean, nullable=False, server_default="false"),
+    Column("source", Text, nullable=False),
+    Column("fetched_at", TZ, nullable=False),
+    CheckConstraint("exchange IN ('HOSE','HNX','UPCOM')", name="symbols_exchange_check"),
+    CheckConstraint("type IN ('STOCK','ETF')", name="symbols_type_check"),
 )

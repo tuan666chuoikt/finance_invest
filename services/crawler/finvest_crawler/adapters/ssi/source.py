@@ -45,7 +45,7 @@ class SsiSource:
     def __init__(self, fetcher: Fetcher) -> None:
         self.fetcher = fetcher
 
-    def symbols(self, as_of: date) -> list[SymbolRecord]:
+    def symbols(self, as_of: date, include_delisted: bool = False) -> list[SymbolRecord]:
         raise Unsupported("ssi has no symbol list in S01")
 
     def ticks(self, symbol: str, trading_date: date) -> list[Tick]:
