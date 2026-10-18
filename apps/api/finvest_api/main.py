@@ -7,12 +7,13 @@ from sqlalchemy.engine import Engine
 
 from . import errors
 from .deps import get_engine
-from .routes import bars, symbols
+from .routes import bars, scenarios, symbols
 
 app = FastAPI(title="finvest")
 errors.install(app)
 app.include_router(symbols.router)
 app.include_router(bars.router)
+app.include_router(scenarios.router)
 
 
 @app.get("/api/health")

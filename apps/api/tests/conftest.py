@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from finvest_api.deps import get_engine
 from finvest_api.main import app
+from finvest_api.scenarios import tables as scenario_tables
 from finvest_market_data.infrastructure import tables
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -15,6 +16,7 @@ def make_client():
     def make(seed=True):
         eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
         tables.metadata.create_all(eng)
+        scenario_tables.metadata.create_all(eng)
         if seed:
             t = datetime(2026, 10, 14, 11, 0, tzinfo=UTC)
             def sym(s, vi, en, d=False):
