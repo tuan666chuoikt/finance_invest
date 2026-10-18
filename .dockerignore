@@ -1,7 +1,8 @@
 data/
 .git
 .finvest/
-node_modules
+**/node_modules
+**/dist
 .venv
 __pycache__
 .env

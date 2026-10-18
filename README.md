@@ -65,7 +65,7 @@ apps/ services/ packages/ code (sẽ được tạo từ sprint 1)
 
 ```
 cp .env.example .env                              # đặt POSTGRES_PASSWORD
-make up                                           # db + api (build lần đầu mất vài phút)
+make up                                           # db + api + web (UI: http://127.0.0.1:8080) (build lần đầu mất vài phút)
 curl http://127.0.0.1:8000/api/health             # {"status":"ok","db":"ok",...}
 make crawl DATE=2026-10-23                        # cào tick cả phiên của một ngày
 ```

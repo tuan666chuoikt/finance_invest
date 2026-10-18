@@ -1,4 +1,4 @@
-# Only the api is published, and only on loopback (ADR-S-001, system.md section 5).
+# Only web (8080) and api (8000) are published, and only on loopback (ADR-S-001, system.md section 5).
 x-app-env: &app-env
   FINVEST_DATABASE_URL: postgresql+psycopg://finvest:${POSTGRES_PASSWORD:?copy .env.example to .env}@db:5432/finvest
   HOME: /tmp  # non-root user has no writable home
@@ -29,6 +29,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - api
 
   crawler:
     build: .

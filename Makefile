@@ -1,6 +1,6 @@
 export FINVEST_UID ?= $(shell id -u)
 export FINVEST_GID ?= $(shell id -g)
-.PHONY: test-kernel test lint
+.PHONY: test-kernel test lint web-install web-test web-build contracts
 lint:
 	uv run ruff check .
 
@@ -9,6 +9,16 @@ test-kernel:
 
 test: test-kernel
 	uv run pytest -m db -q
+
+web-install:
+	npm --prefix apps/web ci
+web-test:
+	npm --prefix apps/web run typecheck && npm --prefix apps/web test
+web-build:
+	npm --prefix apps/web run build
+# OpenAPI export + TS types (needs BE-contracts-ts: finvest_api.export_openapi)
+contracts:
+	uv run python -m finvest_api.export_openapi && npm --prefix apps/web run gen
 
 # docker compose (ops); mkdir first so the host user, not the Docker daemon (root), creates data/
 DATE ?= $(shell TZ=Asia/Ho_Chi_Minh date +%F)
