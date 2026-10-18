@@ -41,7 +41,7 @@ class VciBars(BaseModel):
     c: list[Decimal]
     v: list[int]
     t: list[int]
-    accumulatedValue: list[Decimal]  # million VND nominal
+    accumulatedValue: list[Decimal | None]  # million VND nominal; null on old bars (live 2026-10-16)
 
 
 def validate[T](adapter: TypeAdapter[T], payload: bytes, raw_path: Path, source: str = "vci") -> T:
