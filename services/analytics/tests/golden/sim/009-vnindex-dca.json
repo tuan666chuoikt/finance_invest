@@ -1,0 +1,17 @@
+{
+  "hand": [
+    "case 007 scenario (2,000,000 monthly, contributions 2026-01-15 and 2026-02-16, sell 2026-02-27): pl_pct -2.8338",
+    "VN-Index 1,000.00 (m1), 1,250.00 (m2), 1,100.00 (sell)",
+    "value = 2,000,000 x 1,100/1,000 + 2,000,000 x 1,100/1,250 = 2,200,000 + 1,760,000 = 3,960,000",
+    "invested 4,000,000; pl = -40,000; pl_pct = -1.0000; diff_pp = -2.8338 - (-1.0000) = -1.8338"
+  ],
+  "view": {"symbol": "FPT", "start": "2026-01-01", "end": "2026-02-27", "close": 10000, "last_close": 11000,
+           "closes": {"2026-02-16": 12000}, "snapshot": "2026-02-27T15:30:00",
+           "index": {"VNINDEX": {"2026-01-15": "1000.00", "2026-02-16": "1250.00", "2026-02-27": "1100.00"}}},
+  "request": {"symbol": "FPT", "amount_vnd": 2000000, "buy_date": "2026-01-15", "sell_date": "2026-02-27", "style": "dca"},
+  "expected": {
+    "returns.pl_pct.value": "-2.8338",
+    "benchmarks.0.value_vnd.value": "3960000", "benchmarks.0.pl_pct.value": "-1.0000",
+    "benchmarks.0.diff_pp.value": "-1.8338"
+  }
+}

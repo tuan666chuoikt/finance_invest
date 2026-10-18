@@ -7,6 +7,7 @@ import finvest_rules
 from ..domain.models import Ctx, WhatIfRequest
 from ..domain.money import AnalyticsError, fee, lot_cost_min, max_qty, pct, round_half_up
 from ..domain.ports import MarketView
+from .benchmark import etf, vnindex
 from .dates import LOOKAROUND, record, resolve_sell, shift_forward
 from .dca import schedule
 from .figures import envelope, iso_vn, whatif_result
@@ -19,7 +20,9 @@ def _cagr(liquidation: int, invested: int, days: int) -> Decimal | None:
     return ((Decimal(liquidation) / Decimal(invested)) ** (Decimal(365) / Decimal(days)) - 1) * 100
 
 
-def run_whatif(req: WhatIfRequest, view: MarketView, rules=finvest_rules.costs) -> dict:
+def run_whatif(
+    req: WhatIfRequest, view: MarketView, rules=finvest_rules.costs, *, with_benchmarks: bool = True
+) -> dict:
     sym = req.symbol
     if req.fill_rule != "close":
         raise AnalyticsError("VALIDATION", {"reason": "fill_rule_not_supported", "fill_rule": req.fill_rule})
@@ -157,4 +160,10 @@ def run_whatif(req: WhatIfRequest, view: MarketView, rules=finvest_rules.costs) 
         missing=missing,
         curve=curve,
     )
+    if with_benchmarks:
+        sc_pct = pct(pl, invested)
+        result["benchmarks"] = [
+            vnindex([(t, req.amount_vnd) for _, t in fills], m, sc_pct, ctx, view),
+            etf(req, m, [t for _, t in fills], sc_pct, ctx, view, run_whatif),
+        ]
     return envelope(req, ctx, view.price_basis(), flags, result)
