@@ -4,11 +4,14 @@ def _syms(r):
 
 def test_search(make_client):
     c = make_client()
-    assert _syms(c.get("/api/symbols?q=fp")) == ["FPT"]
-    assert _syms(c.get("/api/symbols?q=fp&include_delisted=true")) == ["FPT", "FPTX"]
+    assert _syms(c.get("/api/symbols?q=fp")) == ["FOC", "FPT"]  # no exact match: symbol asc
+    assert _syms(c.get("/api/symbols?q=fp&include_delisted=true")) == ["FOC", "FPT", "FPTX"]
     assert _syms(c.get("/api/symbols?q=sữa")) == ["VNM"]
     assert _syms(c.get("/api/symbols?q=%25")) == []  # wildcard is escaped
-    assert _syms(c.get("/api/symbols")) == ["FPT", "VNM"]
+    assert _syms(c.get("/api/symbols")) == ["FOC", "FPT", "VNM"]
+    assert _syms(c.get("/api/symbols?q=FPT")) == ["FPT", "FOC"]  # exact match first
+    assert _syms(c.get("/api/symbols?q=fpt")) == ["FPT", "FOC"]
+    assert _syms(c.get("/api/symbols?q=FPT&limit=1")) == ["FPT"]
 
 
 def test_limit_validation(make_client):
