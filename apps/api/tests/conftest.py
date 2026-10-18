@@ -29,6 +29,7 @@ def make_client():
 
             with eng.begin() as c:
                 c.execute(tables.symbols.insert(), [
+                    sym("FOC", "FPT Online", "FPT Online Service"),
                     sym("FPT", "FPT Corp", "FPT Corporation"), sym("FPTX", "FPT cũ", "FPT old", True),
                     sym("VNM", "Sữa Việt Nam", "Vinamilk")])
                 c.execute(tables.bars_1d_src.insert(), [

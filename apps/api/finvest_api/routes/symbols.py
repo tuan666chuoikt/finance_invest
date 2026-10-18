@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from finvest_market_data.infrastructure.tables import bars_1d_src, symbols
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.engine import Engine
 
 from ..deps import get_engine, vn_iso
@@ -50,6 +50,10 @@ def list_symbols(
         stmt = stmt.where(symbols.c.is_delisted.is_(False))
     if q := q.strip():
         pat = _like(q)
+        # exact symbol match first; the order must precede limit, so rebuild it here
+        stmt = stmt.order_by(None).order_by(
+            case((symbols.c.symbol == q.upper(), 0), else_=1), symbols.c.symbol
+        )
         stmt = stmt.where(
             or_(
                 symbols.c.symbol.like(pat[1:].upper(), escape="\\"),  # prefix: drop the leading %
