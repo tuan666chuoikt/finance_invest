@@ -22,6 +22,7 @@ from finvest_crawler.settings import Settings
 
 FEED = "ticks"
 VN = ZoneInfo("Asia/Ho_Chi_Minh")
+PROBE_SYMBOLS = ("FPT", "HPG", "VNM")  # liquid: all three empty = day not served
 
 
 def _skip_reason(e: Exception) -> str:
@@ -90,14 +91,34 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
         skipped: list[tuple[str, str]] = []
         no_trades: list[str] = []
         status, reason = ("blocked", "source_blocked") if blocked else ("complete", None)
-        for i, sym in enumerate(names):
+        todo, probed = names, {}
+        if not blocked and not only and trading_date < today:
+            # past day: an empty tape is "no trades" only once a probe proves the source still serves it
+            for p in PROBE_SYMBOLS:
+                try:
+                    probed[p] = source.ticks(p, trading_date)
+                    break
+                except SourceNoLongerServes as e:
+                    if e.served_date is not None:
+                        todo, status, reason = [], "missed", "source_no_longer_serves"
+                        break
+                    pass  # empty tape: this probe proves nothing
+                except SourceBlocked:
+                    todo, skipped = [], [(s, "source_blocked") for s in names]
+                    status, reason = "blocked", "source_blocked"
+                    break
+                except (PayloadShapeError, httpx.HTTPError):
+                    pass  # inconclusive probe: counts as no tape, like an empty one
+            if todo and not probed:  # no probe returned a tape: day not proven served
+                todo, status, reason = [], "missed", "source_no_longer_serves"
+        for i, sym in enumerate(todo):
             t0, replays0 = time.perf_counter(), fetcher.replays
             try:
-                tape = source.ticks(sym, trading_date)
+                tape = probed[sym] if sym in probed else source.ticks(sym, trading_date)
             except SourceNoLongerServes as e:
-                # another session served, or an empty tape for a past day: the source moved on, stop.
-                # An empty tape today is no trades for that name (platform.md §4): not a skip, carry on.
-                if e.served_date is not None or trading_date < today:
+                # another session served: the source moved on, stop.
+                # An empty tape is no trades for that name (platform.md §4): not a skip, carry on.
+                if e.served_date is not None:
                     status, reason = ("missed" if not fetched else "partial"), "source_no_longer_serves"
                     skipped += [(s, "source_no_longer_serves") for s in names[i:]] if fetched else []
                     break

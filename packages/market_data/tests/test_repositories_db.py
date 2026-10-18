@@ -1,6 +1,7 @@
 """Needs the compose db via FINVEST_DATABASE_URL; excluded from the kernel (-m "not db")."""
 
 import os
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -125,6 +126,23 @@ def test_crawl_session_upsert_and_status(conn):
     assert conn.execute(text("SELECT count(*) FROM crawl_sessions")).scalar_one() == 1
     assert repo.session_status(conn, "ticks", D) == "complete"
     assert conn.execute(text("SELECT symbols_skipped, symbols_no_trades FROM crawl_sessions")).one() == (1, 1)
+
+
+def test_missed_manifest_does_not_overwrite_partial_or_complete(conn):
+    q = text("SELECT status, rows FROM crawl_sessions")
+    partial = manifest("partial")
+    repo.upsert_crawl_session(conn, replace(partial, rows=145_184))
+    repo.upsert_crawl_session(conn, replace(manifest("missed"), rows=0, symbols_fetched=0))
+    assert conn.execute(q).one() == ("partial", 145_184)
+    repo.upsert_crawl_session(conn, replace(manifest("complete"), rows=145_184))
+    repo.upsert_crawl_session(conn, replace(manifest("missed"), rows=0))
+    assert conn.execute(q).one() == ("complete", 145_184)
+
+
+def test_missed_session_is_replaced_by_a_later_status(conn):
+    repo.upsert_crawl_session(conn, replace(manifest("missed"), rows=0))
+    repo.upsert_crawl_session(conn, manifest("complete"))
+    assert repo.session_status(conn, "ticks", D) == "complete"
 
 
 def test_fail_unfinished_runs(conn):

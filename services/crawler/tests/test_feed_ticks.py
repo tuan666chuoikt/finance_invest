@@ -128,21 +128,55 @@ def test_past_date_other_session_is_missed(tmp_path):
     assert repo.sessions[("ticks", date(2026, 10, 14))].status == "missed"
 
 
-def test_past_date_empty_tape_after_good_one_is_partial(tmp_path):
+def test_past_date_other_session_after_good_one_is_partial(tmp_path):
     tomorrow = date(2026, 10, 16)
     Archive(tmp_path / "raw").write("ticks", D, "FPT", load("FPT"))
-    m, f, repo = run(tmp_path, serve({"VNM": b'{"data": []}'}), today=tomorrow)
+    next_day = load("VNM").replace(b"2026-10-15", b"2026-10-16")
+    m, f, repo = run(tmp_path, serve({"VNM": next_day}), today=tomorrow)
     assert (m.status, m.reason, m.symbols_fetched, m.requests) == ("partial", "source_no_longer_serves", 1, 2)
-    assert f.replays == 1
+    assert f.replays == 1  # the FPT probe replays the archive; the loop reuses its tape
     assert m.symbols_skipped == (("VNM", "source_no_longer_serves"),)
     assert (tmp_path / "raw/ticks/2026-10-15/FPT.json.gz").exists()
     assert not (tmp_path / "raw/ticks/2026-10-15/VNM.json.gz").exists()
 
 
-def test_past_date_empty_first_tape_is_missed(tmp_path):
-    m, f, _ = run(tmp_path, serve({"FPT": b'{"data": []}'}), today=date(2026, 10, 16))
-    assert (m.status, m.reason, m.symbols_fetched, m.requests) == ("missed", "source_no_longer_serves", 0, 2)
-    assert m.symbols_skipped == () and not (tmp_path / "raw/ticks/2026-10-15/FPT.json.gz").exists()
+EMPTY = b'{"data": []}'
+
+
+def probe_run(tmp_path, overrides):
+    """Past day (today - 1), universe A32, FPT, VNM pre-archived so `requests` counts tapes only."""
+    recs = json.loads(load("symbols_getAll"))
+    recs = [dict(recs[0], symbol=s) for s in ("A32", "FPT", "VNM")]
+    Archive(tmp_path / "raw").write("symbols", D, "getAll", json.dumps(recs).encode())
+    return run(tmp_path, serve({"A32": EMPTY, **overrides}), today=date(2026, 10, 16))
+
+
+def test_past_date_probe_proves_day_served_so_empty_tapes_are_no_trades(tmp_path):
+    m, f, repo = probe_run(tmp_path, {"VNM": EMPTY})
+    assert (m.status, m.reason, m.symbols_fetched, m.rows, m.requests) == ("complete", None, 1, 50, 3)
+    assert m.symbols_no_trades == ("A32", "VNM") and m.symbols_skipped == ()  # FPT probe counted once
+
+
+def test_past_date_all_probes_empty_is_missed(tmp_path):
+    m, f, repo = probe_run(tmp_path, {"FPT": EMPTY, "HPG": EMPTY, "VNM": EMPTY})
+    assert (m.status, m.reason, m.symbols_fetched, m.rows, m.requests) == (
+        "missed", "source_no_longer_serves", 0, 0, 3)
+    assert m.symbols_skipped == () and m.symbols_no_trades == () and not repo.ticks
+    assert repo.sessions[("ticks", D)].status == "missed"
+
+
+def test_past_date_flaky_probe_plus_empty_probes_is_missed_not_no_trades(tmp_path):
+    m, f, repo = probe_run(tmp_path, {"FPT": lambda: httpx.Response(500), "HPG": EMPTY, "VNM": EMPTY})
+    assert (m.status, m.reason, m.symbols_fetched, m.rows) == ("missed", "source_no_longer_serves", 0, 0)
+    assert m.symbols_skipped == () and m.symbols_no_trades == () and not repo.ticks
+    assert m.requests == 5  # FPT 500 x TRIES-ish + HPG + VNM; the per-symbol loop is never entered
+
+
+def test_past_date_probe_with_other_session_is_missed_after_one_request(tmp_path):
+    next_day = load("FPT").replace(b"2026-10-15", b"2026-10-16")
+    m, f, _ = probe_run(tmp_path, {"FPT": next_day})
+    assert (m.status, m.reason, m.symbols_fetched, m.requests) == ("missed", "source_no_longer_serves", 0, 1)
+    assert m.symbols_skipped == ()
 
 
 def test_blocked_stops_and_exit_code_2(tmp_path, monkeypatch):

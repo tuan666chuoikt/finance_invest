@@ -79,3 +79,10 @@ def test_last_day_complete_runs_nothing():
     st = {date(2026, 10, 16): "complete"}
     ran, _ = _go(Repo(date(2026, 10, 16), st), datetime(2026, 10, 16, 20, 0, tzinfo=VN))
     assert ran == []
+
+
+def test_morning_after_replay_runs_a_past_day():
+    # run_ticks takes its probe path whenever trading_date < today (5-review.tech section 2)
+    now = datetime(2026, 10, 16, 9, 0, tzinfo=VN)
+    ran, _ = _go(Repo(date(2026, 10, 14)), now)
+    assert ran and all(d < now.date() for d in ran)
