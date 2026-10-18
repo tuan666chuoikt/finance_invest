@@ -1,0 +1,640 @@
+{
+  "components": {
+    "schemas": {
+      "BarsRange": {
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "first": {
+            "format": "date",
+            "title": "First",
+            "type": "string"
+          },
+          "last": {
+            "format": "date",
+            "title": "Last",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first",
+          "last",
+          "as_of"
+        ],
+        "title": "BarsRange",
+        "type": "object"
+      },
+      "BarsStatus": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "last_trading_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Trading Date"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "symbols": {
+            "title": "Symbols",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "last_trading_date",
+          "as_of",
+          "source",
+          "symbols"
+        ],
+        "title": "BarsStatus",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Scenario": {
+        "properties": {
+          "amount_vnd": {
+            "maximum": 100000000000.0,
+            "minimum": 1.0,
+            "title": "Amount Vnd",
+            "type": "integer"
+          },
+          "buy_date": {
+            "format": "date",
+            "title": "Buy Date",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "sell_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Date"
+          },
+          "style": {
+            "enum": [
+              "lump_sum",
+              "dca"
+            ],
+            "title": "Style",
+            "type": "string"
+          },
+          "symbol": {
+            "maxLength": 12,
+            "minLength": 1,
+            "title": "Symbol",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "symbol",
+          "style",
+          "amount_vnd",
+          "buy_date",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "Scenario",
+        "type": "object"
+      },
+      "ScenarioIn": {
+        "properties": {
+          "amount_vnd": {
+            "maximum": 100000000000.0,
+            "minimum": 1.0,
+            "title": "Amount Vnd",
+            "type": "integer"
+          },
+          "buy_date": {
+            "format": "date",
+            "title": "Buy Date",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "sell_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Date"
+          },
+          "style": {
+            "enum": [
+              "lump_sum",
+              "dca"
+            ],
+            "title": "Style",
+            "type": "string"
+          },
+          "symbol": {
+            "maxLength": 12,
+            "minLength": 1,
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "symbol",
+          "style",
+          "amount_vnd",
+          "buy_date"
+        ],
+        "title": "ScenarioIn",
+        "type": "object"
+      },
+      "SymbolDetail": {
+        "properties": {
+          "bars_1d": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BarsRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delisted_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delisted At"
+          },
+          "exchange": {
+            "title": "Exchange",
+            "type": "string"
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_vi": {
+            "title": "Name Vi",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "exchange",
+          "type",
+          "name_vi",
+          "name_en",
+          "delisted_at",
+          "bars_1d"
+        ],
+        "title": "SymbolDetail",
+        "type": "object"
+      },
+      "SymbolOut": {
+        "properties": {
+          "delisted_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delisted At"
+          },
+          "exchange": {
+            "title": "Exchange",
+            "type": "string"
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_vi": {
+            "title": "Name Vi",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "exchange",
+          "type",
+          "name_vi",
+          "name_en",
+          "delisted_at"
+        ],
+        "title": "SymbolOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "finvest",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/bars/1d/status": {
+      "get": {
+        "operationId": "bars_status_api_bars_1d_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BarsStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Bars Status"
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/api/scenarios": {
+      "get": {
+        "operationId": "list_scenarios_api_scenarios_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Scenario"
+                  },
+                  "title": "Response List Scenarios Api Scenarios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Scenarios"
+      },
+      "post": {
+        "operationId": "create_scenario_api_scenarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Scenario"
+      }
+    },
+    "/api/scenarios/{id}": {
+      "delete": {
+        "operationId": "delete_scenario_api_scenarios__id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Scenario"
+      },
+      "put": {
+        "operationId": "replace_scenario_api_scenarios__id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace Scenario"
+      }
+    },
+    "/api/symbols": {
+      "get": {
+        "operationId": "list_symbols_api_symbols_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_delisted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Delisted",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SymbolOut"
+                  },
+                  "title": "Response List Symbols Api Symbols Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Symbols"
+      }
+    },
+    "/api/symbols/{symbol}": {
+      "get": {
+        "operationId": "get_symbol_api_symbols__symbol__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "title": "Symbol",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SymbolDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Symbol"
+      }
+    }
+  }
+}
