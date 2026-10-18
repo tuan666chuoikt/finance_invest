@@ -165,6 +165,13 @@ def test_past_date_all_probes_empty_is_missed(tmp_path):
     assert repo.sessions[("ticks", D)].status == "missed"
 
 
+def test_past_date_flaky_probe_plus_empty_probes_is_missed_not_no_trades(tmp_path):
+    m, f, repo = probe_run(tmp_path, {"FPT": lambda: httpx.Response(500), "HPG": EMPTY, "VNM": EMPTY})
+    assert (m.status, m.reason, m.symbols_fetched, m.rows) == ("missed", "source_no_longer_serves", 0, 0)
+    assert m.symbols_skipped == () and m.symbols_no_trades == () and not repo.ticks
+    assert m.requests == 5  # FPT 500 x TRIES-ish + HPG + VNM; the per-symbol loop is never entered
+
+
 def test_past_date_probe_with_other_session_is_missed_after_one_request(tmp_path):
     next_day = load("FPT").replace(b"2026-10-15", b"2026-10-16")
     m, f, _ = probe_run(tmp_path, {"FPT": next_day})

@@ -94,7 +94,6 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
         todo, probed = names, {}
         if not blocked and not only and trading_date < today:
             # past day: an empty tape is "no trades" only once a probe proves the source still serves it
-            empties = 0
             for p in PROBE_SYMBOLS:
                 try:
                     probed[p] = source.ticks(p, trading_date)
@@ -103,14 +102,14 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
                     if e.served_date is not None:
                         todo, status, reason = [], "missed", "source_no_longer_serves"
                         break
-                    empties += 1
+                    pass  # empty tape: this probe proves nothing
                 except SourceBlocked:
                     todo, skipped = [], [(s, "source_blocked") for s in names]
                     status, reason = "blocked", "source_blocked"
                     break
                 except (PayloadShapeError, httpx.HTTPError):
-                    pass  # inconclusive probe: fall through to the normal loop
-            if todo and empties == len(PROBE_SYMBOLS):
+                    pass  # inconclusive probe: counts as no tape, like an empty one
+            if todo and not probed:  # no probe returned a tape: day not proven served
                 todo, status, reason = [], "missed", "source_no_longer_serves"
         for i, sym in enumerate(todo):
             t0, replays0 = time.perf_counter(), fetcher.replays
