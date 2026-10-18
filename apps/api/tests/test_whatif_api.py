@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from finvest_analytics.fixtures import FixtureView, constant_series
 from finvest_api.main import app
 from finvest_api.routes.whatif import get_market_view
+from test_market_view import put_bar
 
 SNAP = datetime(2026, 10, 15, 15, 30)
 GOLDEN_001 = {"symbol": "FPT", "amount_vnd": 10_000_000, "buy_date": "2026-10-12", "sell_date": "2026-10-15"}
@@ -63,3 +64,47 @@ def test_budget_20_requests_under_2s(post):  # N2
     dt = time.perf_counter() - t0
     print(f"N2 budget: 20 requests in {dt:.3f}s")
     assert dt < 2
+
+
+@pytest.fixture
+def sql_eng():
+    """Real SqlMarketView on SQLite: FPT bars 14-16 Oct, nothing served yet (live L1)."""
+    from finvest_market_data.infrastructure.tables import metadata
+    from sqlalchemy import create_engine
+    from sqlalchemy.pool import StaticPool
+
+    eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
+    metadata.create_all(eng)
+    for d in (14, 15, 16):
+        # naive local time: SQLite drops tzinfo and iso_vn reads naive as Asia/Ho_Chi_Minh
+        put_bar(eng, "FPT", date(2026, 10, d), datetime(2026, 10, 17, 10, 0))
+    yield eng
+
+
+@pytest.fixture
+def sql_post(sql_eng):
+    from finvest_api.market_view import SqlMarketView
+
+    app.dependency_overrides[get_market_view] = lambda: SqlMarketView(sql_eng)
+    yield lambda body: TestClient(app).post("/api/whatif", json=body)
+    app.dependency_overrides.clear()
+
+
+SQL_BODY = {"symbol": "FPT", "amount_vnd": 10_000_000, "buy_date": "2026-10-14",
+            "sell_date": "2026-10-16", "style": "lump_sum"}
+
+
+def test_sql_view_first_request_ok(sql_post):
+    r = sql_post(SQL_BODY)
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j["result"]["dates"]["buy"] == "2026-10-14"
+    assert j["data_snapshot"] == "2026-10-17T10:00:00+07:00"
+
+
+def test_sql_view_no_calendar_is_400(sql_post, sql_eng):
+    # a 2024 bar passes the first-bar check; no VNINDEX rows for 2024 -> empty calendar
+    put_bar(sql_eng, "FPT", date(2024, 1, 2), datetime(2026, 10, 17, 10, 0))
+    r = sql_post({**SQL_BODY, "buy_date": "2024-01-02"})
+    assert r.status_code == 400
+    assert r.json()["error"]["details"]["reason"] == "no_trading_day_near_buy"

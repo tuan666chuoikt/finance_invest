@@ -1,5 +1,6 @@
 """Lump-sum and monthly-DCA what-if on daily closes (analytics.md §1.2 steps 3-5, §1.3.1; contracts §2.4)."""
 
+from datetime import date
 from decimal import Decimal
 
 import finvest_rules
@@ -33,9 +34,11 @@ def run_whatif(
         raise AnalyticsError("SYMBOL_UNKNOWN", {"symbol": sym})
     if req.buy_date < first:
         raise AnalyticsError("NO_DATA", {"first_available": first.isoformat()})
-    snap = view.snapshot().date()
-    # validation only: this history read never feeds a number
-    bar_days = sorted(b.trading_date for b in view.bars_1d(sym, first, snap, as_of=snap))
+    # validation only: this history read never feeds a number; bounded by date.max, not view.snapshot()
+    # (a SqlMarketView has served nothing yet, so its snapshot() is not a usable "today")
+    bar_days = sorted(b.trading_date for b in view.bars_1d(sym, first, date.max, as_of=date.max))
+    if not bar_days:
+        raise AnalyticsError("NO_DATA", {"first_available": first.isoformat()})
     last = bar_days[-1]
     if req.buy_date > last:
         raise AnalyticsError(

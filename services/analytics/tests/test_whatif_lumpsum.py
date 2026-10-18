@@ -119,3 +119,12 @@ def test_gap_carries_last_close():
     assert {c["date"]: c["market_value"] for c in r["equity_curve"]}["2026-10-14"] == 9_985_975
     assert "missing_sessions" in run(drop=["2026-10-14"])["flags"]
     assert datetime.fromisoformat(run()["data_snapshot"]).utcoffset().total_seconds() == 7 * 3600
+
+
+def test_history_hidden_by_as_of_is_no_data():
+    # validation read returns nothing although first_bar_date exists: NO_DATA, not IndexError
+    view = build_view(VIEW)
+    view.bars_1d = lambda *a, **k: []
+    with pytest.raises(AnalyticsError) as e:
+        run_whatif(WhatIfRequest(**{**REQ, "buy_date": "2026-10-02"}), view)
+    assert (e.value.code, e.value.details) == ("NO_DATA", {"first_available": "2026-10-01"})
