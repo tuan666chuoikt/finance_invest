@@ -23,3 +23,19 @@
 2026-10-18 20:27 | lead    | FE-shell-bar             | merged    | deda013; vitest 21/21, tsc 0 | .finvest/sprints/sprint-03/3-pr.FE-shell-bar.md
 2026-10-18 20:27 | dev     | FE-how-computed          | pr-open   | typecheck ok, vitest 18/18 (4 new), +285 lines | 3-build.FE-how-computed.md
 2026-10-18 20:28 | lead    | FE-how-computed          | merged    | ccf6c1f; typecheck 0, vitest 25/25 | 3-pr.FE-how-computed.md
+2026-10-18 20:29 | lead    | BE-market-view           | merged    | efb01b3; 0 must-fix, 4 nits; kernel 149 passed, db 1 passed; e2e golden 001 deferred to BE-whatif-api | 3-pr.BE-market-view.md
+2026-10-18 20:29 | dev     | FE-sparkline             | pr-open   | tsc ok, vitest 30/30 (5 new), +121 lines | 3-build.FE-sparkline.md
+2026-10-18 20:30 | dev     | AI-whatif-lumpsum        | pr-open   | make test-kernel exit 0, 161 passed (12 new in analytics), ruff+mypy+lint-imports ok; golden 001-004 match hand numbers; branch-only | 3-build.AI-whatif-lumpsum.md
+2026-10-18 20:30 | lead    | FE-sparkline             | merged    | 5f90edc; tsc 0, vitest 30/30 | .finvest/sprints/sprint-03/3-pr.FE-sparkline.md
+2026-10-18 20:32 | lead    | BE-scenarios-api         | changes   | 1 must-fix (db round-trip test lacks _test guard); kernel 152 passed, db 1 passed; H 60b46a6 | 3-pr.BE-scenarios-api.md
+2026-10-18 20:32 | be-dev  | BE-scenarios-api         | built     | fix round 1: _test db guard; 3 passed 1 skipped, db 1 passed on finvest_test | sprints/sprint-03/3-build.BE-scenarios-api.md
+2026-10-18 20:35 | lead    | AI-whatif-lumpsum        | changes   | 2 must-fix (size stop 600 vs 250 no consult; NO_DATA on buy-day gap); kernel 161 passed; H 8e8446a | 3-pr.AI-whatif-lumpsum.md
+2026-10-18 20:36 | ai      | AI-whatif-lumpsum        | changes   | fix round 1: buy-day no_bar shift + consult filed; kernel 162 passed | 3-build.AI-whatif-lumpsum.md
+2026-10-18 20:36 | lead    | BE-scenarios-api         | merged    | ae11587; 0 must-fix; kernel 152 passed, db 1 passed, guard skips real db | 3-pr.BE-scenarios-api.md
+2026-10-18 20:38 | lead    | AI-whatif-lumpsum        | consult   | escalate ai: size consult 2.45x unanswered; must-fix 2 fixed; kernel 165 passed, analytics 17 passed; H 36f9dba | 3-pr.AI-whatif-lumpsum.md
+2026-10-18 20:39 | ai-arch | AI-whatif-lumpsum        | answered  | size consult: A accept +613 vs ~250 (how boilerplate + golden); plan Size->~600, D4 moved to AI-whatif-dca; merge H 36f9dba | 3-consult.AI-whatif-lumpsum.answer.ai.md
+2026-10-18 20:39 | ai      | AI-whatif-lumpsum        | note      | fix round 2: no must-fix left, size consult answered A; head 36f9dba unchanged, up to date with sprint-03 | sprints/sprint-03/3-build.AI-whatif-lumpsum.md
+2026-10-18 20:41 | lead    | AI-whatif-lumpsum        | merged    | 78e636c; round 3 APPROVE, 0 must-fix; kernel 165 passed, analytics 17 passed | 3-pr.AI-whatif-lumpsum.md
+2026-10-18 20:45 | dev     | AI-whatif-dca            | pr-open   | kernel 175 passed, analytics 27 passed (+10), ruff+mypy+lint-imports clean; golden 005/005b/006/007 hand-checked; diff +382/-71 | 3-build.AI-whatif-dca.md
+2026-10-18 20:47 | lead    | AI-whatif-dca            | changes   | 2 must-fix (size stop +382/-71 vs ~215 no consult; per-row how buy_fee_rate); kernel 175 passed, analytics 27 passed; H 95b7fc6 | 3-pr.AI-whatif-dca.md
+2026-10-18 20:49 | dev     | AI-whatif-dca            | consult   | fix r1: per-row buy_fee_rate fixed, 176 passed; size consult written (+410/-73 vs 322), awaiting answer | 3-build.AI-whatif-dca.md

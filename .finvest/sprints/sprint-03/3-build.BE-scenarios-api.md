@@ -14,3 +14,7 @@ Diff: 212 insertions (plan ~230).
 
 Deviations: none. Outside-set edits: none.
 Tester notes: run the `db`-marked test_migration_round_trip against the compose db; SQLite tests use an Integer id variant.
+
+## Fix round 1
+- Must-fix 1: `test_migration_round_trip` now skips unless the db name ends in `_test` (same skipif as test_market_view_db.py). Nit taken: downgrade pinned to `0005`.
+- Checks: scenarios tests `3 passed, 1 skipped`; with a `.../finvest` URL -> skipped; against compose `finvest_test` -> `1 passed`; ruff clean. Merged origin/sprint-03 in.

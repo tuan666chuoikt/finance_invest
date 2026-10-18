@@ -95,7 +95,7 @@ Order (file sets overlap in `services/analytics/**` → serial): BE-rules-costs 
 - Out of scope: any simulation logic, SQL adapter (N1), TS export of the Pydantic models (`packages/contracts`, later).
 
 #### AI-whatif-lumpsum — F-040 + F-041: lump-sum buy at close of N, valuation at M, P/L, CAGR, Figures, approximate flag
-- Story: F-040 ; Side: ai ; Effort: high ; Size: ~250 lines ; Lead: opus
+- Story: F-040 ; Side: ai ; Effort: high ; Size: ~600 lines (planned ~250; actual +613 accepted in 3-consult answer: ~350 code incl. mandatory Figure `how`, ~260 tests + golden JSON) ; Lead: opus
 - Files: `services/analytics/finvest_analytics/sim/__init__.py`, `services/analytics/finvest_analytics/sim/whatif.py`,
   `services/analytics/finvest_analytics/sim/dates.py`, `services/analytics/finvest_analytics/sim/figures.py`,
   `services/analytics/tests/test_whatif_lumpsum.py`, `services/analytics/tests/golden/sim/001-lump-sum-fpt.json`,
@@ -113,7 +113,7 @@ Order (file sets overlap in `services/analytics/**` → serial): BE-rules-costs 
   - Valuation at M (contracts §2.4 `value`): `market_value = qty × close(M)`, `sell_fee`, `sell_tax`, `liquidation`;
     `returns`: `pl_vnd`, `pl_pct = pct(pl, invested)`, `holding_days = (M − N).days`, `cagr_pct` (Decimal `ln/exp` or float
     pow then 4 dp — tolerance in tests) or `null` + `cagr_note` when `holding_days == 0`.
-  - `equity_curve`: every calendar day in `[N, M]`, `market_value = cash + qty × close` (carry last close forward when the
+  - `equity_curve`: every trading day in `[N, M]` (contract §2.4; the earlier "calendar day" wording was wrong), `market_value = cash + qty × close` (carry last close forward when the
     day has no bar → `missing_sessions`, `flags += [missing_sessions]`), `invested = amount`.
   - `figures.py`: builds every Figure with `how` (`formula`, `inputs`, `as_of = snapshot`, `rules_version`, `cite`); envelope
     `price_basis = view.price_basis()`, `approximate = price_basis != "nominal"`, `flags` sorted + deduplicated,
@@ -162,6 +162,8 @@ Order (file sets overlap in `services/analytics/**` → serial): BE-rules-costs 
     invested` (UX "P/L % formula for DCA"); `cagr_pct = null` with `cagr_note` "not defined for multiple contributions
     (S03: no IRR)"; `equity_curve[].invested` = cumulative contributions up to that day (step line).
   - `dates.buy` = first actual contribution; `holding_days` from it.
+  - D4 follow-up from AI-whatif-lumpsum: emit `flags += [rules_unverified:<rule_id>]` (contracts §1.3, C7) for every
+    `finvest_rules.Rule` with `verified == false` used by `costs()`; applies to lump-sum and DCA paths (shared valuation code).
 - Contract: contracts/analytics.md §2.4 (`contributions`, `returns.pl_pct` DCA rule, `cagr_pct null`, `equity_curve.invested`);
   analytics.md §1.2 step 3 (decision time), §1.3.1; backlog F-057; UX scenario-dashboard.md "DCA card line", "Mini curve".
 - Acceptance:
