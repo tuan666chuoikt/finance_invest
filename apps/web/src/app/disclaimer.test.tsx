@@ -1,14 +1,23 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import i18n from "../i18n";
 import { ROUTES, routeObjects } from "./routes";
 
 const VI = "Mô phỏng để học, không phải lời khuyên đầu tư";
 const EN = "Educational simulation, not investment advice";
 
+// Layout -> TopBar -> FreshnessChip fetches bars status; stub it so no network is needed.
+vi.stubGlobal("fetch", () => Promise.resolve(new Response("{}", { status: 500 })));
+
 function at(path: string) {
-  return render(<RouterProvider router={createMemoryRouter(routeObjects, { initialEntries: [path] })} />);
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={createMemoryRouter(routeObjects, { initialEntries: [path] })} />
+    </QueryClientProvider>,
+  );
 }
 
 describe("disclaimer on analysis routes (F-032)", () => {

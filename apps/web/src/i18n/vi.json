@@ -48,5 +48,9 @@
   "error.NO_DATA": "Không có dữ liệu cho yêu cầu này.",
   "error.UNREACHABLE": "Không kết nối được máy chủ cục bộ. `docker compose` đã chạy chưa?",
   "disclaimer.line_vi": "Mô phỏng để học, không phải lời khuyên đầu tư",
-  "disclaimer.line_en": "Educational simulation, not investment advice"
+  "disclaimer.line_en": "Educational simulation, not investment advice",
+  "chip.as_of": "Dữ liệu đến {{dt}} · nguồn {{src}}",
+  "chip.stale": "⚠ cũ: lần cuối {{date}}",
+  "chip.unavailable": "Không có trạng thái dữ liệu",
+  "shell.menu": "Menu"
 }
