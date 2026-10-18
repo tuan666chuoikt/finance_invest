@@ -93,11 +93,12 @@ def run_whatif(req: WhatIfRequest, view: MarketView, rules=finvest_rules.costs) 
                 "price": px,
                 "fee_vnd": fee_vnd,
                 "cash_after": cash,
+                "buy_fee_rate": buy_rate,
             }
         )
         states.append((cash, shares, invested))
         if qty == 0 and min_amount is None:
-            min_amount = (lot_cost_min(px, c.lot, buy_rate), px)
+            min_amount = (lot_cost_min(px, c.lot, buy_rate), px, buy_rate)
     cb = rules(n)
     flags = {"fill_shifted"} if shifts else set()
     if min_amount:
@@ -140,7 +141,6 @@ def run_whatif(req: WhatIfRequest, view: MarketView, rules=finvest_rules.costs) 
         shifts=shifts,
         close_sell=close_m,
         lot=cb.lot,
-        buy_rate=req.fee_rate if req.fee_rate is not None else cb.buy_fee_rate,
         sell_rate=sell_rate,
         tax_rate=cs.sell_tax_rate,
         qty=shares,

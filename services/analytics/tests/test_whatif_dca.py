@@ -3,8 +3,10 @@
 import json
 from dataclasses import replace
 from datetime import date, timedelta
+from decimal import Decimal
 
 from finvest_analytics.domain.models import WhatIfRequest
+from finvest_analytics.domain.money import round_half_up
 from finvest_analytics.sim import run_whatif
 from finvest_analytics.sim.dca import schedule
 from test_golden import build_view
@@ -112,3 +114,20 @@ def test_contribution_day_without_bar_moves_forward():
     assert {"field": "contribution", "from": "2026-04-15", "to": "2026-04-16", "reason": "no_bar"} in r[
         "result"
     ]["dates"]["shifts"]
+
+
+def test_how_reports_each_contributions_own_fee_rate():
+    from finvest_rules import costs
+
+    rates = {"2026-01": Decimal("0.0010")}  # contribution 1 cheaper than the rest
+
+    def rules(on):
+        return replace(costs(on), buy_fee_rate=rates.get(on.isoformat()[:7], Decimal("0.0020")))
+
+    r = run_whatif(WhatIfRequest(**REQ), build_view(VIEW), rules=rules)["result"]
+    seen = {c["how"]["inputs"]["buy_fee_rate"] for c in r["contributions"]}
+    assert seen == {"0.0010", "0.0020"}
+    for c in r["contributions"]:
+        want = round_half_up(Decimal(c["qty"] * c["price"]) * Decimal(c["how"]["inputs"]["buy_fee_rate"]))
+        assert c["fee_vnd"] == want
+    assert r["position"]["shares"]["how"]["inputs"]["buy_fee_rate_i"].split(",")[:2] == ["0.0010", "0.0020"]

@@ -27,7 +27,6 @@ def whatif_result(
     shifts: list[dict],
     close_sell: int,
     lot: int,
-    buy_rate: Decimal,
     sell_rate: Decimal,
     tax_rate: Decimal,
     qty: int,
@@ -40,7 +39,7 @@ def whatif_result(
     pl_pct: Decimal,
     holding_days: int,
     cagr: Decimal | None,
-    min_amount: tuple[int, int] | None,  # (amount, price it was computed at)
+    min_amount: tuple[int, int, Decimal] | None,  # (amount, price, buy_fee_rate it was computed at)
     missing: list[date],
     curve: list[dict],
 ) -> dict:
@@ -54,7 +53,11 @@ def whatif_result(
         return {
             "formula": "round_half_up(qty * price * buy_fee_rate)",
             "cite": "VN§5",
-            "inputs": {"qty": str(r["qty"]), "price": str(r["price"]), "buy_fee_rate": str(buy_rate)},
+            "inputs": {
+                "qty": str(r["qty"]),
+                "price": str(r["price"]),
+                "buy_fee_rate": str(r["buy_fee_rate"]),
+            },
             "as_of": ctx.as_of,
             "rules_version": ctx.rules_version,
         }
@@ -98,8 +101,12 @@ def whatif_result(
             "shares": f(
                 qty,
                 "shares",
-                "sum(qty_i), qty_i = floor(cash_i / (close_i * lot * (1 + buy_fee_rate))) * lot",
-                {"qty_i": ",".join(str(r["qty"]) for r in rows), "lot": lot, "buy_fee_rate": buy_rate},
+                "sum(qty_i), qty_i = floor(cash_i / (close_i * lot * (1 + buy_fee_rate_i))) * lot",
+                {
+                    "qty_i": ",".join(str(r["qty"]) for r in rows),
+                    "lot": lot,
+                    "buy_fee_rate_i": ",".join(str(r["buy_fee_rate"]) for r in rows),
+                },
                 cite="VN§4",
             ),
             "cash": f(
@@ -119,7 +126,7 @@ def whatif_result(
                 qty,
                 "shares",
                 "floor(amount / (close * lot * (1 + buy_fee_rate))) * lot",
-                {"amount": amount, "close": close_buy, "lot": lot, "buy_fee_rate": buy_rate},
+                {"amount": amount, "close": close_buy, "lot": lot, "buy_fee_rate": rows[0]["buy_fee_rate"]},
                 cite="VN§4",
             ),
             "cash": f(
@@ -176,13 +183,13 @@ def whatif_result(
         "equity_curve": curve,
     }
     if min_amount is not None:
-        min_amount, min_price = min_amount
+        min_amount, min_price, min_rate = min_amount
         result["details"] = {
             "min_amount": f(
                 min_amount,
                 "vnd",
                 "ceil(lot * price * (1 + buy_fee_rate))",
-                {"lot": lot, "price": min_price, "buy_fee_rate": buy_rate},
+                {"lot": lot, "price": min_price, "buy_fee_rate": min_rate},
                 cite="VN§4",
             )
         }
