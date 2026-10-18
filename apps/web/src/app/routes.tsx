@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
-import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
+import { Navigate, Outlet, createBrowserRouter, useLocation } from "react-router-dom";
+import { Disclaimer } from "../components/Disclaimer";
 import { TopBar } from "../components/TopBar";
 import { Placeholder } from "./Placeholder";
 
@@ -17,9 +18,11 @@ export const ROUTES: AppRoute[] = [
 ];
 
 function Layout() {
+  const { pathname } = useLocation();
   return (
     <>
       <TopBar />
+      {ROUTES.find((r) => r.path === pathname)?.analysis && <Disclaimer />}
       <main>
         <Outlet />
       </main>
@@ -27,7 +30,7 @@ function Layout() {
   );
 }
 
-export const router = createBrowserRouter([
+export const routeObjects = [
   {
     element: <Layout />,
     children: [
@@ -35,4 +38,6 @@ export const router = createBrowserRouter([
       ...ROUTES.map(({ path, element }) => ({ path, element })),
     ],
   },
-]);
+];
+
+export const router = createBrowserRouter(routeObjects);
