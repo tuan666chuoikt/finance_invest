@@ -66,3 +66,4 @@
 2026-10-18 21:08 | lead    | FIX-index-value          | merged    | e0402af; 0 must-fix, 4 nits; kernel 203 passed, affected 32 passed, 6 new tests fail on old code | 3-pr.FIX-index-value.md
 2026-10-18 21:09 | dev     | FE-scenario-table        | pr-open   | tsc ok, vitest 56/56, +261/-20 lines | 3-build.FE-scenario-table.md
 2026-10-18 21:09 | lead    | FE-scenario-table        | merged    | 5c3a8c9; 0 must-fix, 3 nits; tsc ok, vitest 56/56 | 3-pr.FE-scenario-table.md
+2026-10-18 21:11 | lead    | FIX-ticks-probe          | merged    | e2ff2e3; must-fix 1 fixed; kernel 207 passed, db 20 passed | 3-pr.FIX-ticks-probe.md
