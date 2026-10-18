@@ -171,10 +171,11 @@ EMPTY = b'{"data":[]}'
 def test_qa_bug2_late_run_empty_tape_not_archived_and_not_replayed(tmp_path):
     m, _, _ = run(tmp_path, serve({"VNM": EMPTY}), today=date(2026, 10, 16))
     day = tmp_path / "raw/ticks/2026-10-15"
-    assert (m.status, m.reason) == ("partial", "source_no_longer_serves")
-    assert not list(day.glob("VNM*")), "empty tape of another session must not land under the old date"
+    # FPT probe proves the day is still served, so the empty VNM tape is no trades (FIX-ticks-probe)
+    assert (m.status, m.reason, m.symbols_no_trades) == ("complete", None, ("VNM",))
+    assert not list(day.glob("VNM*")), "empty tape must not land under the old date"
     m2, f2, _ = run(tmp_path, serve({"VNM": EMPTY}), today=date(2026, 10, 16))  # re-run: nothing frozen in archive
-    assert f2.requests >= 1 and not list(day.glob("VNM*")) and m2.reason == "source_no_longer_serves"
+    assert f2.requests >= 1 and not list(day.glob("VNM*")) and m2.symbols_no_trades == ("VNM",)
 
 
 def test_qa_bug3_universe_pinned_to_date_even_if_source_drifts(tmp_path):

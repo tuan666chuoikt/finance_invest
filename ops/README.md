@@ -29,4 +29,4 @@ Mon-Fri at 15:30 and 20:00 Asia/Ho_Chi_Minh (`Persistent=true` replays a run mis
 
 The timer runs the image without `--build`: after a code change, run `make up` to rebuild it.
 
-A manual re-run of one day stays `make crawl DATE=YYYY-MM-DD`.
+A manual re-run of one day stays `make crawl DATE=YYYY-MM-DD`. Catch-up (and `make crawl DATE=` for a past day) probes FPT, HPG, VNM first: an empty tape counts as no trades only once a probe shows the source still serves that day; otherwise the day is `missed`, and a `missed` run never overwrites a stored `partial`/`complete` session.

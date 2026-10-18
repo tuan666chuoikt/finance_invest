@@ -15,6 +15,7 @@ from sqlalchemy import (
     exists,
     func,
     literal_column,
+    or_,
     select,
     tuple_,
 )
@@ -129,7 +130,10 @@ def upsert_crawl_session(conn: Connection, m: Manifest) -> None:
         "reason": m.reason,
     }
     ins = insert(crawl_sessions).values(feed=m.feed, trading_date=m.trading_date, **vals)
-    conn.execute(ins.on_conflict_do_update(index_elements=["feed", "trading_date"], set_=vals))
+    # a late `missed` replay must not erase the rows a `partial`/`complete` session recorded
+    conn.execute(ins.on_conflict_do_update(
+        index_elements=["feed", "trading_date"], set_=vals,
+        where=or_(crawl_sessions.c.status.not_in(("partial", "complete")), ins.excluded.status != "missed")))
 
 
 def insert_anomaly(
