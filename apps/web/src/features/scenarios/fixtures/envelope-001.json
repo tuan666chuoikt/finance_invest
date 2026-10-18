@@ -1,0 +1,39 @@
+{
+  "params": {"symbol": "FPT", "amount_vnd": 10000000, "buy_date": "2026-10-12", "sell_date": "2026-10-15", "style": "lump_sum"},
+  "data_snapshot": "2026-10-15T16:45:00+07:00",
+  "rules_version": "2026.10.15",
+  "price_basis": "source_adjusted",
+  "approximate": true,
+  "flags": ["approximate"],
+  "disclaimer": "educational",
+  "result": {
+    "dates": {"buy": "2026-10-12", "sell": "2026-10-15", "shifts": []},
+    "contributions": [{"date": "2026-10-12", "requested": "2026-10-12", "amount_vnd": 10000000, "qty": 100, "price": 93500, "fee_vnd": 14025, "cash_after": 635975}],
+    "position": {
+      "shares": {"value": "100", "unit": "shares", "how": {"formula": "floor(amount / (price * lot * (1 + fee_rate))) * lot", "inputs": {"amount": "10000000", "price": "93500", "lot": "100", "fee_rate": "0.0015"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§4"}},
+      "cash": {"value": "635975", "unit": "vnd", "how": {"formula": "amount - qty * price - fee", "inputs": {"amount": "10000000", "qty": "100", "price": "93500", "fee": "14025"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+      "invested_vnd": {"value": "10000000", "unit": "vnd", "how": {"formula": "sum(contributions)", "inputs": {"contribution_1": "10000000"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}}
+    },
+    "value": {
+      "market_value_vnd": {"value": "10000000", "unit": "vnd", "how": {"formula": "shares * close_sell", "inputs": {"shares": "100", "close_sell": "100000"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+      "sell_fee_vnd": {"value": "15000", "unit": "vnd", "how": {"formula": "round_half_up(market_value * sell_fee_rate)", "inputs": {"market_value": "10000000", "sell_fee_rate": "0.0015"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+      "sell_tax_vnd": {"value": "10000", "unit": "vnd", "how": {"formula": "round_half_up(market_value * sell_tax_rate)", "inputs": {"market_value": "10000000", "sell_tax_rate": "0.001"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+      "liquidation_vnd": {"value": "10610975", "unit": "vnd", "how": {"formula": "cash + shares * close - sell_fee - sell_tax", "inputs": {"cash": "635975", "shares": "100", "close": "100000", "sell_fee": "15000", "sell_tax": "10000"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}}
+    },
+    "returns": {
+      "pl_vnd": {"value": "610975", "unit": "vnd", "how": {"formula": "liquidation - invested", "inputs": {"liquidation": "10610975", "invested": "10000000"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+      "pl_pct": {"value": "6.1098", "unit": "pct", "how": {"formula": "pl / invested * 100", "inputs": {"pl": "610975", "invested": "10000000"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+      "cagr_pct": {"value": "135906.7439", "unit": "pct", "how": {"formula": "((liquidation / invested) ^ (365 / holding_days) - 1) * 100", "inputs": {"liquidation": "10610975", "invested": "10000000", "holding_days": "3"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+      "holding_days": {"value": "3", "unit": "days", "how": {"formula": "sell - buy (calendar days)", "inputs": {"buy": "2026-10-12", "sell": "2026-10-15"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}}
+    },
+    "benchmarks": [
+      {"name": "VN-Index", "investable": false, "available": true,
+       "value_vnd": {"value": "10050000", "unit": "vnd", "how": {"formula": "amount * index_sell / index_buy", "inputs": {"amount": "10000000", "index_sell": "1256.40", "index_buy": "1250.00"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+       "pl_pct": {"value": "0.5120", "unit": "pct", "how": {"formula": "index_sell / index_buy - 1", "inputs": {"index_sell": "1256.40", "index_buy": "1250.00"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}},
+       "diff_pp": {"value": "5.5978", "unit": "pp", "how": {"formula": "scenario_pl_pct - benchmark_pl_pct", "inputs": {"scenario_pl_pct": "6.1098", "benchmark_pl_pct": "0.5120"}, "as_of": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15", "cite": "VN§5"}}},
+      {"name": "E1VFVN30", "investable": true, "available": false, "first_available": "2014-10-06"}
+    ],
+    "missing_sessions": [],
+    "equity_curve": [{"date": "2026-10-12", "market_value": 9985975, "invested": 10000000}]
+  }
+}
