@@ -197,7 +197,7 @@ then FE-scenario-table.
 ## FE tasks (`apps/web`)
 
 #### FE-web-scaffold — F-031: `apps/web` React + Vite + TS + i18n + formatters + API client
-- Story: F-031 ; Side: fe ; Effort: medium ; Size: ~230 lines ; Lead: sonnet
+- Story: F-031 ; Side: fe ; Effort: medium ; Size: ~300 lines ; Lead: sonnet
 - Files: `apps/web/package.json`, `apps/web/vite.config.ts` (dev proxy `/api → http://127.0.0.1:8000`, Vitest jsdom),
   `apps/web/tsconfig.json`, `apps/web/index.html`, `apps/web/.gitignore`, `apps/web/src/main.tsx`, `apps/web/src/app/App.tsx`,
   `apps/web/src/app/routes.tsx`, `apps/web/src/app/Placeholder.tsx`, `apps/web/src/components/TopBar.tsx` (minimal: name,

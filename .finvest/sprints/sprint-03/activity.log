@@ -1,0 +1,21 @@
+2026-10-18 20:18 | dev     | BE-rules-costs           | pr-open   | kernel green: 133 passed, ruff/mypy/lint-imports ok; +111 lines (plan ~90) | 3-build.BE-rules-costs.md
+2026-10-18 20:18 | ai-engineer | AI-analytics-scaffold    | pr-open   | kernel 133 passed, analytics 4 passed, lint-imports 5 kept | sprints/sprint-03/3-build.AI-analytics-scaffold.md
+2026-10-18 20:19 | dev     | BE-api-symbols-bars      | pr-open   | test-kernel 134 passed, ruff/mypy/lint-imports green, +~190 lines | 3-build.BE-api-symbols-bars.md
+2026-10-18 20:19 | dev     | S-etf-bars               | pr-open   | spike: E1VFVN30 V2 60 bars from 2026-07-22 HTTP 200, getAll type=ETF board=HSX, covered | 3-build.S-etf-bars.md
+2026-10-18 20:20 | dev     | FE-web-scaffold          | pr-open   | typecheck 0, vitest 8/8, build 0, dev /scenarios 200; 412 lines | .finvest/sprints/sprint-03/3-build.FE-web-scaffold.md
+2026-10-18 20:20 | lead    | BE-rules-costs           | changes   | 1 must-fix (costs.py fails mypy --strict, 6 errors); kernel 133 passed, lint-imports 4 kept; head 825c2cf | 3-pr.BE-rules-costs.md
+2026-10-18 20:20 | lead    | FE-web-scaffold          | changes   | size stop: 412 vs ~230 planned (1.8x), no consult; 1 must-fix; typecheck/test 8/build green | 3-pr.FE-web-scaffold.md
+2026-10-18 20:20 | dev     | BE-rules-costs           | changes   | fix round 1: mypy --strict 0 errors, kernel 134 passed | sprints/sprint-03/3-build.BE-rules-costs.md
+2026-10-18 20:20 | dev     | FE-web-scaffold          | consult   | size overage 412 vs ~230 justified, awaiting answer; no code change | 3-consult.FE-web-scaffold.md
+2026-10-18 20:20 | lead    | AI-analytics-scaffold    | merged    | 4bc626c; kernel 133 passed, analytics 4 passed, 0 must-fix | 3-pr.AI-analytics-scaffold.md
+2026-10-18 20:22 | arch    | FE-web-scaffold          | answered  | accept as-is: all 18 files in card file set; Size 230->300 in tech-plan + dag.json (dagRev 2) | 3-consult.FE-web-scaffold.answer.sa.md
+2026-10-18 20:22 | dev     | BE-market-view           | pr-open   | kernel 139 passed, db 1 passed, ruff/mypy/lint-imports green; golden run_whatif e2e deferred (run_whatif not merged) | 3-build.BE-market-view.md
+2026-10-18 20:23 | lead    | BE-api-symbols-bars      | merged    | 9a141e0; 0 must-fix, 4 nits; kernel 138 passed, lint-imports 5 kept | 3-pr.BE-api-symbols-bars.md
+2026-10-18 20:23 | lead    | FE-web-scaffold          | merged    | merge 4249d44; typecheck 0, 8 tests pass, build 0; size 412<=450 | 3-pr.FE-web-scaffold.md
+2026-10-18 20:24 | lead    | S-etf-bars               | merged    | bef00de; kernel 129 passed, fixture 60 bars verified | .finvest/sprints/sprint-03/3-pr.S-etf-bars.md
+2026-10-18 20:24 | dev     | FE-disclaimer            | pr-open   | typecheck 0, vitest 14/14 pass | 3-build.FE-disclaimer.md
+2026-10-18 20:24 | dev     | BE-scenarios-api         | pr-open   | ruff clean, api tests 10 passed 1 skipped(db), +212 lines | 3-build.BE-scenarios-api.md
+2026-10-18 20:25 | lead    | FE-disclaimer            | merged    | merge ae3b4a10; tsc 0, vitest 14/14 | .finvest/sprints/sprint-03/3-pr.FE-disclaimer.md
+2026-10-18 20:25 | dev     | FE-shell-bar             | pr-open   | vitest 15/15, tsc 0, build 0 | 3-build.FE-shell-bar.md
+2026-10-18 20:26 | lead    | BE-rules-costs           | merged    | merge 36f6c0e; round 2 APPROVE, 0 must-fix; kernel 143 passed, mypy --strict rules 0 err; size +139/-1 vs 135 waived (round-1 fix) | 3-pr.BE-rules-costs.md
+2026-10-18 20:26 | lead    | FE-shell-bar             | changes   | 1 must-fix: disclaimer.test red 5/21 after sync (no QueryClientProvider); tsc ok | .finvest/sprints/sprint-03/3-pr.FE-shell-bar.md

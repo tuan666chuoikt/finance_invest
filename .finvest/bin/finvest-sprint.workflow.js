@@ -157,7 +157,14 @@ const watcher = (async () => {
 async function runTask(t) {
   let consults = 0, rounds = 0
   const fix = async () => {
-    const f = await dev(t, fixPrompt(t), 'fix')
+    let f = await dev(t, fixPrompt(t), 'fix')
+    while (f && f.result === 'CONSULTING') {  // a fix round may consult too (e.g. size stop); route it like a build consult
+      if (++consults > 2) return { status: 'STOP', note: 'third consult round: replan needed' }
+      const c = await consult(t, f.owners, `SPRINT_DIR/3-consult.${t.id}.md`)
+      if (c.died) return { status: 'AGENT_DIED', note: 'consult owner died' }
+      if (c.needsSponsor) return { status: 'SPONSOR', note: c.note }
+      f = await dev(t, fixPrompt(t), 'fix')
+    }
     if (!f) return { status: 'AGENT_DIED', note: 'developer died' }
     if (f.result !== 'DONE') return { status: f.result, note: f.note }
     return null

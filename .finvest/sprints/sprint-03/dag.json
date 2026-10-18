@@ -1,7 +1,7 @@
 {
   "sprint": "sprint-03",
   "plan": "v1.0",
-  "dagRev": 1,
+  "dagRev": 2,
   "tasks": [
     {
       "id": "BE-rules-costs",
@@ -175,7 +175,7 @@
       "bothLeads": false,
       "priority": 1,
       "manual": false,
-      "size": 230
+      "size": 300
     },
     {
       "id": "FE-shell-bar",
