@@ -29,3 +29,6 @@
 - **Hand-back:** at most **5 lines**: result, branch/sha, blockers, report path. Detail goes in your file.
 - **Wait loops:** cap every loop (`for i in $(seq 1 90)`), match processes as `'[p]laywright'`, and stop
   any loop you started before handing back. Never a bare long `sleep`.
+- **Node toolchain on this machine (2026-10-18):** Node 18.20, npm 10; **pnpm is not installed** and there is no
+  sudo. Use npm (lockfile `package-lock.json`), or `npx -y pnpm@9` if the plan insists. Pin tools that support
+  Node 18 (e.g. Vite ≤ 6, Vitest ≤ 2); Vite 7 needs Node 20.
