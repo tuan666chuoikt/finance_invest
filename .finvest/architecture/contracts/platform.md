@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.6, 2026-10-18** (§4 past-date probe rule B1, mixed-unit `accumulatedValue` B2; v1.5 = `platform.prev-6.md`) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.7, 2026-10-18** (§2.5 `GET /symbols` exact match first, LIVE-03 L2; v1.6 = `platform.prev-7.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -100,7 +100,7 @@ proxies `/api/` to `api:8000`), so §1.1 CORS stays as is and nothing new binds 
 
 | Method, path | Purpose | Story |
 |---|---|---|
-| `GET /symbols?q=&limit=20&include_delisted=false` | `[{symbol, exchange, type, name_vi, name_en, delisted_at}]`; `q` matches symbol prefix (case-insensitive) or name substring; ordered symbol asc | F-055 form combobox |
+| `GET /symbols?q=&limit=20&include_delisted=false` | `[{symbol, exchange, type, name_vi, name_en, delisted_at}]`; `q` matches symbol prefix (case-insensitive) or name substring; the row whose `symbol` equals `upper(q)` comes first, the rest symbol asc (LIVE-03 L2) | F-055 form combobox |
 | `GET /symbols/{symbol}` | the record + `bars_1d: {first: "2006-12-13", last: "2026-10-17", as_of} \| null` (no bars → `null`); unknown → 404 `NOT_FOUND`. `index_memberships` deferred (F-004 rest) | F-055 form limits |
 | `GET /bars/1d/status` | `{last_trading_date: "2026-10-17" \| null, as_of: ISO \| null, source: "vci", symbols: 1612}` over `bars_1d_src` (`max(trading_date)`, `max(fetched_at)`, `count(distinct symbol)`); empty table → nulls and `symbols: 0` → web "No bars yet" state | F-031 chip, F-056 |
 | `GET /scenarios` | `[Scenario]` newest first (`created_at desc`), no pagination in S03 (≤ 100 rows, F-055) | F-055 |

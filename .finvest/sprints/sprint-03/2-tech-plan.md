@@ -40,6 +40,7 @@ FE-1  FE-web-scaffold → FE-shell-bar → FE-scenario-cards → FE-scenario-tab
 FE-2  FE-disclaimer → FE-how-computed → FE-sparkline → FE-scenario-form (after BE-contracts-ts)
 OPS   OPS-web-compose (after FE-web-scaffold)
 BE-3  FIX-ticks-probe ∥ FIX-index-value (sprint-02 B1/B2, start now; AI-whatif-benchmarks after FIX-index-value)
+      → FIX-whatif-empty-history ∥ FIX-symbols-exact-first (LIVE-03 smoke, everything merged; start now)
 ```
 Start immediately (sprint-02 merged): BE-api-symbols-bars, BE-rules-costs, S-etf-bars, AI-analytics-scaffold, FE-web-scaffold.
 M1 = scaffold + shell + rules + symbols API. M2 = engine + market view + what-if API. M3 = scenarios CRUD + form + cards +
@@ -501,3 +502,65 @@ then FE-scenario-table.
     requests except the two indices), run `complete`/`partial`, `index_1d` has VNINDEX rows from 2004 and VN30 rows,
     `SELECT count(*) FROM bars_1d_src WHERE value IS NOT NULL AND value > 1000 * v * adj_c` = 0, summary/coverage printed.
 - Out of scope: `value` NULL on old bars (source null), nominal reconstruction (F-014), adding other indices (HNX, UPCoM).
+
+## Live smoke fixes (LIVE-03, SM smoke test on the real DB, 2026-10-18; dag rev 5)
+
+Root cause of L1 (reproduced on SQLite with `SqlMarketView`, not on the fixture view): `SqlMarketView.snapshot()` is
+"max `fetched_at` of the rows served so far" (BE-market-view) and returns `datetime.min` before the first read, but
+`run_whatif` calls `view.snapshot()` **first** and uses it as the upper bound of its validation read
+(`bars_1d(sym, first, snap, as_of=snap)`) → window `[first, 0001-01-01]` → `bar_days == []` → `IndexError`. Every live
+what-if 500s, regardless of VNINDEX. The empty VNINDEX table is a second, independent state: `calendar()` for years
+outside `holidays.csv` (2025–2026) is served from VNINDEX dates (platform.md §2.5), so a 2024 `buy_date` currently
+yields `calendar == []` → `VALIDATION no_trading_day_near_buy` (a contract error, not a 500); it disappears once the
+BE tester runs the FIX-index-value `make backfill`. Decision: keep the VNINDEX calendar fallback (documented shortcut,
+no cost), fix the engine's dependency on `snapshot()` for validation, and make the empty case a contract error.
+
+#### FIX-whatif-empty-history — LIVE-03 L1: `POST /whatif` must not read history bounded by `snapshot()`, empty history is `NO_DATA`
+- Story: F-040 ; Side: ai ; Effort: high ; Size: ~70 lines (≈ 5 prod + 55 tests + 10 docs) ; Lead: opus
+- Files: `services/analytics/finvest_analytics/sim/whatif.py` (lines 36–43 only), `services/analytics/tests/test_whatif_errors.py`
+  (new or the existing error test module of AI-whatif-lumpsum — one file), `apps/api/tests/test_whatif_api.py`
+- Change:
+  - `whatif.py`: the validation-only history read must not depend on `view.snapshot()` (a `SqlMarketView` has served
+    nothing yet). Replace `snap = view.snapshot().date()` + `bars_1d(sym, first, snap, as_of=snap)` by a read bounded by
+    `date.max` (`bars_1d(sym, first, date.max, as_of=date.max)`; "never feeds a number" comment stays). Do not touch
+    `snapshot()` uses after the first fill read (`benchmark.py` fallback is fine: bars were served by then).
+  - Guard: `if not bar_days: raise AnalyticsError("NO_DATA", {"first_available": first.isoformat()})` before `bar_days[-1]`.
+    No other control-flow change; golden files unchanged.
+  - No change to `SqlMarketView` (its `snapshot()` semantics stay = `data_snapshot` of rows served, contracts/analytics.md §1.4).
+- Contract: contracts/analytics.md §2.3 (`view.snapshot()` is copied into the result — it is a data stamp, not "today"),
+  §2.4 errors; platform.md §2.5 `POST /whatif` error mapping (`NO_DATA` → 422, never 500).
+- Acceptance:
+  - `apps/api/tests/test_whatif_api.py`: new test over the **real** `SqlMarketView` on in-memory SQLite (seed like
+    `test_market_view.py::put_bar`: FPT bars 2026-10-14/15/16 at `adj_c = 93_500`, `fetched_at = 2026-10-17T03:00Z`;
+    override `get_market_view` with `lambda: SqlMarketView(eng)`), body `{"symbol":"FPT","amount_vnd":10000000,
+    "buy_date":"2026-10-14","sell_date":"2026-10-16","style":"lump_sum"}` → 200, `result.dates.buy == "2026-10-14"`,
+    `data_snapshot == "2026-10-17T10:00:00.000+07:00"`. This test fails on the current head with `IndexError` (the live L1).
+  - Same seed, `buy_date = "2024-01-02"` (no VNINDEX rows → empty calendar for 2024) → 400 `VALIDATION`
+    `details.reason == "no_trading_day_near_buy"`, never 500 (documents the transitional state until the backfill).
+  - Analytics unit test: a view whose `first_bar_date` returns `2026-10-01` but `bars_1d` returns `[]` (as_of hides
+    everything) → `AnalyticsError` code `NO_DATA`, `details.first_available == "2026-10-01"`; fails with `IndexError` today.
+  - Existing kernel (golden 001–009, `test_whatif_api.py`, `test_benchmarks.py`) unchanged and green.
+- Out of scope: changing `SqlMarketView.calendar()` (VNINDEX fallback stays, platform.md §2.5), `holidays.csv` back to 2006
+  (would remove the fallback; log as a follow-up in 5-review.tech), loading only the symbol's first/last dates instead of the
+  full history for validation (perf, N2 budget still met).
+
+#### FIX-symbols-exact-first — LIVE-03 L2: `GET /symbols?q=` ranks the exact symbol match first
+- Story: F-055 ; Side: be ; Effort: medium ; Size: ~30 lines (≈ 3 prod + 20 tests + 7 docs) ; Lead: sonnet
+- Files: `apps/api/finvest_api/routes/symbols.py` (`list_symbols` only), `apps/api/tests/test_symbols.py`, `apps/api/tests/conftest.py`
+  (seed only)
+- Change:
+  - `list_symbols`: when `q` is non-empty, order by `case((symbols.c.symbol == q.upper(), 0), else_=1), symbols.c.symbol`
+    (SQLAlchemy `case`; works on SQLite and Postgres). Empty `q` keeps `symbol asc`. `limit` applies after the ordering, so
+    the exact match is never cut off.
+  - `conftest.py` seed: add `sym("FOC", "FPT Online", "FPT Online Service")` (live: FOC and FOX match `q=FPT` through their
+    names). Update `test_search` expectations: `q=fp` → `["FPT", "FOC"]`, no `q` → `["FOC", "FPT", "VNM"]`.
+- Contract: platform.md §2.5 v1.7 `GET /symbols` row (exact match first, then symbol asc; `platform.prev-7.md` = v1.6).
+  No OpenAPI/TS change (ordering is not in the schema).
+- Acceptance:
+  - `q=FPT` → `["FPT", "FOC"]` and `q=fpt` → the same (case-insensitive exact); on the current head the order is
+    `["FOC", "FPT"]` (the live L2).
+  - `q=FPT&limit=1` → `["FPT"]`.
+  - `q=FP` (no exact match) → `["FOC", "FPT"]` (symbol asc unchanged when nothing is exact).
+  - `test_limit_validation`, `test_detail` unchanged and green.
+- Out of scope: ranking symbol-prefix matches above name matches, fuzzy search, FE combobox changes (it already selects
+  the first row).

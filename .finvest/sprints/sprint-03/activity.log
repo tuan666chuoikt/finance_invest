@@ -67,3 +67,8 @@
 2026-10-18 21:09 | dev     | FE-scenario-table        | pr-open   | tsc ok, vitest 56/56, +261/-20 lines | 3-build.FE-scenario-table.md
 2026-10-18 21:09 | lead    | FE-scenario-table        | merged    | 5c3a8c9; 0 must-fix, 3 nits; tsc ok, vitest 56/56 | 3-pr.FE-scenario-table.md
 2026-10-18 21:11 | lead    | FIX-ticks-probe          | merged    | e2ff2e3; must-fix 1 fixed; kernel 207 passed, db 20 passed | 3-pr.FIX-ticks-probe.md
+2026-10-18 21:15 | arch    | LIVE-03                  | note      | L1 root cause = snapshot() before first read (not VNINDEX); FIX-whatif-empty-history, FIX-symbols-exact-first; platform v1.7; dag rev 5 | -
+2026-10-18 21:16 | dev     | FIX-symbols-exact-first  | pr-open   | pytest apps/api 23 passed 2 skipped, ruff clean | 3-build.FIX-symbols-exact-first.md
+2026-10-18 21:17 | lead    | FIX-symbols-exact-first  | merged    | a2d6a1c; kernel 207 passed, ruff/imports/mypy ok; 0 must-fix | 3-pr.FIX-symbols-exact-first.md
+2026-10-18 21:17 | ai      | FIX-whatif-empty-history | pr-open   | kernel 210 passed, ruff/mypy/lint-imports clean; 3 new tests red before fix; +60/-3 lines | sprints/sprint-03/3-build.FIX-whatif-empty-history.md
+2026-10-18 21:19 | lead    | FIX-whatif-empty-history | merged    | 4c5037e; 0 must-fix; kernel 210 passed, 3 new tests fail on old head (IndexError), money recomputed 9,962,600 | .finvest/sprints/sprint-03/3-pr.FIX-whatif-empty-history.md

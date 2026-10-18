@@ -1,7 +1,7 @@
 {
   "sprint": "sprint-03",
   "plan": "v1.0",
-  "dagRev": 4,
+  "dagRev": 5,
   "tasks": [
     {
       "id": "BE-rules-costs",
@@ -328,11 +328,37 @@
       "priority": 1,
       "manual": false,
       "size": 110
+    },
+    {
+      "id": "FIX-whatif-empty-history",
+      "side": "ai",
+      "lane": "BE-3",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 70
+    },
+    {
+      "id": "FIX-symbols-exact-first",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 30
     }
   ],
   "_doc": {
     "after": "ids that must be MERGED into sprint-03 before this task starts; sprint-02 is merged, so [] = start now",
     "side": "fe | be | ai (ai = services/analytics, reviewed by the BE lead)",
-    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest incl. FIX-* (sprint-02 review): 2-tech-plan.md"
+    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest incl. FIX-* (sprint-02 review, LIVE-03 smoke): 2-tech-plan.md"
   }
 }
