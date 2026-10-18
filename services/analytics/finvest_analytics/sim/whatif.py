@@ -33,7 +33,8 @@ def run_whatif(req: WhatIfRequest, view: MarketView, rules=finvest_rules.costs) 
         raise AnalyticsError("NO_DATA", {"first_available": first.isoformat()})
     snap = view.snapshot().date()
     # validation only: this history read never feeds a number
-    last = max(b.trading_date for b in view.bars_1d(sym, first, snap, as_of=snap))
+    bar_days = sorted(b.trading_date for b in view.bars_1d(sym, first, snap, as_of=snap))
+    last = bar_days[-1]
     if req.buy_date > last:
         raise AnalyticsError(
             "VALIDATION", {"reason": "buy_after_last_bar", "last_available": last.isoformat()}
@@ -44,10 +45,14 @@ def run_whatif(req: WhatIfRequest, view: MarketView, rules=finvest_rules.costs) 
     if n is None:
         raise AnalyticsError("VALIDATION", {"reason": "no_trading_day_near_buy"})
     record(shifts, "buy_date", req.buy_date, n)
+    # calendar day without a stored bar: move forward to the first bar (contracts §2.1), like the sell side
+    n_bar = next((d for d in bar_days if d >= n), None)
+    if n_bar is None:
+        raise AnalyticsError("NO_DATA", {"last_available": last.isoformat()})
+    record(shifts, "buy_date", n, n_bar, "no_bar")
+    n = n_bar
     # decision time N: only data <= N is visible to the buy (no look-ahead)
     buy_bars = view.bars_1d(sym, n, n, as_of=n)
-    if not buy_bars:
-        raise AnalyticsError("NO_DATA", {"missing_bar": n.isoformat()})
     m = resolve_sell(req.sell_date, sym, n, view, shifts)
     if m is None:
         raise AnalyticsError("VALIDATION", {"reason": "sell_before_buy_after_shift"})

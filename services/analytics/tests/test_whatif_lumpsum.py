@@ -43,6 +43,14 @@ def test_validation_errors():
     assert err({"buy_date": "2026-10-10", "sell_date": "2026-10-11"}, end="2026-10-23").code == "VALIDATION"
 
 
+def test_buy_day_without_bar_moves_forward():
+    r = run(drop=["2026-10-12"])
+    d = r["result"]["dates"]
+    assert d["buy"] == "2026-10-13"
+    assert {"field": "buy_date", "from": "2026-10-12", "to": "2026-10-13", "reason": "no_bar"} in d["shifts"]
+    assert "fill_shifted" in r["flags"] and r["result"]["position"]["shares"]["value"] == "100"
+
+
 def test_sell_none_uses_last_bar():
     assert run({"sell_date": None})["result"]["dates"]["sell"] == "2026-10-15"
 
