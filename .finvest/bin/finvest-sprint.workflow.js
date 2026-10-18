@@ -146,7 +146,7 @@ const watcher = (async () => {
     if (idle >= 3) { notify(`watcher stopped: wait agents return without waiting; pending ${pending.join(', ')} — SM checks merges by hand`); break }
     const w = await agent(`Run this Bash command with the Bash tool timeout set to 600000 ms: \`${FD}/bin/wait-merged.sh ${A.sprint} - ${pending.join(' ')}\`. Return the task ids it printed as merged (empty list if none). Run nothing else, never a bare sleep.`,
       { label: `wait-${round}`, phase: 'Wait', model: 'haiku', effort: 'low', schema: WAITED })
-    if (!w || !(w.merged || []).length) idle++; else idle = 0
+    if (!w) idle++; else idle = 0  // null = the agent returned without its schema (the spin seen on 10-18)
     for (const id of (w && w.merged) || []) {
       if (!D[id] || D[id].done) continue
       D[id].done = true; D[id].resolve('MERGED'); mergedSet.add(id)

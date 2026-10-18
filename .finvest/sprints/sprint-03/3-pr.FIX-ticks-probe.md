@@ -45,3 +45,26 @@ rule; accepted).
 - `make test-kernel` (pytest -m "not db", ruff, mypy, lint-imports): **197 passed, 22 deselected**; ruff "All checks
   passed!"; mypy "no issues"; import-linter kept. Exit 0.
 - `pytest -m db` repositories_db + crawler tests against compose `finvest_test` (container IP): **20 passed**.
+
+## Round 2 (fi-tech-lead, BE, opus), 2026-10-18
+
+**Verdict: APPROVE.** Reviewed head H = `f95dfe2` (fix `e71f52c` + clean sync merge of `origin/sprint-03` at `e0402af`,
+pushed). Size vs sprint-03 at `e71f52c`: 7 files, +102 / -17 (plan ~120, within 1.5x).
+
+Files reviewed (fix delta `717c1ad..e71f52c`): `feeds/ticks.py`, `test_feed_ticks.py`.
+
+### Must-fix 1 (round 1): fixed
+- `feeds/ticks.py:112` `if todo and not probed:`: no probe returned a tape (empty, 5xx/timeout, shape error in any mix)
+  → `missed` / `source_no_longer_serves`; `empties` counter removed. Blocked/other-session probes still exit first
+  (`todo = []`), so they are not overwritten. Matches platform.md §4 v1.6 probe rule.
+- Test `test_past_date_flaky_probe_plus_empty_probes_is_missed_not_no_trades`: FPT 500 x TRIES(3) + HPG + VNM empty →
+  missed, rows 0, no_trades (), skipped (), requests 5 (probe calls only). Verified it **fails** on the pre-fix
+  `ticks.py` (1 failed) and passes on H.
+
+### Nits (optional, not blocking)
+- `test_feed_ticks.py` comment "TRIES-ish": it is exactly TRIES = 3 + 2.
+- Round-1 nits (empty probe refetched in loop) and the contract-wording note for fi-software-architect still stand.
+
+### Checks on H
+- `make test-kernel`: **207 passed, 22 deselected**; ruff "All checks passed!"; mypy "no issues"; lint-imports kept. Exit 0.
+- `pytest -m db` repositories_db + crawler tests against compose `finvest_test` (container IP): **20 passed**.
