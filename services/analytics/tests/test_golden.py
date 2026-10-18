@@ -1,12 +1,13 @@
 """Generic golden runner: tests/golden/sim/*.json -> run_whatif -> compare `expected` leaves.
 
-Case keys: view (symbol,start,end,close[,last_close,drop,snapshot,basis]), request,
+Case keys: view (symbol,start,end,close[,last_close,closes{date: close},drop,snapshot,basis]), request,
 expected {dotted.path: str},
 optional approx {path: tolerance}, flags_contain [..], error {code, details}. Paths resolve against `result`,
 then against the envelope; digits index lists.
 """
 
 import json
+from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -23,8 +24,13 @@ CASES = sorted((Path(__file__).parent / "golden" / "sim").glob("*.json"))
 def build_view(spec: dict) -> FixtureView:
     start, end = date.fromisoformat(spec["start"]), date.fromisoformat(spec["end"])
     drop = {date.fromisoformat(d) for d in spec.get("drop", [])}
+    over = {date.fromisoformat(d): c for d, c in spec.get("closes", {}).items()}
     bars = [
-        b
+        replace(
+            b, o=over[b.trading_date], h=over[b.trading_date], l=over[b.trading_date], c=over[b.trading_date]
+        )
+        if b.trading_date in over
+        else b
         for b in constant_series(spec["symbol"], start, end, spec["close"], last_close=spec.get("last_close"))
         if b.trading_date not in drop
     ]

@@ -1,0 +1,21 @@
+{
+  "hand": [
+    "2,000,000 monthly from 2026-01-15, closes 10,000 (15/01) and 12,000 (16/02, Sun 15/02 shifts), end 2026-02-27 close 11,000",
+    "m1: lot cost 1,000,000 + 1,500 = 1,001,500 -> qty 100, fee 1,500, cash 998,500 (2 lots 2,003,000 > 2,000,000)",
+    "m2: cash 2,998,500; lot cost 1,200,000 + 1,800 = 1,201,800 -> qty 200 (2,403,600), fee 3,600, cash 594,900",
+    "shares 300; market_value 3,300,000; sell_fee 4,950; sell_tax 3,300",
+    "liquidation = 594,900 + 3,300,000 - 8,250 = 3,886,650; pl = 3,886,650 - 4,000,000 = -113,350",
+    "pl_pct = -113,350 / 4,000,000 = -2.83375 -> -2.8338 (half up)"
+  ],
+  "view": {"symbol": "FPT", "start": "2026-01-01", "end": "2026-02-27", "close": 10000, "last_close": 11000,
+           "closes": {"2026-02-16": 12000}, "snapshot": "2026-02-27T15:30:00"},
+  "request": {"symbol": "FPT", "amount_vnd": 2000000, "buy_date": "2026-01-15", "sell_date": "2026-02-27", "style": "dca"},
+  "expected": {
+    "contributions.0.qty": "100", "contributions.0.fee_vnd": "1500", "contributions.0.cash_after": "998500",
+    "contributions.1.price": "12000", "contributions.1.qty": "200", "contributions.1.fee_vnd": "3600",
+    "contributions.1.cash_after": "594900",
+    "position.shares.value": "300", "value.market_value_vnd.value": "3300000",
+    "value.sell_fee_vnd.value": "4950", "value.sell_tax_vnd.value": "3300",
+    "value.liquidation_vnd.value": "3886650", "returns.pl_vnd.value": "-113350", "returns.pl_pct.value": "-2.8338"
+  }
+}
