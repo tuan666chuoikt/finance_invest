@@ -49,7 +49,7 @@ def _rows(payload: bytes, raw_path: Path):
         for t, o, h, lo, c, v, av in zip(s.t, s.o, s.h, s.l, s.c, s.v, s.accumulatedValue, strict=True):
             # t is 00:00 UTC of the trading day; accumulatedValue is million VND
             if v == 0 and min(o, h, lo, c) <= 0:
-                continue  # placeholder row for a day the source has no data (live 2026-10-16: o/h/l/c = 0, v = 0)
+                continue  # no-data placeholder day (live 2026-10-16: o/h/l/c = 0, v = 0)
             yield (s.symbol, datetime.fromtimestamp(t, UTC).date(), o, h, lo, c, v,
                    None if av is None else to_vnd(av, "million_vnd"))
 
@@ -62,7 +62,7 @@ def parse_bars(payload: bytes, raw_path: Path = Path("<unarchived>")) -> list[Ba
             bars.append(Bar(sym, datetime.combine(day, time(), VN).astimezone(UTC),
                             *(to_vnd(x, "vnd") for x in (o, h, lo, c)), v, value, "vci"))
         except ValueError as e:
-            # live 2026-10-16: a few traded days carry close = 0; one bad day must not drop 19 years of history
+            # live 2026-10-16: a few traded days carry close = 0; one bad day must not drop all history
             log.warning("vci bar dropped: %s %s: %s (raw: %s)", sym, day, e, raw_path)
     return bars
 
