@@ -230,7 +230,9 @@ source = { editable = "apps/api" }
 dependencies = [
     { name = "alembic" },
     { name = "fastapi" },
+    { name = "finvest-analytics" },
     { name = "finvest-market-data" },
+    { name = "finvest-rules" },
     { name = "psycopg", extra = ["binary"] },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
@@ -240,7 +242,9 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.13" },
     { name = "fastapi", specifier = ">=0.110" },
+    { name = "finvest-analytics", editable = "services/analytics" },
     { name = "finvest-market-data", editable = "packages/market_data" },
+    { name = "finvest-rules", editable = "packages/market_rules" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.1" },
     { name = "sqlalchemy", specifier = ">=2" },
     { name = "uvicorn" },
