@@ -68,9 +68,11 @@ class FakeRepo:
         return {"HOSE": 50}
 
 
-def run(tmp_path, repo, only=("FPT", "ZZZ"), blocked=(), today=TODAY, run_date=D):
+def run(tmp_path, repo, only=("FPT", "ZZZ"), blocked=(), today=TODAY, run_date=D, serve=None):
     def handler(req):
         sym = json.loads(req.content)["symbols"][0]
+        if serve and sym in serve:
+            return httpx.Response(200, content=serve[sym])
         if sym in blocked:
             return httpx.Response(200, content=b"<html>Just a moment</html>")
         return httpx.Response(200, content=payload(sym))
@@ -125,6 +127,17 @@ def test_full_universe_adds_indices_and_rounds_levels_to_2dp(tmp_path):
     vn = repo.index[("VNINDEX", date(2026, 8, 4))]
     assert str(vn.o) == "65818.84"  # 2 dp kept, not rounded to integer VND
     assert {i for i, _ in repo.index} == {"VNINDEX", "VN30"}
+
+
+def test_recorded_vn30_payload_is_stored_with_coverage_summary(tmp_path, capsys):
+    vn30 = gzip.decompress((Path(__file__).parent / "fixtures/vci/gap_chart/VN30-1d.json.gz").read_bytes())
+    repo = FakeRepo()
+    m, _ = run(tmp_path, repo, only=("FPT", "VN30", "VNINDEX"), serve={"VN30": vn30})
+    assert (m.status, m.symbols_fetched, m.rows) == ("complete", 3, 50 + 59 + 50)
+    assert {i for i, _ in repo.index} == {"VN30", "VNINDEX"}
+    assert all(b.value < 2**63 for b in repo.index.values())
+    summary = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert (summary["summary"], summary["rows"], summary["coverage"]) == ("complete", 159, {"HOSE": "50"})
 
 
 def test_future_run_date_is_refused(tmp_path):
