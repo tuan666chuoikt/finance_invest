@@ -22,3 +22,11 @@
 2026-10-16 23:06 | lead    | BE-scheduler             | changes   | round 2: 1 must-fix (stray .finvest 3-build committed in task branch); fix ok; kernel 113 passed, db 8 passed | 3-pr.BE-scheduler.md
 2026-10-16 23:07 | dev     | BE-scheduler             | changes   | fix round 2: stray 3-build removed from branch, .finvest diff empty | 3-build.BE-scheduler.md
 2026-10-16 23:08 | lead    | BE-scheduler             | merged    | 7a74581; r3 approve, 0 must-fix; kernel 113 passed, db 8 passed | 3-pr.BE-scheduler.md
+2026-10-16 23:12 | dev     | BE-symbols-feed          | pr-open   | kernel 116 passed, db 13 passed, ruff/mypy/lint-imports clean; live VCI: HOSE 427 HNX 299 UPCOM 814 delisted 235, rerun 0 requests; 241 non- | 3-build.BE-symbols-feed.md
+2026-10-16 23:14 | lead    | BE-symbols-feed          | merged    | 2e63561; kernel 116 passed, db 13 passed, size 241 vs ~230 | .finvest/sprints/sprint-02/3-pr.BE-symbols-feed.md
+2026-10-16 23:17 | dev     | BE-bars-store            | pr-open   | kernel 120 passed, db 16 passed, ruff+mypy+imports clean, diff +224/-20 | 3-build.BE-bars-store.md
+2026-10-16 23:20 | lead    | BE-bars-store            | merged    | 66d6b99; 0 must-fix 4 nits; kernel 120 passed, db 16 passed | 3-pr.BE-bars-store.md
+2026-10-16 23:22 | pm      | BACKLOG                  | changes   | S03 = scenario dashboard slice 25pts (F-031,032,006,040,041,057,055,056,048,051); R1 rest -> S04-S05; releases +1 sprint; ux/scenario-dashbo | -
+2026-10-16 23:23 | dev     | BE-symbols-enrich        | pr-open   | kernel 123 passed, db 18 passed, ruff/mypy/imports clean, +122 non-test lines | 3-build.BE-symbols-enrich.md
+2026-10-16 23:23 | pm      | SPRINT-03                | built     | goal: sponsor follows saved scenarios side by side; 25 pts (vel 20), 10 stories, M1-M4 10-18..10-23, C1-C5 nightly 23:00 | .finvest/sprints/sprint-03/1-sprint-plan.md
+2026-10-16 23:25 | lead    | BE-symbols-enrich        | merged    | 5c44f69; kernel 123 passed, db 18 passed, 240 ins | .finvest/sprints/sprint-02/3-pr.BE-symbols-enrich.md

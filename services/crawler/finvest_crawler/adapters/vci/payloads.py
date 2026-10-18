@@ -32,6 +32,11 @@ class VciSymbol(BaseModel):
     icbCode2: str | None = None
 
 
+class VciMember(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    symbol: str
+
+
 class VciBars(BaseModel):
     model_config = ConfigDict(extra="allow")
     symbol: str

@@ -64,3 +64,10 @@ Mapping: A22-R1..R5 approved as written in sprints/sprint-01/6-retro.md.
 > merge sprint-01 vào main, bắt đầu sprint-02 đi, sau này nếu không có gì quan trọng bạn cứ chạy đừng hỏi tôi
 
 Mapping: SM merged sprint-01 into main (fast-forward). Standing rule: SM proceeds through ceremonies/gates without asking unless something important (scope, money, data loss, risk, irreversible) needs the sponsor.
+
+## 2026-10-16 23:17 — scope/priority request
+> bây giờ bạn bắt đầu tạo kịch bản được chưa
+> viết tôi thêm 1 giao diện để có thể theo dõi nhiều kịch bản đầu từ cùng 1 lúc
+> kích bản đầu tư có thể chọn nhiều kiểu như từ ngày nào đến ngày nào, bao nhiêu tiền
+
+Mapping: sponsor pulls the what-if scenarios + a multi-scenario dashboard (web UI) forward to the next sprint; scenario = symbol(s), start date, end date, amount (and other styles, e.g. DCA). Priority change, not new scope (PRD already has what-if and scenario compare).

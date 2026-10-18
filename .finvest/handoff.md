@@ -1,44 +1,53 @@
 # Finvest hand-off: read this first in a fresh session
 
-Owner: the Scrum Master. Updated **2026-10-16 ~16:30**. Keep under ~6 KB: current state only. History lives in
-git, `product/sponsor-answers.md` and the activity logs.
+Owner: the Scrum Master. Updated **2026-10-16 ~23:30** (machine shut down by the sponsor's request). Keep under
+~6 KB: current state only. History lives in git, `product/sponsor-answers.md` and the activity logs.
 
 ## 0. Start here
-1. You must be running in FI_ROOT (`/agents` lists fi-*). If not, stop and tell the sponsor to restart there.
-2. `CLAUDE.md` holds the rules (retro S01 rules R1–R5 applied 2026-10-16).
-3. Run `.finvest/bin/progress.py`; read the last ~3 entries of `product/sponsor-answers.md`.
+1. You must be running in FI_ROOT (`/agents` lists fi-*). If not, tell the sponsor to restart there.
+2. `CLAUDE.md` holds the rules (retro S01 R1–R5 applied). **Autopilot:** the sponsor said (2026-10-16) "nếu không
+   có gì quan trọng bạn cứ chạy đừng hỏi tôi" — run plan/build/test/review/retro/merge-to-main yourself; ask only
+   for scope, money, data loss, irreversible or no-safe-default product questions.
+3. `make up` (db + api) — the stack is down after the shutdown. Then `.finvest/bin/progress.py`.
 
 ## 1. Status
-- Sprint 0 done: PRD v2, backlog (71 stories), architecture (15 ADRs), A1–A22 answered.
-- **Sprint 01 DONE** (20/20 pts; tech re-review PASS; PM 5/5 DONE; retro `sprints/sprint-01/6-retro.md`).
-  Branch `sprint-01` pushed. **Waiting for the sponsor to merge `sprint-01` into `main`** (37+ commits).
-- Velocity measured: 20 points/sprint.
-- `current-sprint` still says sprint-01. Next: `/fi-sprint-plan` for sprint-02.
+- Sprint 01 DONE and **merged into main** (0615915).
+- **Sprint 02 building** (`current-sprint` = sprint-02, branch `sprint-02`): 9/10 workflow tasks merged
+  (QA-S01-tests, BE-status-no-trades, OPS-host-user, BE-calendar, S-index-members, BE-scheduler,
+  BE-symbols-feed, BE-bars-store, BE-symbols-enrich). **Left: BE-bars-backfill** (was in the workflow when the
+  machine went down) + manual QA-S02-live and OPS-cleanup-1015.
+  → Restart: Workflow `.finvest/bin/finvest-sprint.workflow.js` args
+  `{sprint:"sprint-02", seats:{fe:0,be:2,ai:0}, leads:{fe:0,be:1}}` (add `portable:true` only if fi-* agents are
+  not loaded). Merged tasks are detected and skipped; check `git ls-remote origin 'task/sprint-02/BE-bars-backfill'`
+  and its worktree first (a half-built branch resumes as stage build/review).
+- After sprint 02: /fi-test be, /fi-review, retro, merge sprint-02 → main, then sprint 03.
+- **Timer installed** (`make install-timers`, systemd user timer): first unattended run Mon 2026-10-19 15:30.
+  Runs only while the sponsor is logged in. Clock milestones C1–C5: each trading evening check the timer's
+  manifest by 21:00; if missing, `make crawl` by hand before 23:00 (ticks are lost if missed).
 
-## 2. Sprint-02 inputs (from 5-review.product.md and 5-review.tech.md)
-- S02-1 (high, before F-021): implement platform.md v1.3 §4 — no-trade symbols count as `complete`.
-- S02-2: run containers as the host user and chown `data/` once (today data/ files are root-owned).
-- S02-3: live re-run of 2026-10-16 gives the same checksum; `DATE=2026-10-14` must give `missed`.
-- S02-4: remove the 1,186 stale empty tapes in `data/raw/ticks/2026-10-15/` (root-owned; needs S02-2 or sudo).
-- S02-5: scheduler F-019 (nightly crawl). Until it lands, the SM/sponsor runs `make crawl` after 15:00 each
-  trading day; plan it as a clock milestone (R5).
+## 2. Sprint 03 (next) — sponsor priority: investment scenarios + multi-scenario dashboard
+- Sponsor (2026-10-16 23:1x): "bây giờ bạn bắt đầu tạo kịch bản… giao diện để theo dõi nhiều kịch bản… từ ngày nào
+  đến ngày nào, bao nhiêu tiền". PM re-cut backlog/roadmap; UX `product/ux/scenario-dashboard.md`.
+- `sprints/sprint-03/1-sprint-plan.md` done: 10 stories, 25 pts (F-031, F-032, F-006, F-040, F-041, F-057, F-055,
+  F-056, F-048, F-051); results on adjusted prices carry an "approximate" flag (test-enforced).
+- **AI architect was writing `sprints/sprint-03/2-tech-plan.ai.md` when the machine went down** — check whether the
+  file exists/complete; if not, re-dispatch fi-ai-architect for it. Then fi-software-architect writes
+  `2-tech-plan.md` (FE + API tasks) and `dag.json` merging both. Then set current-sprint=sprint-03 and build.
+- Risk: F-048 needs VN-Index/E1VFVN30 daily bars — check BE-bars-backfill covers them.
 
-## 3. Running now
-- Nothing. The compose stack (db + api) is UP on the sponsor's machine (127.0.0.1:8000).
-- `.env` in FI_ROOT was copied from the tester's worktree so it matches the existing `data/pg`.
-- Worktree `finance_invest-worktrees/test-be-01` (branch test/sprint-01/be, pushed 7ef36c8) still exists;
-  its tests are not merged into sprint-01 yet — have a lead review/merge them early in sprint-02.
+## 3. Sprint-02 manual items
+- QA-S02-live: re-run 2026-10-16 → same checksum; `DATE=2026-10-14` → `missed`; complete status on no-trade days.
+- OPS-cleanup-1015: 1,186 stale empty tapes in `data/raw/ticks/2026-10-15/` are root-owned → give the sponsor one
+  `sudo` command (only those files, verified empty) or leave them.
 
-## 4. Data so far
-- 225,520 ticks: 2026-10-15 partial (354/1540 symbols; rest lost), 2026-10-16 911 fetched + 629 no-trade.
+## 4. Data
+- 225,520 ticks: 2026-10-15 partial (354/1540), 2026-10-16 911 fetched + 629 no-trade. Daily bars: pending backfill.
 
-## 5. Open decisions for the sponsor
-- Merge sprint-01 → main. Next free label: **A23**.
+## 5. Environment
+- Linux; `flock`, `md5sum`; no `gh` (merges via `sm.sh merge`; `sm.sh push` only task/* and test/*).
+- `.env` in FI_ROOT matches the existing `data/pg` (copied from the tester's worktree).
+- Next free sponsor label: **A23**.
 
-## 6. Environment notes
-- Linux; `flock`, `md5sum`; no `gh` (merges via `sm.sh merge`). `sm.sh push` only pushes task/* and test/*.
-- Workflow: `.finvest/bin/finvest-sprint.workflow.js`; use `portable: true` only if fi-* agents are not loaded.
-
-## 7. Cost
-- Session 980c2e15 (sprint 0 + sprint 01): $45.60 API-equivalent; main session 52% (ran outside FI_ROOT,
-  very long context). Measure with `FI_ROOT=<dir the session ran in> .finvest/bin/cost.py <session> --by-part`.
+## 6. Cost
+- Session 980c2e15 (sprint 0 → sprint 02 build): ≈ $46 by 10-16 16:30 + sprint 02/03 planning since; main session
+  ran outside FI_ROOT (52%). Start new sessions in FI_ROOT.

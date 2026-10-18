@@ -12,13 +12,33 @@ from finvest_market_data.domain.ports import PayloadShapeError, Unsupported
 from finvest_market_data.domain.units import to_vnd
 from pydantic import TypeAdapter
 
-from finvest_crawler.adapters.ssi.payloads import SsiEnvelope
+from finvest_crawler.adapters.ssi.payloads import SsiEnvelope, SsiExchange
 from finvest_crawler.adapters.vci.payloads import validate
 from finvest_crawler.fetch import Fetcher
 
 VN = ZoneInfo("Asia/Ho_Chi_Minh")
 URL = "https://iboard-api.ssi.com.vn/statistics/charts/history?resolution=1D&symbol={symbol}&from={a}&to={b}"
+EXCHANGE_URL = "https://iboard-query.ssi.com.vn/stock/exchange/{ex}"
 _ENV = TypeAdapter(SsiEnvelope)
+_EXCHANGE = TypeAdapter(SsiExchange)
+_TYPES = {"s": "STOCK", "e": "ETF"}
+
+
+def parse_symbols(payload: bytes, exchange: str, raw_path: Path = Path("<unarchived>")) -> list[SymbolRecord]:
+    """Pure: S1 rows -> STOCK/ETF records; `firstTradingDate` "yyyymmdd" (0 = unknown) -> `listed_at`."""
+    rows = validate(_EXCHANGE, payload, raw_path, "ssi").data
+    return [
+        SymbolRecord(r.stockSymbol, exchange, _TYPES[r.stockType], r.companyNameVi or "",
+                     r.companyNameEn or "", None, False, "ssi", _day(r.firstTradingDate))
+        for r in rows if r.stockType in _TYPES  # type: ignore[arg-type]
+    ]
+
+
+def _day(s: str | None) -> date | None:
+    try:
+        return datetime.strptime(s or "", "%Y%m%d").date()
+    except ValueError:
+        return None  # absent, "0" or garbage: unknown, never an error
 
 
 def parse_bars(payload: bytes, symbol: str, raw_path: Path = Path("<unarchived>")) -> list[Bar]:
@@ -46,7 +66,15 @@ class SsiSource:
         self.fetcher = fetcher
 
     def symbols(self, as_of: date, include_delisted: bool = False) -> list[SymbolRecord]:
-        raise Unsupported("ssi has no symbol list in S01")
+        """S1 x3 exchanges (live rows only; `include_delisted` is moot). Used for `listed_at`."""
+        f, out = self.fetcher, []
+        for ex in ("hose", "hnx", "upcom"):
+            payload = f.get("ssi", EXCHANGE_URL.format(ex=ex), feed="symbols", trading_date=as_of, name=ex)
+            out += parse_symbols(payload, ex.upper(), f.archive.path("symbols", as_of, ex))  # type: ignore[arg-type]
+        return out
+
+    def index_members(self, index_code: str, as_of: date) -> list[str]:
+        raise Unsupported("ssi index members: use vci (smaller payload)")
 
     def ticks(self, symbol: str, trading_date: date) -> list[Tick]:
         raise Unsupported("ssi has no ticks")

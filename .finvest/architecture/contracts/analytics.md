@@ -1,6 +1,7 @@
 # Finvest — Analytics contracts (Python interface + REST, R2/R4/R5)
 
-Owner: `fi-ai-architect`. Status: **v1, 2026-10-15**. §1–§2 normative for R2 (what-if); §3–§4 shape preview, normative at
+Owner: `fi-ai-architect`. Status: **v1.1, 2026-10-16** (S03 slice: §1.4 `price_basis`/`approximate`, §2.4 style/DCA,
+valuation, benchmarks; v1 = `analytics.prev-1.md`). §1–§2 normative for R2 (what-if); §3–§4 shape preview, normative at
 R4/R5 planning. Conventions from `contracts/platform.md` §1 apply (integer VND, decimal strings for ratios, ISO times in
 Asia/Ho_Chi_Minh, error envelope, `as_of`, `data_snapshot`, `rules_version`). Semantics: `architecture/analytics.md`.
 
@@ -31,9 +32,11 @@ dividend_cash | bonus_pending | bonus_arrive | rights_exercise | rights_lapse | 
 ### 1.4 Result envelope
 ```json
 { "params": {…echo of the request…}, "data_snapshot": "2026-10-15T16:45:00+07:00", "rules_version": "2026.10.15",
-  "flags": [], "disclaimer": "educational", "result": {…} }
+  "price_basis": "source_adjusted", "approximate": true, "flags": ["approximate"], "disclaimer": "educational", "result": {…} }
 ```
-Reproducibility: same `params` + `data_snapshot` + `rules_version` ⇒ byte-identical `result` (F-088).
+`price_basis ∈ nominal | source_adjusted`; `approximate == (price_basis != "nominal")` and then `flags` contains
+`approximate` (F-040; a test asserts both on every result computed from `bars_1d_src`). `data_snapshot` = max `fetched_at`
+of the bars used. Reproducibility: same `params` + `data_snapshot` + `rules_version` ⇒ byte-identical `result` (F-088).
 
 ## 2. What-if (R2, normative)
 

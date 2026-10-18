@@ -93,6 +93,16 @@ symbols = Table(
     CheckConstraint("type IN ('STOCK','ETF')", name="symbols_type_check"),
 )
 
+# current + history of index constituents; history starts at crawl start (V6 has no past)
+symbol_index_membership = Table(
+    "symbol_index_membership",
+    metadata,
+    Column("index_code", Text, primary_key=True),
+    Column("symbol", Text, primary_key=True),
+    Column("valid_from", Date, primary_key=True),
+    Column("valid_to", Date),
+)
+
 # versioned snapshots of the source-adjusted series (data.md §1.4 (2)); value = nominal VND
 bars_1d_src = Table(
     "bars_1d_src",
