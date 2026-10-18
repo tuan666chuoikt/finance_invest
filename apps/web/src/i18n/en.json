@@ -24,5 +24,9 @@
   "error.NO_DATA": "No data for this request.",
   "error.UNREACHABLE": "Cannot reach the local server. Is `docker compose` running?",
   "disclaimer.line_vi": "Mô phỏng để học, không phải lời khuyên đầu tư",
-  "disclaimer.line_en": "Educational simulation, not investment advice"
+  "disclaimer.line_en": "Educational simulation, not investment advice",
+  "chip.as_of": "Data as of {{dt}} · source {{src}}",
+  "chip.stale": "⚠ stale: last success {{date}}",
+  "chip.unavailable": "Data status unavailable",
+  "shell.menu": "Menu"
 }
