@@ -52,5 +52,6 @@
   "chip.as_of": "Data as of {{dt}} · source {{src}}",
   "chip.stale": "⚠ stale: last success {{date}}",
   "chip.unavailable": "Data status unavailable",
-  "shell.menu": "Menu"
+  "shell.menu": "Menu",
+  "curve.aria": "{{symbol}} value curve from {{from}} to {{to}}, highest {{max}}, lowest {{min}}"
 }

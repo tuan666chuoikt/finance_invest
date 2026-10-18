@@ -52,5 +52,6 @@
   "chip.as_of": "Dữ liệu đến {{dt}} · nguồn {{src}}",
   "chip.stale": "⚠ cũ: lần cuối {{date}}",
   "chip.unavailable": "Không có trạng thái dữ liệu",
-  "shell.menu": "Menu"
+  "shell.menu": "Menu",
+  "curve.aria": "Đường giá trị {{symbol}} từ {{from}} đến {{to}}, cao nhất {{max}}, thấp nhất {{min}}"
 }
