@@ -39,6 +39,7 @@ AI-1  AI-analytics-scaffold → AI-whatif-lumpsum → AI-whatif-dca → AI-whati
 FE-1  FE-web-scaffold → FE-shell-bar → FE-scenario-cards → FE-scenario-table
 FE-2  FE-disclaimer → FE-how-computed → FE-sparkline → FE-scenario-form (after BE-contracts-ts)
 OPS   OPS-web-compose (after FE-web-scaffold)
+BE-3  FIX-ticks-probe ∥ FIX-index-value (sprint-02 B1/B2, start now; AI-whatif-benchmarks after FIX-index-value)
 ```
 Start immediately (sprint-02 merged): BE-api-symbols-bars, BE-rules-costs, S-etf-bars, AI-analytics-scaffold, FE-web-scaffold.
 M1 = scaffold + shell + rules + symbols API. M2 = engine + market view + what-if API. M3 = scenarios CRUD + form + cards +
@@ -197,7 +198,7 @@ then FE-scenario-table.
 ## FE tasks (`apps/web`)
 
 #### FE-web-scaffold — F-031: `apps/web` React + Vite + TS + i18n + formatters + API client
-- Story: F-031 ; Side: fe ; Effort: medium ; Size: ~230 lines ; Lead: sonnet
+- Story: F-031 ; Side: fe ; Effort: medium ; Size: ~300 lines ; Lead: sonnet
 - Files: `apps/web/package.json`, `apps/web/vite.config.ts` (dev proxy `/api → http://127.0.0.1:8000`, Vitest jsdom),
   `apps/web/tsconfig.json`, `apps/web/index.html`, `apps/web/.gitignore`, `apps/web/src/main.tsx`, `apps/web/src/app/App.tsx`,
   `apps/web/src/app/routes.tsx`, `apps/web/src/app/Placeholder.tsx`, `apps/web/src/components/TopBar.tsx` (minimal: name,
@@ -334,7 +335,7 @@ then FE-scenario-table.
 - Out of scope: axes, benchmark curves on the card, zoom, candles (`lightweight-charts` arrives with the board).
 
 #### FE-scenario-form — F-055: add/edit side panel with symbol combobox, style, amount, dates, hints; CRUD hooks
-- Story: F-055 ; Side: fe ; Effort: medium ; Size: ~250 lines ; Lead: sonnet
+- Story: F-055 ; Side: fe ; Effort: medium ; Size: ~300 lines ; Lead: sonnet
 - Files: `apps/web/src/features/scenarios/api.ts` (TanStack hooks: `useScenarios`, `useSaveScenario`, `useDeleteScenario`,
   `useSymbolSearch(q)`, `useSymbol(symbol)`, `useWhatIf(scenario)` typed from `src/api/types.ts` + `result.ts`),
   `apps/web/src/features/scenarios/ScenarioForm.tsx`, `apps/web/src/features/scenarios/SymbolCombobox.tsx`,
@@ -436,3 +437,67 @@ then FE-scenario-table.
   `curl -s http://127.0.0.1:8080/api/health` returns the API body and `curl -sI http://127.0.0.1:8080/scenarios` is 200
   `text/html`; `ss -ltn` shows no `0.0.0.0:8080`; `make web-test` passes in a fresh checkout after `make web-install`.
 - Out of scope: Vite dev container (developers run `npm run dev` on the host), TLS, auth, exposing beyond loopback (A23).
+
+## Sprint-02 fixes (folded in by 5-review.tech sprint-02, 2026-10-18; dag rev 4)
+
+#### FIX-ticks-probe — S02-3/F-019 B1: past-date empty tape is `no_trades` once a probe proves the day is still served
+- Story: S02-3 ; Side: be ; Effort: high ; Size: ~120 lines (≈ 45 prod + 60 tests + 15 docs) ; Lead: opus
+- Files: `services/crawler/finvest_crawler/feeds/ticks.py`, `services/crawler/tests/test_feed_ticks.py`,
+  `packages/market_data/finvest_market_data/infrastructure/repositories.py` (`upsert_crawl_session` only),
+  `packages/market_data/tests/test_repositories_db.py`, `ops/README.md` (one line)
+- Change:
+  - `feeds/ticks.py`: `PROBE_SYMBOLS = ("FPT", "HPG", "VNM")`. When `trading_date < today` and no `--only`, fetch the probes
+    (in that order) before the loop; first probe that returns a tape for `trading_date` → day is served, keep its tape so
+    the loop does not fetch it again; a probe raising `SourceNoLongerServes` with `served_date` set → `missed` at once;
+    all three empty → `missed` / `source_no_longer_serves`, `requests ≤ 3`, `fetched = 0`, `symbols_skipped = ()`.
+  - In the loop drop the `trading_date < today` branch: empty tape (`served_date is None`) → `no_trades` on any date;
+    `served_date is not None` → stop (`missed` if nothing fetched else `partial`, rest skipped) as today.
+  - `upsert_crawl_session`: a `missed` manifest must not overwrite a stored `partial`/`complete` row (`ON CONFLICT ... WHERE
+    crawl_sessions.status NOT IN ('partial','complete') OR EXCLUDED.status <> 'missed'`); the manifest file is still written.
+  - `ops/README.md`: catch-up of a past day probes FPT/HPG/VNM first; `make crawl DATE=` behaves the same.
+- Contract: platform.md §4 v1.6 (probe rule, `requests`, invariant `fetched + no_trades + skipped = universe.count`);
+  ADR-S-009; data.md §1.2 K1.
+- Acceptance:
+  - Fixture universe `A32, FPT, VNM`, `trading_date = today − 1`, `kbs/trade_history/empty` for A32 and VNM, FPT tape for
+    `trading_date` → `complete`, `symbols_fetched == 1`, `symbols_no_trades == ("A32","VNM")`, `requests == 3` (FPT probe
+    counted once).
+  - Same, every tape empty → `missed`, `reason == "source_no_longer_serves"`, `requests == 3`, `rows == 0`.
+  - Probe FPT returns another session's tape → `missed` after 1 request.
+  - `today == trading_date` cases of `test_feed_ticks.py` unchanged (`test_empty_tape_today_is_no_trades_and_complete` etc.);
+    `test_past_date_empty_first_tape_is_missed` is rewritten to the probe rule, not deleted.
+  - db test: session row `partial` (rows 145,184) then a `missed` manifest for the same day → row still `partial`, rows
+    145,184; a `complete` manifest does overwrite.
+  - `test_catchup.py`: unchanged (catch-up calls `run_ticks`; the fix is inside). Add one test: `run` for `today − 1`
+    receives `trading_date < today` and the probe path is taken (fake `run` records the call) — documents the morning-after
+    replay case from 5-review.tech §2.
+- Out of scope: cross-checking `no_trades` against daily volume (platform.md §4 caveat, F-021), changing `catchup()` order,
+  re-crawling 10-16 against the app DB (BE tester does it after merge: expected 145,184 rows, same checksum as the manifest).
+
+#### FIX-index-value — F-012 B2: mixed-unit V2 `accumulatedValue`, BIGINT guard, VNINDEX/VN30 bars present
+- Story: F-012 ; Side: be ; Effort: high ; Size: ~110 lines (≈ 30 prod + 60 tests + fixture + 20 docs) ; Lead: opus
+- Files: `services/crawler/finvest_crawler/adapters/vci/source.py`, `services/crawler/finvest_crawler/adapters/vci/payloads.py`
+  (docstring), `services/crawler/tests/test_adapter_vci.py`, `services/crawler/tests/fixtures/vci/gap_chart/VN30-1d.json.gz`
+  (new: recorded V2 payload for `VN30`, envelope kept, trimmed to ≤ 60 bars that include 2012-02-06 and 2026-10-16),
+  `services/crawler/tests/test_feed_bars_1d.py`
+- Change:
+  - `vci/source.py`: `_value_vnd(av, ref)`: `ref = v × c` for stocks → choose `av` or `av × 1e6` whose ratio to `ref` is
+    closest to 1 (log distance); indices (`ref is None`) → `av ≥ 1e9` is VND else `× 1e6`. `_rows` yields the raw `av`;
+    `parse_bars` / `parse_index_bars` call the helper. Result `> 2**63 − 1` or `< 0` → `None` + `log.warning` naming the
+    raw path (same style as the close = 0 warning); `v == 0` → `ref` unusable → index rule.
+  - `payloads.py` docstring + `accumulatedValue` comment: mixed unit, cite the two live values.
+  - `feeds/bars_1d.py` is **unchanged**; the overflow trigger is gone.
+- Contract: platform.md §4 v1.6 (`value` rule, NULL on overflow); data.md §1.2 V2 v1.2, §3 `index_1d` / `bars_1d_src`.
+- Acceptance (worked numbers):
+  - Index: `accumulatedValue = 222242000000` (VN30 2012-02-06) → `value == 222_242_000_000`; `6386472.73` (2026-10-16) →
+    `6_386_472_730_000`; `20000.5` → `20_000_500_000` (existing `test_index_bars_keep_two_decimals` still passes).
+  - Stock: `v = 6_618_016, c = 65_000, accumulatedValue = 474963.63` → `474_963_630_000` (ratio 1.10 to `v × c`);
+    `accumulatedValue = 474963630000` with the same `v, c` → `474_963_630_000` (raw VND recognised); `accumulatedValue =
+    1e13` with `v = 1, c = 1` → `value is None`, one warning, bar kept.
+  - Fixture `VN30-1d.json.gz` parses without raising; every `value` fits BIGINT; `max(value)/min(value) < 1e4` across the
+    fixture's bars (no 1e6 jump between eras).
+  - `test_feed_bars_1d.py`: a fake source returning the VN30 fixture + one stock → run `complete`, `index_1d` upsert
+    called with 2 index codes' bars, summary line printed with `coverage`.
+  - Live (BE tester after merge, from the worktree with host-owned `data/`): `make backfill` replays the archive (0 live
+    requests except the two indices), run `complete`/`partial`, `index_1d` has VNINDEX rows from 2004 and VN30 rows,
+    `SELECT count(*) FROM bars_1d_src WHERE value IS NOT NULL AND value > 1000 * v * adj_c` = 0, summary/coverage printed.
+- Out of scope: `value` NULL on old bars (source null), nominal reconstruction (F-014), adding other indices (HNX, UPCoM).

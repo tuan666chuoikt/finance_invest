@@ -138,11 +138,15 @@ const settle = (t, r) => {
 // ---- watcher for manual/skipped tasks: a haiku helper checks about every 10 minutes ----
 let stopWatch = false
 const watcher = (async () => {
-  for (let round = 0; round < 300 && !stopWatch; round++) {
+  let idle = 0
+  for (let round = 0; round < 60 && !stopWatch; round++) {
     const pending = watched.filter(id => !D[id].done)
     if (!pending.length) break
+    // a wait agent that returns at once (no 10-min Bash wait) would spin; stop after 3 such rounds and tell the SM
+    if (idle >= 3) { notify(`watcher stopped: wait agents return without waiting; pending ${pending.join(', ')} — SM checks merges by hand`); break }
     const w = await agent(`Run this Bash command with the Bash tool timeout set to 600000 ms: \`${FD}/bin/wait-merged.sh ${A.sprint} - ${pending.join(' ')}\`. Return the task ids it printed as merged (empty list if none). Run nothing else, never a bare sleep.`,
       { label: `wait-${round}`, phase: 'Wait', model: 'haiku', effort: 'low', schema: WAITED })
+    if (!w) idle++; else idle = 0  // null = the agent returned without its schema (the spin seen on 10-18)
     for (const id of (w && w.merged) || []) {
       if (!D[id] || D[id].done) continue
       D[id].done = true; D[id].resolve('MERGED'); mergedSet.add(id)
@@ -157,7 +161,14 @@ const watcher = (async () => {
 async function runTask(t) {
   let consults = 0, rounds = 0
   const fix = async () => {
-    const f = await dev(t, fixPrompt(t), 'fix')
+    let f = await dev(t, fixPrompt(t), 'fix')
+    while (f && f.result === 'CONSULTING') {  // a fix round may consult too (e.g. size stop); route it like a build consult
+      if (++consults > 2) return { status: 'STOP', note: 'third consult round: replan needed' }
+      const c = await consult(t, f.owners, `SPRINT_DIR/3-consult.${t.id}.md`)
+      if (c.died) return { status: 'AGENT_DIED', note: 'consult owner died' }
+      if (c.needsSponsor) return { status: 'SPONSOR', note: c.note }
+      f = await dev(t, fixPrompt(t), 'fix')
+    }
     if (!f) return { status: 'AGENT_DIED', note: 'developer died' }
     if (f.result !== 'DONE') return { status: f.result, note: f.note }
     return null
