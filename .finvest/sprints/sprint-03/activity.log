@@ -54,3 +54,6 @@
 2026-10-18 20:59 | arch    | FE-scenario-form         | answered  | A: accept 442 (all 7 files in card); Size 250->300, dagRev 4; fix crimson nit | 3-consult.FE-scenario-form.answer.sa.md
 2026-10-18 20:59 | dev     | FE-scenario-form         | note      | fix round 1: crimson->token var, size accepted by sa; vitest rerun | 3-build.FE-scenario-form.md
 2026-10-18 21:00 | lead    | AI-whatif-benchmarks     | merged    | 941572d; 0 must-fix, 5 nits; kernel 188 passed, lint/mypy/import-linter ok; goldens 008-010 recomputed | 3-pr.AI-whatif-benchmarks.md
+2026-10-18 21:00 | arch    | REVIEW-02                | note      | FAIL: B1 (ticks past-day empty tape=missed, hits catch-up replay/retry) + B2 (V2 value mixed unit, BIGINT overflow, no index bars). FIX-tick | sprints/sprint-02/5-review.tech.md
+2026-10-18 21:00 | lead    | FE-scenario-form         | merged    | 3b4bf5c; vitest 39/39, tsc 0, 442 lines <= 450 | sprints/sprint-03/3-pr.FE-scenario-form.md
+2026-10-18 21:02 | lead    | BE-whatif-api            | merged    | merge 58156bb; 0 must-fix; kernel 194 passed, N2 20 req 0.107s, contracts clean | 3-pr.BE-whatif-api.md

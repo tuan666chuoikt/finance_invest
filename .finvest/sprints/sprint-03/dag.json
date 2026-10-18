@@ -66,7 +66,8 @@
       "lane": "AI-1",
       "milestone": "M4",
       "after": [
-        "AI-whatif-dca"
+        "AI-whatif-dca",
+        "FIX-index-value"
       ],
       "effort": "high",
       "leadModel": "opus",
@@ -301,11 +302,37 @@
       "priority": 3,
       "manual": false,
       "size": 90
+    },
+    {
+      "id": "FIX-ticks-probe",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 120
+    },
+    {
+      "id": "FIX-index-value",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 110
     }
   ],
   "_doc": {
     "after": "ids that must be MERGED into sprint-03 before this task starts; sprint-02 is merged, so [] = start now",
     "side": "fe | be | ai (ai = services/analytics, reviewed by the BE lead)",
-    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest: 2-tech-plan.md"
+    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest incl. FIX-* (sprint-02 review): 2-tech-plan.md"
   }
 }
