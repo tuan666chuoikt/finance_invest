@@ -81,6 +81,50 @@ def simulate(strategy: Strategy, universe: list[str], start: date, end: date, pa
 Pure functions; no I/O; `view.snapshot()` is copied into the result. `WhatIfRequest`/`SimParams` are Pydantic models
 shared with the API schema (`packages/contracts` exports them to TS).
 
+### 2.4 S03 slice (F-040, F-041, F-057, F-048, F-051) — normative; amends §2.1 for `price_basis = source_adjusted`
+Request additions: `style ∈ lump_sum | dca` (default `lump_sum`); for `dca`, `amount_vnd` is the **monthly** amount and
+`buy_date` the first contribution date (day-of-month rule F-057). `sell_date: null` = latest stored bar (the response
+echoes the date used). Only `fill_rule = close` is accepted in S03 (`fill_rule` ≠ close → `VALIDATION`). Errors add
+`VALIDATION` (`amount_vnd < 1`, non-integer, `sell_date < buy_date`, `buy_date` after last bar → `details.last_available`).
+Semantics on `source_adjusted` bars: no corporate actions, no dividends, fills at the adjusted close, lots/fees/tax as
+usual (analytics.md §1.3.1). The end is a **valuation**, not a trade: no T+2 refusal, no sell fill row.
+```json
+"result": {
+  "dates": {"buy": "2026-10-19", "sell": "2026-10-23",
+            "shifts": [{"field": "buy_date", "from": "2026-10-17", "to": "2026-10-19", "reason": "non_trading"}]},
+  "contributions": [{"date": "2026-01-15", "requested": "2026-01-15", "amount_vnd": 2000000, "qty": 0, "price": 93500,
+                     "fee_vnd": 0, "cash_after": 2000000}],
+  "position": {"shares": <Figure shares>, "cash": <Figure vnd>, "invested_vnd": <Figure vnd>},
+  "value": {"market_value_vnd": <Figure>, "sell_fee_vnd": <Figure>, "sell_tax_vnd": <Figure>, "liquidation_vnd": <Figure>},
+  "returns": {"pl_vnd": <Figure>, "pl_pct": <Figure>, "cagr_pct": <Figure|null>, "holding_days": <Figure days>},
+  "benchmarks": [
+    {"name": "VN-Index", "investable": false, "available": true, "value_vnd": <Figure>, "pl_pct": <Figure>, "diff_pp": <Figure>},
+    {"name": "E1VFVN30", "investable": true, "available": false, "first_available": "2014-10-06"}],
+  "missing_sessions": ["2026-03-04"],
+  "equity_curve": [{"date": "2026-10-19", "market_value": 9985975, "invested": 10000000}, …] }
+```
+- `contributions`: one row per fill day (lump sum = 1 row). `qty = floor(cash / (price × lot × (1 + fee_rate))) × lot`,
+  `fee_vnd = round_half_up(qty × price × fee_rate)`, `cash_after = cash − qty × price − fee_vnd` (carried into the next
+  contribution for `dca`). `qty = 0` ⇒ `flags += [below_one_lot]`, `details.min_amount = lot × price × (1 + fee_rate)`
+  rounded up (F-040: 9,364,025 at 93,500).
+- `value`: `market_value = shares × close(sell)`; `sell_fee = round_half_up(market_value × fee_rate)`; `sell_tax =
+  round_half_up(market_value × 0.1 %)`; `liquidation = cash + market_value − sell_fee − sell_tax` (F-041, VN§5).
+- `returns`: `pl_vnd = liquidation − invested_vnd`; `pl_pct = pl_vnd / invested_vnd × 100` (DCA: ÷ total contributed, F-057);
+  `cagr_pct = ((liquidation / invested) ^ (365 / holding_days) − 1) × 100` for `lump_sum` with `holding_days ≥ 1`
+  (calendar days buy→sell), else `null` with the `how` on `returns.cagr_note` stating why. Percent Figures are decimal
+  strings with 4 decimals, ROUND_HALF_UP ("6.1098" for 610,975 / 10,000,000).
+- `benchmarks` (F-048): VN-Index = `Σ amount_i × index(sell) / index(date_i)` over contributions (price-only, no lots, no
+  fees, `index_1d.c` 2 decimals, result rounded half-up to VND); E1VFVN30 = the same request on symbol `E1VFVN30` through
+  this engine. `diff_pp = scenario.pl_pct − benchmark.pl_pct`. A benchmark lacking a bar on any contribution date or on
+  `sell` ⇒ `available: false, first_available` (never a zero). The benchmark list is fixed in S03 (`benchmark_etf` ignored).
+- `missing_sessions`: calendar trading days in `[buy, sell]` without a bar; the curve carries the last close forward;
+  `flags += [missing_sessions]` when non-empty.
+- `equity_curve`: every trading day in `[buy, sell]`, `market_value = cash + shares × close` (no sell costs), `invested` =
+  cumulative contributions (step line, UX scenario-dashboard.md "Mini curve").
+- `how.cite` on cost figures is `VN§5`, on lots `VN§4`; `how.inputs` names every number in the formula (UX "How computed
+  panel" example). Approximate texts are FE i18n keys (`approximate.source_adjusted`), the engine sends the flag only.
+- Deferred to R2 full (unchanged in §2.1): `fills`, `breakdown`, `risk`, `events`, `ledger`, other fill rules, dividends.
+
 ## 3. Backtester (R4, preview)
 - `POST /api/backtest/compare` `{scenarios: [{strategy, params, fill_rule}], symbols: [...], start, end, fee_rate, rf_pct}`
   → `rows: [{scenario, symbol, metrics: {total_pct, cagr_pct, max_drawdown_pct, sharpe, sortino, trades, fees_tax_vnd,

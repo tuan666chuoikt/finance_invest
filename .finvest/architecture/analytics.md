@@ -1,6 +1,7 @@
 # Finvest — Analytics architecture (simulator, backtester, "why it moved", evals)
 
-Owner: `fi-ai-architect`. Status: **v1, 2026-10-15** (inception, after `system.md`/`data.md` v1). Inputs: `product/prd.md`
+Owner: `fi-ai-architect`. Status: **v1.1, 2026-10-16** (§1.3.1 S03 source-adjusted mode, §5 golden format; v1 =
+`analytics.prev-1.md`; inception after `system.md`/`data.md` v1). Inputs: `product/prd.md`
 (Approved v2, PR-030…039, PR-070…078, PR-090…095, PR-110), `product/backlog.md` (E4, E6, E7), `knowledge/vn-market.md`
 (VN§n, verified 2026-10-15), `architecture/system.md` §2–4, `data.md` §1.3–1.4, §3, `codebase.md` §2–3, ADR-S-001/005/006.
 Decisions: `adr/ADR-A-001…006`. Interface: `contracts/analytics.md`. Package: `services/analytics` → `finvest_analytics`
@@ -68,6 +69,15 @@ return within 0.05 % over ≥ 3 years for 10 dividend payers. Pre-crawl dates ca
 (A18-A): the result gets `flags += [reconstructed_nominal]` and "how computed" states the ± 1 tick rounding error.
 **If A18-B**: `what-if` rejects `buy_date < first_observed_date(symbol)` with error `NOMINAL_UNAVAILABLE`; backtests
 then run in `price_mode = adjusted` (no lot rounding, fees on adjusted value, no CA events) and show "approximate".
+
+### 1.3.1 S03: `price_basis = source_adjusted` (sprint-03 slice, before F-014/F-015/F-043)
+Until nominal `bars_1d` + `corporate_actions` exist, the engine runs on the newest `bars_1d_src` version per
+(symbol, trading_date) and `index_1d`. Consequences, all declared on the result (contracts/analytics.md §1.4, §2.4):
+lots are bought at adjusted closes (share counts can differ from the real day), no CA step (§1.2 step 2 is skipped), no
+dividends, no T+2 bookkeeping needed because the end is a valuation. `approximate = true` on every such result and
+`flags ∋ approximate` — a kernel test computes a result from a `bars_1d_src`-shaped fixture and asserts both. Everything
+else (§1.2 step 4 lot/fee/tax arithmetic, decision time, flags, Figures) is the final code path; switching to nominal later
+changes the `MarketView` adapter and clears the flag, not the arithmetic.
 
 ### 1.4 Return breakdown (F-047, PR-033) — an identity, tested to 1 VND
 With `A` = amount, `P_N` = fill price, `P_M` = exit price, `Q` = shares bought, `B` = bonus shares received:
@@ -140,7 +150,7 @@ Input: symbol, window `[t0, t1]` (default last 7 sessions), `as_of = t1`. Return
 | Reproducibility | same `(params, data_snapshot, rules_version)` → identical JSON bytes (F-088, N6) |
 
 ## 5. Evals (`finvest_analytics.evals`, fixtures under `tests/fixtures/analytics/`) (ADR-A-005)
-- **Golden cases** (F-050, ≥ 20): `golden/sim/NNN-<name>.yaml` = inputs + hand computation (markdown block) + expected
+- **Golden cases** (F-050, ≥ 20): `golden/sim/NNN-<name>.json` (stdlib, no YAML dep) = inputs + `hand` (list of computation lines) + expected
   ledger and figures; F-040…F-045 are cases 001–008 (10,000,000 → 100 FPT @93,500, cash 635,975; sale 100,000 → 10,610,975;
   dividend 2,000 → 190,000 on pay date; 10:3 bonus → 30 shares, ref 71,923; rights 10:2 @10,000 → exercise 435,975 /
   lapse). Testers keep the independent calculator (spreadsheet) in `docs/golden/`.

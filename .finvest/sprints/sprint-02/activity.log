@@ -30,3 +30,5 @@
 2026-10-16 23:23 | dev     | BE-symbols-enrich        | pr-open   | kernel 123 passed, db 18 passed, ruff/mypy/imports clean, +122 non-test lines | 3-build.BE-symbols-enrich.md
 2026-10-16 23:23 | pm      | SPRINT-03                | built     | goal: sponsor follows saved scenarios side by side; 25 pts (vel 20), 10 stories, M1-M4 10-18..10-23, C1-C5 nightly 23:00 | .finvest/sprints/sprint-03/1-sprint-plan.md
 2026-10-16 23:25 | lead    | BE-symbols-enrich        | merged    | 5c44f69; kernel 123 passed, db 18 passed, 240 ins | .finvest/sprints/sprint-02/3-pr.BE-symbols-enrich.md
+2026-10-18 20:04 | dev     | BE-bars-backfill         | pr-open   | kernel 129 passed, ruff/mypy/imports clean, +170 non-test lines; live back-fill pending (in rate window) | 3-build.BE-bars-backfill.md
+2026-10-18 20:05 | lead    | BE-bars-backfill         | merged    | 50dce14; kernel 129 passed, ruff/mypy/lint-imports clean, 0 must-fix | 3-pr.BE-bars-backfill.md
