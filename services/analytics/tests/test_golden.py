@@ -1,6 +1,7 @@
 """Generic golden runner: tests/golden/sim/*.json -> run_whatif -> compare `expected` leaves.
 
-Case keys: view (symbol,start,end,close[,last_close,closes{date: close},drop,snapshot,basis]), request,
+Case keys: view (symbol,start,end,close[,last_close,closes{date: close},drop,snapshot,basis,extra[],
+index{code: {date: close}}]), request,
 expected {dotted.path: str},
 optional approx {path: tolerance}, flags_contain [..], error {code, details}. Paths resolve against `result`,
 then against the envelope; digits index lists.
@@ -13,7 +14,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from finvest_analytics.domain.models import WhatIfRequest
+from finvest_analytics.domain.models import IndexBar, WhatIfRequest
 from finvest_analytics.domain.money import AnalyticsError
 from finvest_analytics.fixtures import FixtureView, constant_series
 from finvest_analytics.sim import run_whatif
@@ -34,9 +35,17 @@ def build_view(spec: dict) -> FixtureView:
         for b in constant_series(spec["symbol"], start, end, spec["close"], last_close=spec.get("last_close"))
         if b.trading_date not in drop
     ]
+    extra = {  # more symbols, each a view spec of its own (snapshot inherited)
+        e["symbol"]: build_view({"snapshot": spec["snapshot"], **e}).bars[e["symbol"]]
+        for e in spec.get("extra", [])
+    }
+    index = {
+        code: [IndexBar(code, date.fromisoformat(d), Decimal(c)) for d, c in series.items()]
+        for code, series in spec.get("index", {}).items()
+    }
     return FixtureView(
-        {spec["symbol"]: bars},
-        {},
+        {spec["symbol"]: bars, **extra},
+        index,
         datetime.fromisoformat(spec["snapshot"]),
         spec.get("basis", "source_adjusted"),
     )
