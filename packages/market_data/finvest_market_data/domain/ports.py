@@ -4,7 +4,7 @@ from datetime import date
 from pathlib import Path
 from typing import Literal, Protocol
 
-from finvest_market_data.domain.models import Bar, SymbolRecord, Tick
+from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
 
 
 class SourceError(Exception):
@@ -44,3 +44,5 @@ class MarketDataSource(Protocol):
     def index_members(self, index_code: str, as_of: date) -> list[str]: ...
 
     def bars(self, symbols: list[str], grain: Literal["1m", "1d"], to: date, count: int) -> list[Bar]: ...
+
+    def index_bars(self, codes: list[str], to: date, count: int) -> list[IndexBar]: ...

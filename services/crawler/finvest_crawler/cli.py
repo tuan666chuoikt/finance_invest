@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from finvest_market_data.infrastructure import repositories
 from finvest_rules.calendar import day
 
+from finvest_crawler.feeds.bars_1d import run_bars_1d
 from finvest_crawler.feeds.catchup import CatchupFailed, catchup
 from finvest_crawler.feeds.symbols import run_symbols
 from finvest_crawler.feeds.ticks import run_ticks
@@ -34,6 +35,9 @@ def main(argv: list[str] | None = None) -> int:
                    type=_symbols)
     y = sub.add_parser("symbols", help="refresh the symbol master (delisted kept)")
     y.add_argument("--date", type=date.fromisoformat, default=datetime.now(VN).date())
+    b = sub.add_parser("bars", help="back-fill daily bars for every symbol and the indices (resumable)")
+    b.add_argument("--date", type=date.fromisoformat, default=datetime.now(VN).date())
+    b.add_argument("--only", default=None, help="SYM,SYM", type=_symbols)
     sub.add_parser("catchup", help="crawl every trading day missed since the last session")
     a = p.parse_args(argv)
 
@@ -44,6 +48,14 @@ def main(argv: list[str] | None = None) -> int:
             print(e)
             return 2  # non-zero so a retry timer sees the failure
         return 0
+
+    if a.cmd == "bars":
+        try:
+            m = run_bars_1d(Settings(), a.date, only=a.only)
+        except SourceBlocked as e:
+            print(e)
+            return 2
+        return 2 if m.status == "blocked" else 0
 
     if a.cmd == "catchup":
         settings = Settings()

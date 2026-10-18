@@ -98,7 +98,7 @@ def test_close_rounding(c, want):
     assert b.c == want
 
 
-@pytest.mark.parametrize("bad", [bars_payload(c=[]), bars_payload(c=[0]), bars_payload(v=["x"]),
+@pytest.mark.parametrize("bad", [bars_payload(c=[]), bars_payload(v=["x"]),
                                  bars_payload(t=["not-an-epoch"]), b"<html>"])
 def test_bad_bars_are_shape_errors(bad):
     with pytest.raises(PayloadShapeError):
@@ -140,3 +140,10 @@ def test_source_requests_and_archives(tmp_path):
         src.ticks("FPT", D)
     with pytest.raises(Unsupported):
         src.bars(["FPT"], "1m", D, 1)
+
+
+def test_bar_with_zero_close_is_dropped_not_fatal(caplog):
+    # recorded live 2026-10-16 (ABI 2009-09-16: o/h/l > 0, c = 0, v = 10500) and the v = 0 placeholder rows
+    assert parse_bars(bars_payload(c=[0]), Path("/arch/x.json.gz")) == []
+    assert "vci bar dropped" in caplog.text
+    assert parse_bars(bars_payload(o=[0], h=[0], l=[0], c=[0], v=[0])) == []

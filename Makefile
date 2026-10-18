@@ -12,7 +12,7 @@ test: test-kernel
 
 # docker compose (ops); mkdir first so the host user, not the Docker daemon (root), creates data/
 DATE ?= $(shell TZ=Asia/Ho_Chi_Minh date +%F)
-.PHONY: up down logs crawl db-shell install-timers uninstall-timers
+.PHONY: up down logs crawl backfill db-shell install-timers uninstall-timers
 up:
 	mkdir -p data/raw data/exports
 	docker compose up -d --build
@@ -23,6 +23,10 @@ logs:
 crawl:
 	mkdir -p data/raw data/exports
 	docker compose run --rm --build crawler ticks --date $(DATE)
+# one-off daily-bars back-fill; resume = run again. Run outside 15:00-23:00 VN (shared rate budget)
+backfill:
+	mkdir -p data/raw data/exports
+	docker compose run --rm --build crawler bars --date $(DATE)
 db-shell:
 	docker compose exec db psql -U finvest finvest
 
