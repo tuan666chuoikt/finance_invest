@@ -108,6 +108,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/whatif": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Whatif */
+        post: operations["whatif_api_whatif_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -234,6 +251,34 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** WhatIfRequest */
+        WhatIfRequest: {
+            /** Amount Vnd */
+            amount_vnd: number;
+            /**
+             * Buy Date
+             * Format: date
+             */
+            buy_date: string;
+            /** Fee Rate */
+            fee_rate?: number | string | null;
+            /**
+             * Fill Rule
+             * @default close
+             * @constant
+             */
+            fill_rule: "close";
+            /** Sell Date */
+            sell_date?: string | null;
+            /**
+             * Style
+             * @default lump_sum
+             * @enum {string}
+             */
+            style: "lump_sum" | "dca";
+            /** Symbol */
+            symbol: string;
         };
     };
     responses: never;
@@ -452,6 +497,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SymbolDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    whatif_api_whatif_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatIfRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
