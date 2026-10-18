@@ -107,5 +107,22 @@
   "card.missing": "{{count}} sessions missing",
   "card.missing_list": "Missing sessions",
   "card.below_lot_lump": "Below one lot — no shares can be bought",
-  "card.below_lot_dca": "Below one lot — will accumulate until one lot is affordable"
+  "card.below_lot_dca": "Below one lot — will accumulate until one lot is affordable",
+  "table.name": "Name",
+  "table.symbol": "Symbol",
+  "table.style": "Style",
+  "table.start": "Start",
+  "table.end": "End",
+  "table.today": "today",
+  "table.lump": "Lump sum",
+  "table.dca": "Monthly DCA",
+  "table.invested": "Invested",
+  "table.value": "Value",
+  "table.pl_vnd": "P/L ₫",
+  "table.pl_pct": "P/L %",
+  "table.vs_vnindex": "vs VN-Index (pp)",
+  "table.vs_e1": "vs E1VFVN30 (pp)",
+  "table.flag": "Flag",
+  "table.approximate": "Approximate",
+  "table.footer": "Past ranking does not predict the future."
 }
