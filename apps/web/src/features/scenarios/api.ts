@@ -31,27 +31,28 @@ export function useDeleteScenario() {
 
 export const useSymbolSearch = (q: string) =>
   useQuery({
-    queryKey: ["symbols", q],
+  queryKey: ["symbols", q],
     queryFn: () => api<SymbolOut[]>(`/symbols?q=${encodeURIComponent(q)}&limit=20`),
     enabled: q.trim() !== "",
   });
 
 export const useSymbol = (symbol: string | null) =>
   useQuery({
-    queryKey: ["symbol", symbol],
+  queryKey: ["symbol", symbol],
     queryFn: () => api<SymbolDetail>(`/symbols/${encodeURIComponent(symbol!)}`),
     enabled: !!symbol,
   });
 
 /** One computation per saved scenario (platform.md §2.5); `sell_date: null` = latest bar. */
-export const useWhatIf = (s: ScenarioIn) =>
-  useQuery({
-    queryKey: ["whatif", s.symbol, s.style, s.amount_vnd, s.buy_date, s.sell_date ?? null],
-    queryFn: () =>
-      api<WhatIfEnvelope>("/whatif", {
-        method: "POST",
-        body: JSON.stringify({
-          symbol: s.symbol, style: s.style, amount_vnd: s.amount_vnd, buy_date: s.buy_date, sell_date: s.sell_date ?? null,
-        }),
+export const whatIfQuery = (s: ScenarioIn) => ({
+  queryKey: ["whatif", s.symbol, s.style, s.amount_vnd, s.buy_date, s.sell_date ?? null],
+  queryFn: () =>
+    api<WhatIfEnvelope>("/whatif", {
+      method: "POST",
+      body: JSON.stringify({
+        symbol: s.symbol, style: s.style, amount_vnd: s.amount_vnd, buy_date: s.buy_date, sell_date: s.sell_date ?? null,
       }),
-  });
+    }),
+});
+
+export const useWhatIf = (s: ScenarioIn) => useQuery(whatIfQuery(s));

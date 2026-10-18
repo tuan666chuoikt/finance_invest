@@ -1,12 +1,15 @@
+import { useQueries } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api/client";
 import { ApiErrorState } from "../../components/ApiErrorState";
 import { useBarsStatus } from "../../app/useBarsStatus";
 import { formatDate } from "../../lib/format";
-import { useScenarios, type Scenario } from "./api";
+import { useScenarios, whatIfQuery, type Scenario } from "./api";
 import { GRID_CSS, ScenarioCard } from "./ScenarioCard";
 import { ScenarioForm } from "./ScenarioForm";
+import { ScenarioTable } from "./ScenarioTable";
+import { useView, ViewToggle } from "./ViewToggle";
 import { Empty, NoBars, Skeleton } from "./states";
 
 export function ScenariosPage() {
@@ -15,6 +18,9 @@ export function ScenariosPage() {
   const list = useScenarios();
   // undefined = closed, null = add, Scenario = edit
   const [form, setForm] = useState<Scenario | null | undefined>(undefined);
+  const [view, setView] = useView();
+  // same query keys as the cards, so switching view reuses the cache
+  const results = useQueries({ queries: (list.data ?? []).map(whatIfQuery) });
   const noBars = !!bars.data && bars.data.last_trading_date == null;
 
   useEffect(() => {
@@ -38,7 +44,14 @@ export function ScenariosPage() {
   } else if (list.isPending) body = <div className="sc-grid"><Skeleton /><Skeleton /><Skeleton /></div>;
   else if (noBars) body = <NoBars />;
   else if (list.data.length === 0) body = <Empty onAdd={() => setForm(null)} />;
-  else body = <div className="sc-grid">{list.data.map((s) => <ScenarioCard key={s.id} scenario={s} onEdit={() => setForm(s)} />)}</div>;
+  else if (view === "table") {
+    const rows = list.data.map((scenario, i) => {
+      const q = results[i];
+      const code = q?.error instanceof ApiError ? q.error.code : "INTERNAL";
+      return { scenario, env: q?.data, error: q?.isError ? t(`error.${code}`, { defaultValue: t("error.INTERNAL") }) : undefined };
+    });
+    body = <ScenarioTable rows={rows} />;
+  } else body = <div className="sc-grid">{list.data.map((s) => <ScenarioCard key={s.id} scenario={s} onEdit={() => setForm(s)} />)}</div>;
 
   return (
     <section data-testid="route-scenarios" style={{ padding: 16 }}>
@@ -46,10 +59,7 @@ export function ScenariosPage() {
       <header style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
         <h1 style={{ margin: 0 }}>{t("page.title")}</h1>
         <button type="button" disabled={noBars} onClick={() => setForm(null)}>{t("page.add")}</button>
-        <div role="group" aria-label={t("page.view")}>
-          <button type="button" aria-pressed="true">{t("page.view_cards")}</button>
-          <button type="button" aria-pressed="false" disabled>{t("page.view_table")}</button>
-        </div>
+        <ViewToggle view={view} onChange={setView} />
         {bars.data?.last_trading_date && (
           <span>{t("page.as_of", { date: formatDate(bars.data.last_trading_date), src: bars.data.source.toUpperCase() })}</span>
         )}

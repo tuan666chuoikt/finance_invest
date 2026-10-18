@@ -107,5 +107,22 @@
   "card.missing": "thiếu {{count}} phiên dữ liệu",
   "card.missing_list": "Các phiên thiếu",
   "card.below_lot_lump": "Ít hơn 1 lô — không mua được cổ phiếu nào",
-  "card.below_lot_dca": "Ít hơn 1 lô — sẽ tích luỹ đến khi đủ 1 lô"
+  "card.below_lot_dca": "Ít hơn 1 lô — sẽ tích luỹ đến khi đủ 1 lô",
+  "table.name": "Tên",
+  "table.symbol": "Mã",
+  "table.style": "Kiểu",
+  "table.start": "Từ",
+  "table.end": "Đến",
+  "table.today": "hôm nay",
+  "table.lump": "Mua một lần",
+  "table.dca": "Mua định kỳ hàng tháng",
+  "table.invested": "Đã đầu tư",
+  "table.value": "Giá trị",
+  "table.pl_vnd": "Lãi/lỗ ₫",
+  "table.pl_pct": "Lãi/lỗ %",
+  "table.vs_vnindex": "so với VN-Index (điểm %)",
+  "table.vs_e1": "so với E1VFVN30 (điểm %)",
+  "table.flag": "Cờ",
+  "table.approximate": "Xấp xỉ",
+  "table.footer": "Xếp hạng theo quá khứ không dự báo tương lai."
 }
