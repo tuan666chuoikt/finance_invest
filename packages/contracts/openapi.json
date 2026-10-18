@@ -351,6 +351,72 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "WhatIfRequest": {
+        "properties": {
+          "amount_vnd": {
+            "minimum": 1.0,
+            "title": "Amount Vnd",
+            "type": "integer"
+          },
+          "buy_date": {
+            "format": "date",
+            "title": "Buy Date",
+            "type": "string"
+          },
+          "fee_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fee Rate"
+          },
+          "fill_rule": {
+            "const": "close",
+            "default": "close",
+            "title": "Fill Rule",
+            "type": "string"
+          },
+          "sell_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Date"
+          },
+          "style": {
+            "default": "lump_sum",
+            "enum": [
+              "lump_sum",
+              "dca"
+            ],
+            "title": "Style",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "amount_vnd",
+          "buy_date"
+        ],
+        "title": "WhatIfRequest",
+        "type": "object"
       }
     }
   },
@@ -634,6 +700,46 @@
           }
         },
         "summary": "Get Symbol"
+      }
+    },
+    "/api/whatif": {
+      "post": {
+        "operationId": "whatif_api_whatif_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatIfRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Whatif Api Whatif Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Whatif"
       }
     }
   }
