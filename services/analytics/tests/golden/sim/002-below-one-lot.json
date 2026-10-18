@@ -1,0 +1,18 @@
+{
+  "hand": [
+    "5,000,000 < lot cost 9,364,025 -> qty 0, no fee, cash 5,000,000; liquidation = 5,000,000; pl 0; pl_pct 0.0000",
+    "min_amount = ceil(100 * 93,500 * 1.0015) = 9,364,025"
+  ],
+  "view": {"symbol": "FPT", "start": "2026-10-01", "end": "2026-10-15", "close": 93500,
+           "snapshot": "2026-10-15T15:30:00"},
+  "request": {"symbol": "FPT", "amount_vnd": 5000000, "buy_date": "2026-10-12", "sell_date": "2026-10-15"},
+  "flags_contain": ["below_one_lot", "approximate"],
+  "expected": {
+    "position.shares.value": "0",
+    "position.cash.value": "5000000",
+    "value.liquidation_vnd.value": "5000000",
+    "returns.pl_vnd.value": "0",
+    "returns.pl_pct.value": "0.0000",
+    "details.min_amount.value": "9364025"
+  }
+}

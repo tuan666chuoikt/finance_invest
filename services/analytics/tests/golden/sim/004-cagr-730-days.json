@@ -1,0 +1,11 @@
+{
+  "hand": [
+    "case 001 prices, buy 2026-10-12, sell 2028-10-11 = +730 days (2028 is a leap year)",
+    "cagr = (10,610,975 / 10,000,000)^(365/730) - 1 = 1.0610975^0.5 - 1 = 3.0096 % (+-0.0001)"
+  ],
+  "view": {"symbol": "FPT", "start": "2026-10-01", "end": "2028-10-11", "close": 93500, "last_close": 100000,
+           "snapshot": "2028-10-11T15:30:00"},
+  "request": {"symbol": "FPT", "amount_vnd": 10000000, "buy_date": "2026-10-12", "sell_date": "2028-10-11"},
+  "expected": {"returns.holding_days.value": "730", "returns.pl_pct.value": "6.1098", "returns.cagr_pct.value": "3.0096"},
+  "approx": {"returns.cagr_pct.value": "0.0001"}
+}

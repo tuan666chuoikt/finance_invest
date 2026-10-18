@@ -1,0 +1,23 @@
+{
+  "hand": [
+    "buy Sat 2026-10-17 -> next trading day Mon 2026-10-19; sell Sun 2026-10-25 -> previous trading day Fri 2026-10-23",
+    "holding_days = 10-23 - 10-19 = 4; same prices as 001 so qty 100 and liquidation 10,610,975"
+  ],
+  "view": {"symbol": "FPT", "start": "2026-10-01", "end": "2026-10-23", "close": 93500, "last_close": 100000,
+           "snapshot": "2026-10-23T15:30:00"},
+  "request": {"symbol": "FPT", "amount_vnd": 10000000, "buy_date": "2026-10-17", "sell_date": "2026-10-25"},
+  "flags_contain": ["fill_shifted"],
+  "expected": {
+    "dates.buy": "2026-10-19",
+    "dates.sell": "2026-10-23",
+    "dates.shifts.0.field": "buy_date",
+    "dates.shifts.0.from": "2026-10-17",
+    "dates.shifts.0.to": "2026-10-19",
+    "dates.shifts.1.field": "sell_date",
+    "dates.shifts.1.from": "2026-10-25",
+    "dates.shifts.1.to": "2026-10-23",
+    "dates.shifts.1.reason": "non_trading",
+    "returns.holding_days.value": "4",
+    "value.liquidation_vnd.value": "10610975"
+  }
+}

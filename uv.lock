@@ -217,11 +217,15 @@ name = "finvest-analytics"
 version = "0.1.0"
 source = { editable = "services/analytics" }
 dependencies = [
+    { name = "finvest-rules" },
     { name = "pydantic" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2" }]
+requires-dist = [
+    { name = "finvest-rules", editable = "packages/market_rules" },
+    { name = "pydantic", specifier = ">=2" },
+]
 
 [[package]]
 name = "finvest-api"
