@@ -79,7 +79,7 @@ export function ScenarioForm({ scenario, onClose }: Props) {
     });
   };
 
-  const msg = (f: string) => errors[f] && <p id={`err-${f}`} role="alert" style={{ color: "crimson", margin: "2px 0" }}>{errors[f]}</p>;
+  const msg = (f: string) => errors[f] && <p id={`err-${f}`} role="alert" style={{ color: "var(--color-error, crimson)", margin: "2px 0" }}>{errors[f]}</p>;
   const d = (f: string) => (errors[f] ? { "aria-invalid": true, "aria-describedby": `err-${f}` } : {});
 
   return (
