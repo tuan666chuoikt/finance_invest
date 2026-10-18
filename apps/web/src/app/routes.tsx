@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { Navigate, Outlet, createBrowserRouter, useLocation } from "react-router-dom";
 import { Disclaimer } from "../components/Disclaimer";
 import { TopBar } from "../components/TopBar";
+import { ScenariosPage } from "../features/scenarios/ScenariosPage";
 import { Placeholder } from "./Placeholder";
 
 export interface AppRoute {
@@ -12,7 +13,7 @@ export interface AppRoute {
 }
 
 export const ROUTES: AppRoute[] = [
-  { path: "/scenarios", element: <Placeholder name="scenarios" />, nameKey: "nav.scenarios", analysis: true },
+  { path: "/scenarios", element: <ScenariosPage />, nameKey: "nav.scenarios", analysis: true },
   { path: "/data-quality", element: <Placeholder name="data-quality" />, nameKey: "nav.data-quality", analysis: false },
   { path: "/rules", element: <Placeholder name="rules" />, nameKey: "nav.rules", analysis: false },
 ];
