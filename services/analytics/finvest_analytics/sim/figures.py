@@ -18,22 +18,19 @@ def fig(value, unit: str, formula: str, inputs: dict, ctx: Ctx, cite: str | None
     return asdict(figure(value, unit, formula, inputs, ctx, cite))
 
 
-def lump_sum_result(
+def whatif_result(
     *,
     ctx: Ctx,
-    amount: int,
-    buy: date,
+    rows: list[dict],
+    dca: bool,
     sell: date,
-    requested: date,
     shifts: list[dict],
-    close_buy: int,
     close_sell: int,
     lot: int,
     buy_rate: Decimal,
     sell_rate: Decimal,
     tax_rate: Decimal,
     qty: int,
-    fee_vnd: int,
     cash: int,
     market_value: int,
     sell_fee: int,
@@ -43,19 +40,25 @@ def lump_sum_result(
     pl_pct: Decimal,
     holding_days: int,
     cagr: Decimal | None,
-    min_amount: int | None,
+    min_amount: tuple[int, int] | None,  # (amount, price it was computed at)
     missing: list[date],
     curve: list[dict],
 ) -> dict:
-    """Assemble `result` for a lump-sum what-if from already-computed numbers."""
+    """Assemble `result` for a lump-sum (1 row) or DCA what-if from already-computed numbers."""
     f = lambda *a, **k: fig(*a, ctx=ctx, **k)  # noqa: E731
-    buy_how = {
-        "formula": "round_half_up(qty * price * buy_fee_rate)",
-        "cite": "VN§5",
-        "inputs": {"qty": str(qty), "price": str(close_buy), "buy_fee_rate": str(buy_rate)},
-        "as_of": ctx.as_of,
-        "rules_version": ctx.rules_version,
-    }
+    buy, amount = rows[0]["date"], sum(r["amount_vnd"] for r in rows)
+    close_buy, fee_vnd = rows[0]["price"], rows[0]["fee_vnd"]
+    n = len(rows)
+
+    def buy_how(r: dict) -> dict:
+        return {
+            "formula": "round_half_up(qty * price * buy_fee_rate)",
+            "cite": "VN§5",
+            "inputs": {"qty": str(r["qty"]), "price": str(r["price"]), "buy_fee_rate": str(buy_rate)},
+            "as_of": ctx.as_of,
+            "rules_version": ctx.rules_version,
+        }
+
     returns = {
         "pl_vnd": f(pl, "vnd", "liquidation - invested", {"liquidation": liquidation, "invested": amount}),
         "pl_pct": f(pl_pct, "pct", "pl / invested * 100", {"pl": pl, "invested": amount}),
@@ -76,31 +79,42 @@ def lump_sum_result(
     else:
         returns["cagr_pct"] = None
         returns["cagr_note"] = {
-            "text": "holding_days is 0, CAGR is undefined",
+            "text": "not defined for multiple contributions (S03: no IRR)"
+            if dca
+            else "holding_days is 0, CAGR is undefined",
             "how": {
-                "formula": "cagr_pct is null when holding_days < 1",
-                "inputs": {"holding_days": str(holding_days)},
+                "formula": "cagr_pct is null for dca (no IRR in S03)"
+                if dca
+                else "cagr_pct is null when holding_days < 1",
+                "inputs": {"contributions": str(n)} if dca else {"holding_days": str(holding_days)},
                 "as_of": ctx.as_of,
                 "rules_version": ctx.rules_version,
                 "cite": None,
             },
         }
-    result = {
-        "dates": {"buy": buy.isoformat(), "sell": sell.isoformat(), "shifts": shifts},
-        # shortcut: plain ints per the contract, one row-level `how` instead of Figure leaves
-        "contributions": [
-            {
-                "date": buy.isoformat(),
-                "requested": requested.isoformat(),
-                "amount_vnd": amount,
-                "qty": qty,
-                "price": close_buy,
-                "fee_vnd": fee_vnd,
-                "cash_after": cash,
-                "how": buy_how,
-            }
-        ],
-        "position": {
+    if dca:
+        spent, fees = sum(r["qty"] * r["price"] for r in rows), sum(r["fee_vnd"] for r in rows)
+        position = {
+            "shares": f(
+                qty,
+                "shares",
+                "sum(qty_i), qty_i = floor(cash_i / (close_i * lot * (1 + buy_fee_rate))) * lot",
+                {"qty_i": ",".join(str(r["qty"]) for r in rows), "lot": lot, "buy_fee_rate": buy_rate},
+                cite="VN§4",
+            ),
+            "cash": f(
+                cash,
+                "vnd",
+                "invested - sum(qty_i * close_i) - sum(buy_fee_i)",
+                {"invested": amount, "bought_value": spent, "buy_fees": fees},
+                cite="VN§5",
+            ),
+            "invested_vnd": f(
+                amount, "vnd", "sum(amount_i)", {"amount_i": ",".join(str(r["amount_vnd"]) for r in rows)}
+            ),
+        }
+    else:
+        position = {
             "shares": f(
                 qty,
                 "shares",
@@ -116,7 +130,20 @@ def lump_sum_result(
                 cite="VN§5",
             ),
             "invested_vnd": f(amount, "vnd", "amount", {"amount": amount}),
-        },
+        }
+    result = {
+        "dates": {"buy": buy.isoformat(), "sell": sell.isoformat(), "shifts": shifts},
+        # shortcut: plain ints per the contract, one row-level `how` instead of Figure leaves
+        "contributions": [
+            {
+                "date": r["date"].isoformat(),
+                "requested": r["requested"].isoformat(),
+                **{k: r[k] for k in ("amount_vnd", "qty", "price", "fee_vnd", "cash_after")},
+                "how": buy_how(r),
+            }
+            for r in rows
+        ],
+        "position": position,
         "value": {
             "market_value_vnd": f(
                 market_value, "vnd", "shares * close_sell", {"shares": qty, "close_sell": close_sell}
@@ -149,12 +176,13 @@ def lump_sum_result(
         "equity_curve": curve,
     }
     if min_amount is not None:
+        min_amount, min_price = min_amount
         result["details"] = {
             "min_amount": f(
                 min_amount,
                 "vnd",
                 "ceil(lot * price * (1 + buy_fee_rate))",
-                {"lot": lot, "price": close_buy, "buy_fee_rate": buy_rate},
+                {"lot": lot, "price": min_price, "buy_fee_rate": buy_rate},
                 cite="VN§4",
             )
         }

@@ -1,0 +1,15 @@
+{
+  "hand": [
+    "same as 005 but the end is 2026-05-29 (last bar close 100,000): 5 contributions, invested 10,000,000",
+    "shares 100, cash 635,975, market_value 10,000,000, sell_fee 15,000, sell_tax 10,000",
+    "liquidation = 635,975 + 10,000,000 - 25,000 = 10,610,975; pl = 610,975; pl_pct = 610,975 / 10,000,000 = 6.1098 (backlog F-057)"
+  ],
+  "view": {"symbol": "FPT", "start": "2026-01-01", "end": "2026-05-29", "close": 93500, "last_close": 100000,
+           "snapshot": "2026-05-29T15:30:00"},
+  "request": {"symbol": "FPT", "amount_vnd": 2000000, "buy_date": "2026-01-15", "sell_date": "2026-05-29", "style": "dca"},
+  "expected": {
+    "contributions.4.date": "2026-05-15", "contributions.4.qty": "100",
+    "position.invested_vnd.value": "10000000", "value.liquidation_vnd.value": "10610975",
+    "returns.pl_vnd.value": "610975", "returns.pl_pct.value": "6.1098", "returns.cagr_pct": "None"
+  }
+}
