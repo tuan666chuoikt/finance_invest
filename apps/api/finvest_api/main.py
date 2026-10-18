@@ -1,19 +1,18 @@
-import os
-from functools import lru_cache
 from importlib.metadata import version
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
+from . import errors
+from .deps import get_engine
+from .routes import bars, symbols
+
 app = FastAPI(title="finvest")
-
-
-@lru_cache
-def get_engine() -> Engine:
-    url = os.environ.get("FINVEST_DATABASE_URL", "postgresql+psycopg://finvest:finvest@localhost:5432/finvest")
-    return create_engine(url, pool_pre_ping=True, connect_args={"connect_timeout": 3})
+errors.install(app)
+app.include_router(symbols.router)
+app.include_router(bars.router)
 
 
 @app.get("/api/health")
