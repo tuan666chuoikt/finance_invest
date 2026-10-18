@@ -1,6 +1,9 @@
 import os
 
 import pytest
+from sqlalchemy.engine import make_url
+
+URL = os.environ.get("FINVEST_DATABASE_URL")
 
 OK = {"name": "FPT test", "symbol": "fpt", "style": "lump_sum", "amount_vnd": 10_000_000,
       "buy_date": "2025-10-12", "sell_date": None}
@@ -49,7 +52,9 @@ def test_symbol(make_client):
 
 
 @pytest.mark.db
-@pytest.mark.skipif(not os.environ.get("FINVEST_DATABASE_URL"), reason="needs FINVEST_DATABASE_URL")
+@pytest.mark.skipif(not URL, reason="needs FINVEST_DATABASE_URL")
+@pytest.mark.skipif(bool(URL) and not (make_url(URL).database or "").endswith("_test"),
+                    reason="db name must end in _test (the test downgrades and drops scenarios)")
 def test_migration_round_trip():
     from pathlib import Path
 
@@ -59,5 +64,5 @@ def test_migration_round_trip():
     cfg = Config(str(Path(__file__).parents[1] / "alembic.ini"))
     cfg.set_main_option("script_location", str(Path(__file__).parents[1] / "migrations"))
     command.upgrade(cfg, "head")
-    command.downgrade(cfg, "-1")
+    command.downgrade(cfg, "0005")
     command.upgrade(cfg, "head")
