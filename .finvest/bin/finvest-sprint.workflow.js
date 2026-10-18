@@ -138,11 +138,15 @@ const settle = (t, r) => {
 // ---- watcher for manual/skipped tasks: a haiku helper checks about every 10 minutes ----
 let stopWatch = false
 const watcher = (async () => {
-  for (let round = 0; round < 300 && !stopWatch; round++) {
+  let idle = 0
+  for (let round = 0; round < 60 && !stopWatch; round++) {
     const pending = watched.filter(id => !D[id].done)
     if (!pending.length) break
+    // a wait agent that returns at once (no 10-min Bash wait) would spin; stop after 3 such rounds and tell the SM
+    if (idle >= 3) { notify(`watcher stopped: wait agents return without waiting; pending ${pending.join(', ')} — SM checks merges by hand`); break }
     const w = await agent(`Run this Bash command with the Bash tool timeout set to 600000 ms: \`${FD}/bin/wait-merged.sh ${A.sprint} - ${pending.join(' ')}\`. Return the task ids it printed as merged (empty list if none). Run nothing else, never a bare sleep.`,
       { label: `wait-${round}`, phase: 'Wait', model: 'haiku', effort: 'low', schema: WAITED })
+    if (!w || !(w.merged || []).length) idle++; else idle = 0
     for (const id of (w && w.merged) || []) {
       if (!D[id] || D[id].done) continue
       D[id].done = true; D[id].resolve('MERGED'); mergedSet.add(id)
