@@ -1,5 +1,4 @@
 """Integer-VND helpers: lot, fee and rounding formulas (contracts/analytics.md §2.4)."""
-
 from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_UP, Decimal
 
 

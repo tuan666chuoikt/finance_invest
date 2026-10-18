@@ -1,5 +1,4 @@
 """Domain types (contracts/analytics.md §1.1, §1.4, §2.4)."""
-
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
@@ -68,8 +67,5 @@ def _s(v: object) -> str:
 
 def figure(value, unit: str, formula: str, inputs: dict, ctx: Ctx, cite: str | None = None) -> Figure:
     """Ints become plain strings, Decimals 4 dp half-up."""
-    return Figure(
-        _s(value),
-        unit,
-        How(formula, {k: _s(v) for k, v in inputs.items()}, ctx.as_of, ctx.rules_version, cite),
-    )
+    return Figure(_s(value), unit, How(formula, {k: _s(v) for k, v in inputs.items()}, ctx.as_of,
+                                       ctx.rules_version, cite))

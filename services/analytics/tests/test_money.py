@@ -26,11 +26,8 @@ def test_pct_and_figure():
     assert f.value == "1.2346" and f.how.inputs == {"a": "1", "b": "2.5000"} and f.how.cite == "VN§5"
 
 
-@given(
-    st.integers(1, 10**11),
-    st.integers(10, 10**6).map(lambda x: x * 10),
-    st.decimals(0, Decimal("0.0045"), places=4),
-)
+@given(st.integers(1, 10**11), st.integers(10, 10**6).map(lambda x: x * 10),
+       st.decimals(0, Decimal("0.0045"), places=4))
 def test_max_qty_property(cash, price, rate):
     q = max_qty(cash, price, 100, rate)
     assert q % 100 == 0
@@ -43,7 +40,6 @@ def test_fixture_as_of_guard(a, b, c):
     from datetime import datetime
 
     from finvest_analytics.fixtures import FixtureView, constant_series
-
     d0 = date(2026, 1, 1)
     v = FixtureView({"X": constant_series("X", d0, d0 + timedelta(150), 100)}, {}, datetime(2026, 1, 1))
     as_of = d0 + timedelta(a)

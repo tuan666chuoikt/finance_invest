@@ -1,5 +1,4 @@
 """In-memory MarketView for tests. bars_1d/index_1d enforce as_of (the look-ahead guard)."""
-
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
@@ -33,23 +32,12 @@ class FixtureView:
         return self.basis
 
 
-def constant_series(
-    symbol: str,
-    start: date,
-    end: date,
-    close: int,
-    *,
-    last_close: int | None = None,
-    fetched_at: datetime | None = None,
-) -> list[DailyBar]:
+def constant_series(symbol: str, start: date, end: date, close: int, *, last_close: int | None = None,
+                    fetched_at: datetime | None = None) -> list[DailyBar]:
     """Weekday bars at a flat close; the final bar may differ via last_close."""
     fetched_at = fetched_at or datetime(2026, 10, 15, 15, 30)
     days = FixtureView({}, {}, fetched_at).calendar(start, end)
-    return [
-        DailyBar(symbol, d, close, close, close, close, 1000, "source_adjusted", fetched_at)
-        for d in days[:-1]
-    ] + [
+    return [DailyBar(symbol, d, close, close, close, close, 1000,
+                     "source_adjusted", fetched_at) for d in days[:-1]] + [
         DailyBar(symbol, d, c, c, c, c, 1000, "source_adjusted", fetched_at)
-        for d in days[-1:]
-        for c in [last_close if last_close is not None else close]
-    ]
+        for d in days[-1:] for c in [last_close if last_close is not None else close]]
