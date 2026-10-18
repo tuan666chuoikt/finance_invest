@@ -334,7 +334,7 @@ then FE-scenario-table.
 - Out of scope: axes, benchmark curves on the card, zoom, candles (`lightweight-charts` arrives with the board).
 
 #### FE-scenario-form — F-055: add/edit side panel with symbol combobox, style, amount, dates, hints; CRUD hooks
-- Story: F-055 ; Side: fe ; Effort: medium ; Size: ~250 lines ; Lead: sonnet
+- Story: F-055 ; Side: fe ; Effort: medium ; Size: ~300 lines ; Lead: sonnet
 - Files: `apps/web/src/features/scenarios/api.ts` (TanStack hooks: `useScenarios`, `useSaveScenario`, `useDeleteScenario`,
   `useSymbolSearch(q)`, `useSymbol(symbol)`, `useWhatIf(scenario)` typed from `src/api/types.ts` + `result.ts`),
   `apps/web/src/features/scenarios/ScenarioForm.tsx`, `apps/web/src/features/scenarios/SymbolCombobox.tsx`,

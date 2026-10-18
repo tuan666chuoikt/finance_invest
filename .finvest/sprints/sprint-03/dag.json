@@ -1,7 +1,7 @@
 {
   "sprint": "sprint-03",
   "plan": "v1.0",
-  "dagRev": 2,
+  "dagRev": 4,
   "tasks": [
     {
       "id": "BE-rules-costs",
@@ -58,7 +58,7 @@
       "bothLeads": false,
       "priority": 3,
       "manual": false,
-      "size": 200
+      "size": 410
     },
     {
       "id": "AI-whatif-benchmarks",
@@ -73,7 +73,7 @@
       "bothLeads": false,
       "priority": 5,
       "manual": false,
-      "size": 180
+      "size": 340
     },
     {
       "id": "BE-api-symbols-bars",
@@ -251,7 +251,7 @@
       "bothLeads": false,
       "priority": 4,
       "manual": false,
-      "size": 250
+      "size": 300
     },
     {
       "id": "FE-scenario-cards",

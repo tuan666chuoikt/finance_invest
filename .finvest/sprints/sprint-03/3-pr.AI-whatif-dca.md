@@ -49,3 +49,32 @@ The build report's "nothing left to split, so no consult" is the dev deciding th
 - `-m db` not needed (no migration/repository/SQL change).
 
 Verdict: CHANGES_REQUIRED (2 must-fix). Code is otherwise APPROVE-ready.
+
+## Round 2 — APPROVE (lead BE, opus, 2026-10-18)
+
+Reviewed head H = `378d9f2`, base `origin/sprint-03` = `78e636c` (unchanged; sync: up to date, no merge commit).
+Files re-reviewed: fix-round diff `95b7fc6..378d9f2` (`sim/whatif.py`, `sim/figures.py`, `tests/test_whatif_dca.py`;
+`378d9f2` reverts the ruff-format churn in models/money/fixtures/test_money, net zero outside the set).
+
+### Must-fix status
+1. Size stop: `3-consult.AI-whatif-dca.md` written; AI architect answer (`3-consult.AI-whatif-dca.answer.1.md`) = A, accept;
+   plan Size ~200 -> ~410, dag.json rev 3. Shortstat now 10 files +410/-73, within the accepted size. Closed.
+2. Per-contribution fee rate: each row carries the `buy_fee_rate` its fee used (`whatif.py:96`), `min_amount` tuple carries
+   its own rate (`whatif.py:101`), `figures.py` prints them; `buy_fee_rate` is not leaked into `contributions[]` (explicit key
+   list, `figures.py:148`). DCA `position.shares.how.inputs` is `buy_fee_rate_i` (comma list) matching its formula text.
+   Test `test_how_reports_each_contributions_own_fee_rate` asserts two distinct rates and that each row's rate reproduces
+   its `fee_vnd`; it fails on `95b7fc6` (old code printed the single `rules(n)` rate). Closed.
+
+### Nits (carry-over, optional)
+- after_end double row for a no-bar trading day beyond `m`; `rules_unverified` reads shipped RULES (shortcut comment);
+  `details.min_amount` / shares `how` still take `lot` from `rules(n)` (lot is not time-versioned today).
+
+### Checks on H `378d9f2`
+- `q.sh kernel make test-kernel`: exit 0 — 176 passed, 20 deselected (db); ruff All checks passed; mypy no issues (5 files);
+  lint-imports KEPT.
+- `q.sh analytics uv run pytest -q tests`: 28 passed.
+- `-m db` not needed (no migration/repository/SQL change). Round-1 hand recompute of 005/005b/006/007 still holds (goldens unchanged).
+
+Verdict: APPROVE.
+
+Merged: `7b1842d` (7b1842dd1d05026c89560f308233615245a7168c) into sprint-03 via sm.sh; worktree removed.

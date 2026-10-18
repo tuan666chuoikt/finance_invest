@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.5, 2026-10-18** (§2.5 S03 endpoints: symbols lookup, bars status, scenarios CRUD, what-if mapping; v1.4 = `platform.prev-5.md`) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.6, 2026-10-18** (§4 past-date probe rule B1, mixed-unit `accumulatedValue` B2; v1.5 = `platform.prev-6.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -166,10 +166,13 @@ Scenario:   { "id": 7, …ScenarioIn, "created_at": "2026-10-19T09:00:00+07:00",
   `source_no_longer_serves`, `source_blocked`, `holiday_misconfigured`. `reason` for `partial` is null unless the
   loop stopped early (`source_no_longer_serves`): the untouched symbols are then listed in `symbols_skipped` with
   that reason. Per-symbol skip reasons: `http_<status> | payload_shape | timeout | source_blocked |
-  source_no_longer_serves`. K1 serves the current session only, so for a `trading_date` before today (VN) an
-  empty or other-session tape is conclusive (`source_no_longer_serves`); for today an empty tape is **no trades**:
-  the symbol goes to `symbols_no_trades` (sorted list, not a skip, contributes no rows, never archived so a re-run
-  asks again). Status rule: `complete` = every symbol in the universe is fetched or no-trade; `partial` = at least one
+  source_no_longer_serves`. An **other-session** tape is conclusive (`source_no_longer_serves`, stop). An **empty**
+  tape is never conclusive on its own (B1, S02: A32 had no trades on 2026-10-16 while K1 still served that day two days
+  later): for `trading_date` before today (VN) the run first probes `PROBE_SYMBOLS = (FPT, HPG, VNM)`; if none of
+  them returns a tape for `trading_date` the session is `missed` / `source_no_longer_serves` (≤ 3 requests, nothing
+  overwritten unless the stored session is not `complete`); otherwise the day is still served and an empty tape, today
+  or past, is **no trades**: the symbol goes to `symbols_no_trades` (sorted list, not a skip, contributes no rows,
+  never archived so a re-run asks again). A probe tape that is fetched counts once (not re-fetched in the loop). Status rule: `complete` = every symbol in the universe is fetched or no-trade; `partial` = at least one
   symbol in `symbols_skipped`; `symbols_fetched + len(symbols_no_trades) + len(symbols_skipped) = universe.count`
   (except `--only`, where it equals the list given). S02-1 (v1.3): `no_ticks` was a skip reason and turned every
   session with an illiquid name into `partial`. Caveat: "no trades" and "source answered empty by mistake" look
@@ -188,7 +191,10 @@ Scenario:   { "id": 7, …ScenarioIn, "created_at": "2026-10-19T09:00:00+07:00",
   JSON keys as ticks; `rows` = bars written, `symbols_no_trades` = symbols the source answered with zero bars, checksum
   canonical line `symbol,trading_date,source,adj_o,adj_h,adj_l,adj_c,v,value` (ints, `value` empty when null). Prices
   from V2 are source-adjusted decimals → rounded half-up to integer VND into `bars_1d_src`; `value` is **nominal**
-  matched value in VND (V2 `accumulatedValue` × 1,000,000, fixture `vci/gap_chart/FPT-1d`). `bars_1d_src.fetched_at`
+  matched value in VND. V2 `accumulatedValue` is **mixed-unit** (B2, S02: VN30 2012-02-06 = 222,242,000,000 raw VND,
+  2026-10-16 = 6,386,472.73 million VND): stocks pick the scale (×1 or ×1e6) closest to `v × c`; indices treat
+  `accumulatedValue ≥ 1e9` as VND, else × 1e6 (fixtures `vci/gap_chart/FPT-1d`, `vci/gap_chart/VN30-1d`). A value that
+  would not fit BIGINT is stored NULL with a warning, never raised. `bars_1d_src.fetched_at`
   = archive file mtime, so a replay rewrites the same version and a fresh fetch adds a new one (data.md §1.4 (2)).
 - Rate limiting: per-source token bucket (data.md §1.2); the adapter raises `SourceBlocked` after 3 consecutive
   429/403/HTML responses; the feed records `blocked` and exits non-zero (systemd shows failure; retry timer at 20:00).

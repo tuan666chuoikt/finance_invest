@@ -1,6 +1,6 @@
 # Sprint 03 — Tech plan (AI side: what-if engine, `services/analytics`)
 
-Owner: `fi-ai-architect`, 2026-10-18, plan v1.0. Inputs: `1-sprint-plan.md` (M1 F-006; M2 F-040/F-041/F-057; M4 F-048/F-051),
+Owner: `fi-ai-architect`, 2026-10-18, plan v1.2 (v1.1 = lumpsum size; v1.2 = DCA actual + benchmarks re-estimate). Inputs: `1-sprint-plan.md` (M1 F-006; M2 F-040/F-041/F-057; M4 F-048/F-051),
 `product/backlog.md` (S03 slice), `product/ux/scenario-dashboard.md`, `architecture/analytics.md` v1.1 (§1.2 step 4, §1.3.1,
 §5), `contracts/analytics.md` v1.1 (§1.1 Figure, §1.4 envelope, §2.3, **§2.4 normative for S03**), `knowledge/vn-market.md`
 VN§4–§5, sprint-02 `2-tech-plan.md` BE-bars-store / BE-bars-backfill, `data.md` §1.2 V2, §3. The software architect merges
@@ -147,7 +147,7 @@ Order (file sets overlap in `services/analytics/**` → serial): BE-rules-costs 
   (F-053), ledger/CSV (F-049), breakdown (F-047), risk metrics (F-090), SQL view (N1), API route (N2).
 
 #### AI-whatif-dca — F-057: monthly contributions on the start day-of-month, whole lots, carried cash
-- Story: F-057 ; Side: ai ; Effort: high ; Size: ~200 lines ; Lead: opus
+- Story: F-057 ; Side: ai ; Effort: high ; Size: ~410 lines (planned ~200 + ~15 D4; actual +410 accepted in 3-consult answer: ~175 code incl. schedule + Figure `how`, ~235 tests + 5 golden JSON) ; Lead: opus
 - Files: `services/analytics/finvest_analytics/sim/dca.py`, `services/analytics/finvest_analytics/sim/whatif.py` (dispatch
   on `style`, shared valuation), `services/analytics/tests/test_whatif_dca.py`, `services/analytics/tests/golden/sim/005-dca-fpt.json`,
   `…/006-dca-day-31.json`, `…/007-dca-carried-cash.json`
@@ -188,7 +188,7 @@ Order (file sets overlap in `services/analytics/**` → serial): BE-rules-costs 
   `DCA` strategy wrapper (F-081, reuses `schedule`).
 
 #### AI-whatif-benchmarks — F-048: VN-Index price-only and E1VFVN30 through the engine, pp difference, n/a handling
-- Story: F-048 ; Side: ai ; Effort: high ; Size: ~180 lines ; Lead: opus
+- Story: F-048 ; Side: ai ; Effort: high ; Size: ~340 lines (re-estimated after the lumpsum/DCA size stops: ~140 code incl. Figure `how`, ~200 tests + 3 golden JSON; 1.5x stop = 510) ; Lead: opus
 - Files: `services/analytics/finvest_analytics/sim/benchmark.py`, `services/analytics/finvest_analytics/sim/whatif.py`
   (fill `benchmarks`), `services/analytics/tests/test_benchmarks.py`, `services/analytics/tests/golden/sim/008-vnindex-lump.json`,
   `…/009-vnindex-dca.json`, `…/010-etf-engine-and-na.json`
