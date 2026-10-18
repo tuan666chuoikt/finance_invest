@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
-from finvest_api.main import app, get_engine
+from finvest_api.deps import get_engine
+from finvest_api.main import app
 
 
 class _Conn:
