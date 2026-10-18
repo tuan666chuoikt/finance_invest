@@ -1,38 +1,36 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { ROUTES } from "../app/routes";
+import { FreshnessChip } from "./FreshnessChip";
+import { LangSwitch } from "./LangSwitch";
 
-const LANGS = ["vi", "en"] as const;
+// Below 768 px the nav hides behind the menu button; CSS only, so jsdom tests see both.
+const CSS = `
+.tb{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.tb-menu{display:none}
+@media (max-width:767px){.tb-menu{display:inline-block}.tb-nav{display:none;width:100%}.tb-nav[data-open=true]{display:flex;flex-direction:column}}
+.tb-nav{display:flex;gap:12px}`;
 
-// Minimal bar; FE-shell-bar replaces it (freshness chip, mobile menu, Alt+L).
 export function TopBar() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
   return (
-    <header data-testid="top-bar">
+    <header data-testid="top-bar" className="tb">
+      <style>{CSS}</style>
       <strong>Finvest</strong>
-      <nav aria-label="main">
+      <button type="button" className="tb-menu" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen(!open)}>
+        {t("shell.menu")}
+      </button>
+      <nav id="main-nav" className="tb-nav" data-open={open} aria-label="main">
         {ROUTES.map((r) => (
-          <NavLink key={r.path} to={r.path}>
+          <NavLink key={r.path} to={r.path} onClick={() => setOpen(false)}>
             {t(r.nameKey)}
           </NavLink>
         ))}
       </nav>
-      <div role="group" aria-label={t("lang.label")}>
-        {LANGS.map((l) => {
-          const active = i18n.resolvedLanguage === l;
-          return (
-            <button
-              key={l}
-              type="button"
-              aria-pressed={active}
-              onClick={() => void i18n.changeLanguage(l)}
-              style={active ? { fontWeight: 700, textDecoration: "underline" } : undefined}
-            >
-              {t(`lang.${l}`)}
-            </button>
-          );
-        })}
-      </div>
+      <FreshnessChip />
+      <LangSwitch />
     </header>
   );
 }
