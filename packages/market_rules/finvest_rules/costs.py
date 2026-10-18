@@ -58,15 +58,32 @@ RULES: dict[str, list[Rule]] = {
 
 def rule(name: str, on: date, rules: dict[str, list[Rule]] | None = None) -> Rule:
     """Entry with the latest effective_from <= on. `rules` is for tests; default is RULES."""
-    entries = sorted((rules or RULES)[name], key=lambda r: r.effective_from)
+    entries = sorted((RULES if rules is None else rules)[name], key=lambda r: r.effective_from)
     i = bisect_right([r.effective_from for r in entries], on)
     if i == 0:
         raise RuleNotEffective(name, on)
     return entries[i - 1]
 
 
-def costs(on: date) -> Costs:
-    v = lambda n: rule(n, on).value  # noqa: E731
+def _rate(name: str, on: date, rules: dict[str, list[Rule]] | None) -> Decimal:
+    v = rule(name, on, rules).value
+    if not isinstance(v, Decimal):
+        raise TypeError(f"rule {name!r} must be Decimal, got {type(v).__name__}")
+    return v
+
+
+def _count(name: str, on: date, rules: dict[str, list[Rule]] | None) -> int:
+    v = rule(name, on, rules).value
+    if not isinstance(v, int) or isinstance(v, bool):
+        raise TypeError(f"rule {name!r} must be int, got {type(v).__name__}")
+    return v
+
+
+def costs(on: date, rules: dict[str, list[Rule]] | None = None) -> Costs:
     return Costs(
-        v("buy_fee_rate"), v("sell_fee_rate"), v("sell_tax_rate"), v("board_lot"), v("settlement_days")
+        _rate("buy_fee_rate", on, rules),
+        _rate("sell_fee_rate", on, rules),
+        _rate("sell_tax_rate", on, rules),
+        _count("board_lot", on, rules),
+        _count("settlement_days", on, rules),
     )

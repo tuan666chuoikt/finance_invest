@@ -23,6 +23,17 @@ def test_new_entry_takes_over_on_its_date():
     assert RULES["buy_fee_rate"][-1].value == Decimal("0.0015")  # RULES itself untouched
 
 
+def test_wrong_type_entry_raises():
+    bad = {k: list(v) for k, v in RULES.items()}
+    bad["board_lot"] = [Rule(Decimal("100"), date(2006, 1, 1), True, None, "test", "VN§4")]
+    with pytest.raises(TypeError):
+        costs(date(2026, 10, 12), bad)
+    bad = {k: list(v) for k, v in RULES.items()}
+    bad["buy_fee_rate"] = [Rule(1, date(2006, 1, 1), False, None, "test", "VN§5")]
+    with pytest.raises(TypeError):
+        costs(date(2026, 10, 12), bad)
+
+
 def test_before_first_entry_raises():
     with pytest.raises(RuleNotEffective):
         rule("board_lot", date(2005, 1, 1))
