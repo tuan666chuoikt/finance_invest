@@ -147,3 +147,33 @@ def test_bar_with_zero_close_is_dropped_not_fatal(caplog):
     assert parse_bars(bars_payload(c=[0]), Path("/arch/x.json.gz")) == []
     assert "vci bar dropped" in caplog.text
     assert parse_bars(bars_payload(o=[0], h=[0], l=[0], c=[0], v=[0])) == []
+
+
+@pytest.mark.parametrize(("av", "want"), [(222242000000, 222_242_000_000), (6386472.73, 6_386_472_730_000),
+                                          (20000.5, 20_000_500_000)])
+def test_index_value_unit_is_mixed(av, want):
+    (b,) = parse_index_bars(bars_payload(symbol="VN30", accumulatedValue=[av]))
+    assert b.value == want  # raw VND (2012-02-06) vs million VND (2026-10-16)
+
+
+@pytest.mark.parametrize(("av", "want"), [(474963.63, 474_963_630_000), (474963630000, 474_963_630_000)])
+def test_stock_value_unit_is_picked_by_ratio_to_volume_x_close(av, want):
+    (b,) = parse_bars(bars_payload(v=[6_618_016], c=[65000], accumulatedValue=[av]))
+    assert b.value == want  # ratio 1.10 to v x c either way
+
+
+@pytest.mark.parametrize("av", [1e19, -5])
+def test_value_outside_bigint_is_none_and_bar_is_kept(av, caplog):
+    # v x c = 1e17: million reading 1e19 > 2**63 - 1; negative is never valid
+    (b,) = parse_bars(bars_payload(v=[10**9], c=[10**8], accumulatedValue=[av]), Path("/arch/x.json.gz"))
+    assert b.value is None and b.c == 10**8
+    assert caplog.text.count("vci value dropped") == 1 and "/arch/x.json.gz" in caplog.text
+
+
+def test_vn30_fixture_values_fit_bigint_and_have_no_era_jump():
+    bars = parse_index_bars(load("gap_chart/VN30-1d.json.gz"))
+    vals = [b.value for b in bars]
+    assert len(bars) <= 60 and {date(2012, 2, 6), date(2026, 10, 16)} <= {b.trading_date for b in bars}
+    assert all(v is not None and 0 < v < 2**63 for v in vals)
+    assert max(vals) / min(vals) < 1e4  # a 1e6 era mix-up would exceed this
+    assert {b.trading_date: b.value for b in bars}[date(2026, 10, 16)] == 6_386_472_732_020

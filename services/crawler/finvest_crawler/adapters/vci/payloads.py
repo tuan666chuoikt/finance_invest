@@ -12,7 +12,9 @@ V2 `POST .../api/chart/OHLCChart/gap-chart`: a list with one column-oriented obj
 `{"symbol", "o","h","l","c","v","t", "accumulatedVolume", "accumulatedValue", "minBatchTruncTime"}`.
 `o/h/l/c` are JSON numbers (VND, source-adjusted so floats like 65182.47 occur), `v` shares,
 `t` epoch seconds as STRINGS at 00:00 UTC of the trading day.
-`accumulatedValue` is nominal traded value in million VND (x 1e6 = VND; 474,963.63 on a 6,618,016-share day).
+`accumulatedValue` is nominal traded value in MIXED units: million VND on most bars (474,963.63 on a
+6,618,016-share day; VN30 2026-10-16 = 6,386,472.73) but raw VND on old bars (VN30 2012-02-06 =
+222,242,000,000); null on some old bars. The adapter picks the unit per bar (`source._value_vnd`).
 """
 
 from decimal import Decimal
@@ -46,7 +48,7 @@ class VciBars(BaseModel):
     c: list[Decimal]
     v: list[int]
     t: list[int]
-    accumulatedValue: list[Decimal | None]  # million VND nominal; null on old bars (live 2026-10-16)
+    accumulatedValue: list[Decimal | None]  # mixed: million or raw VND; null on old bars
 
 
 def validate[T](adapter: TypeAdapter[T], payload: bytes, raw_path: Path, source: str = "vci") -> T:
