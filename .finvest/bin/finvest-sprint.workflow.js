@@ -109,7 +109,9 @@ const runnable = all.filter(t => t.state !== 'merged' && !t.manual && !skip.has(
 const D = {}
 for (const t of all) D[t.id] = deferred()
 for (const id of mergedSet) { D[id].done = true; D[id].resolve('MERGED') }
-const watched = all.filter(t => !mergedSet.has(t.id) && !runnable.includes(t)).map(t => t.id)
+// only watch non-run tasks that some runnable task waits for (watching the rest burns haiku calls for nothing)
+const needed = new Set(runnable.flatMap(t => t.after || []))
+const watched = all.filter(t => !mergedSet.has(t.id) && !runnable.includes(t) && needed.has(t.id)).map(t => t.id)
 log(`graph: ${all.length} tasks, ${mergedSet.size} merged, ${runnable.length} to run, ${watched.length} watched (manual/skipped)`)
 
 const results = []

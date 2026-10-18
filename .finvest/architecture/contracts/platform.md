@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.4, 2026-10-16** (§4 `symbols`/`bars_1d` feed rows, S02 planning; v1.3 = `platform.prev-4.md`) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.5, 2026-10-18** (§2.5 S03 endpoints: symbols lookup, bars status, scenarios CRUD, what-if mapping; v1.4 = `platform.prev-5.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -93,6 +93,40 @@ blocked_since}]`, `status ∈ ok | partial | failed | blocked | never`.
 ### 2.4 Tick sessions calendar
 `[{trading_date, kind:"trading"|"weekend"|"holiday", holiday_name, status:"complete"|"partial"|"missed"|"pending"|null,
 symbols_skipped, reason}]` for every day of the month; `pending` = trading day not yet crawled (today before 15:30).
+
+### 2.5 S03 endpoints (normative; F-031, F-055, F-056, F-040…F-057)
+The web calls the API **same-origin** at `/api` (Vite dev proxy `/api → 127.0.0.1:8000`; prod nginx on `127.0.0.1:8080`
+proxies `/api/` to `api:8000`), so §1.1 CORS stays as is and nothing new binds beyond loopback (A23 pending).
+
+| Method, path | Purpose | Story |
+|---|---|---|
+| `GET /symbols?q=&limit=20&include_delisted=false` | `[{symbol, exchange, type, name_vi, name_en, delisted_at}]`; `q` matches symbol prefix (case-insensitive) or name substring; ordered symbol asc | F-055 form combobox |
+| `GET /symbols/{symbol}` | the record + `bars_1d: {first: "2006-12-13", last: "2026-10-17", as_of} \| null` (no bars → `null`); unknown → 404 `NOT_FOUND`. `index_memberships` deferred (F-004 rest) | F-055 form limits |
+| `GET /bars/1d/status` | `{last_trading_date: "2026-10-17" \| null, as_of: ISO \| null, source: "vci", symbols: 1612}` over `bars_1d_src` (`max(trading_date)`, `max(fetched_at)`, `count(distinct symbol)`); empty table → nulls and `symbols: 0` → web "No bars yet" state | F-031 chip, F-056 |
+| `GET /scenarios` | `[Scenario]` newest first (`created_at desc`), no pagination in S03 (≤ 100 rows, F-055) | F-055 |
+| `POST /scenarios` body `ScenarioIn` | 201 `Scenario` | F-055 |
+| `PUT /scenarios/{id}` body `ScenarioIn` | 200 `Scenario` (full replace; `updated_at` set); unknown → 404 | F-055 |
+| `DELETE /scenarios/{id}` | 204; unknown → 404 | F-055 |
+| `POST /whatif` body = analytics.md §2.1 request + §2.4 additions | analytics.md §1.4 envelope; errors below | F-040, F-041, F-057, F-048, F-051 |
+
+```json
+ScenarioIn: { "name": "FPT · 10.000.000 ₫ · 12/10/2025", "symbol": "FPT", "style": "lump_sum",
+              "amount_vnd": 10000000, "buy_date": "2025-10-12", "sell_date": null }
+Scenario:   { "id": 7, …ScenarioIn, "created_at": "2026-10-19T09:00:00+07:00", "updated_at": "2026-10-19T09:00:00+07:00" }
+```
+- `ScenarioIn` validation (400 `VALIDATION`, `details.field`): `name` 1–60 chars (the web fills the default); `symbol` 1–12
+  chars, upper-cased by the server; `style ∈ lump_sum | dca`; `amount_vnd` integer `1 … 100_000_000_000` (UX form); `buy_date`
+  a date; `sell_date` null or `≥ buy_date`. `symbol` not in `symbols` (delisted allowed) → 422 `SYMBOL_UNKNOWN`.
+  Date limits against stored bars are **not** enforced on save (the what-if result reports `NO_DATA`/`VALIDATION`
+  instead), so a scenario saved before a back-fill becomes computable afterwards.
+- The web computes each saved scenario with one `POST /whatif` per row (`sell_date: null` → latest bar); a failing row
+  shows its own error card (UX scenario-dashboard.md "Error (one scenario fails)"). No stored results in S03; the
+  R4 journal (analytics.md §4) is a different table.
+- `POST /whatif` error mapping (adds to §1.3): `AnalyticsError.code` → `VALIDATION` 400 · `SYMBOL_UNKNOWN`, `NO_DATA`,
+  `RANGE_TOO_LARGE` 422; `details` passed through (`first_available`, `last_available`, `min_amount`). Calendar years
+  outside `finvest_rules` `holidays.csv` are served from VNINDEX bar dates (data.md §1.2 V2), never refused.
+- `scenarios` table: data.md §3 (`id BIGINT identity PK, name, symbol, style, amount_vnd BIGINT, buy_date, sell_date,
+  created_at, updated_at`), migration `0006_scenarios`.
 
 ## 3. R3 board (shape preview; normative at R3 planning)
 

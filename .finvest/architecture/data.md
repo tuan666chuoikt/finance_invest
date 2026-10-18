@@ -1,6 +1,6 @@
 # Finvest — Data design (sources, schemas, storage tiers, crawl schedule)
 
-Owner: `fi-software-architect`. Status: **v1, 2026-10-15** (inception). Units: all stored prices **VND integer**,
+Owner: `fi-software-architect`. Status: **v1.1, 2026-10-18** (`scenarios` table, S03; v1 = inception 2026-10-15). Units: all stored prices **VND integer**,
 volumes **shares**, timestamps **TIMESTAMPTZ (UTC)**, trading dates **DATE in Asia/Ho_Chi_Minh**. Rules cited as VN§n
 (`knowledge/vn-market.md`). Decisions: ADR-S-001 (storage), ADR-S-002 (sources), ADR-S-005 (money), ADR-S-008
 (tick idempotence/manifest).
@@ -121,6 +121,11 @@ bars_1d(symbol TEXT, trading_date DATE, o,h,l,c BIGINT, ref_price BIGINT, ceilin
 bars_1d_src(symbol TEXT, trading_date DATE, source TEXT, adj_c BIGINT, adj_o,adj_h,adj_l BIGINT, v BIGINT, value BIGINT /*nominal VND, V2 accumulatedValue×1e6*/,
       fetched_at TIMESTAMPTZ, PK(symbol,trading_date,source,fetched_at));      -- versioned source-adjusted series
 index_1d(index_code TEXT, trading_date DATE, o,h,l,c NUMERIC(12,2), v BIGINT, value BIGINT, PK(index_code,trading_date));
+-- user data (S03) ------------------------------------------------------
+scenarios(id BIGINT GENERATED ALWAYS AS IDENTITY PK, name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 60), symbol TEXT NOT NULL,
+      style TEXT NOT NULL CHECK (style IN ('lump_sum','dca')), amount_vnd BIGINT NOT NULL CHECK (amount_vnd > 0),
+      buy_date DATE NOT NULL, sell_date DATE /*NULL = latest bar*/, created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL);
+      -- saved what-if inputs only (platform.md §2.5); results are recomputed on read. R4 journal = scenario_journal.
 flows_1d(symbol TEXT, trading_date DATE, foreign_buy_v BIGINT, foreign_sell_v BIGINT, foreign_buy_value BIGINT,
       foreign_sell_value BIGINT, total_room BIGINT, current_room BIGINT, source TEXT, PK(symbol,trading_date));
 

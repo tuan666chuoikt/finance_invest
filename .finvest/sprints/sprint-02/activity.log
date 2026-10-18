@@ -32,3 +32,5 @@
 2026-10-16 23:25 | lead    | BE-symbols-enrich        | merged    | 5c44f69; kernel 123 passed, db 18 passed, 240 ins | .finvest/sprints/sprint-02/3-pr.BE-symbols-enrich.md
 2026-10-18 20:04 | dev     | BE-bars-backfill         | pr-open   | kernel 129 passed, ruff/mypy/imports clean, +170 non-test lines; live back-fill pending (in rate window) | 3-build.BE-bars-backfill.md
 2026-10-18 20:05 | lead    | BE-bars-backfill         | merged    | 50dce14; kernel 129 passed, ruff/mypy/lint-imports clean, 0 must-fix | 3-pr.BE-bars-backfill.md
+2026-10-18 20:05 | ai-arch | SPRINT-03                | built     | 2-tech-plan.ai.md: 5 tasks ~910 lines (BE-rules-costs 90, scaffold 190, lumpsum 250, dca 200, benchmarks 180), 10 golden cases; contracts/an | sprints/sprint-03/2-tech-plan.ai.md
+2026-10-18 20:16 | arch    | SPRINT-03                | built     | 2-tech-plan.md 15 tasks: BE/API 6 (~1050 l incl rules), FE 8 (~1550 l), ops 1; dag 20 tasks ~3420 l, 5 start now; platform v1.5 §2.5 | sprints/sprint-03/2-tech-plan.md
