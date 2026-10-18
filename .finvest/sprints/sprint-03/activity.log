@@ -19,3 +19,7 @@
 2026-10-18 20:25 | dev     | FE-shell-bar             | pr-open   | vitest 15/15, tsc 0, build 0 | 3-build.FE-shell-bar.md
 2026-10-18 20:26 | lead    | BE-rules-costs           | merged    | merge 36f6c0e; round 2 APPROVE, 0 must-fix; kernel 143 passed, mypy --strict rules 0 err; size +139/-1 vs 135 waived (round-1 fix) | 3-pr.BE-rules-costs.md
 2026-10-18 20:26 | lead    | FE-shell-bar             | changes   | 1 must-fix: disclaimer.test red 5/21 after sync (no QueryClientProvider); tsc ok | .finvest/sprints/sprint-03/3-pr.FE-shell-bar.md
+2026-10-18 20:26 | dev     | FE-shell-bar             | changes   | fix round 1: disclaimer.test QueryClientProvider; vitest 21/21, tsc 0 | 3-build.FE-shell-bar.md
+2026-10-18 20:27 | lead    | FE-shell-bar             | merged    | deda013; vitest 21/21, tsc 0 | .finvest/sprints/sprint-03/3-pr.FE-shell-bar.md
+2026-10-18 20:27 | dev     | FE-how-computed          | pr-open   | typecheck ok, vitest 18/18 (4 new), +285 lines | 3-build.FE-how-computed.md
+2026-10-18 20:28 | lead    | FE-how-computed          | merged    | ccf6c1f; typecheck 0, vitest 25/25 | 3-pr.FE-how-computed.md
