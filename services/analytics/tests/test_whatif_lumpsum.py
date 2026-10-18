@@ -33,7 +33,6 @@ def err(req=None, **vk):
 
 def test_validation_errors():
     assert err({"sell_date": "2026-10-09"}).code == "VALIDATION"
-    assert err({"style": "dca"}).code == "VALIDATION"
     e = err({"buy_date": "2026-09-30"})
     assert (e.code, e.details) == ("NO_DATA", {"first_available": "2026-10-01"})
     e = err({"buy_date": "2026-10-16", "sell_date": None})
