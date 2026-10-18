@@ -57,3 +57,12 @@
 2026-10-18 21:00 | arch    | REVIEW-02                | note      | FAIL: B1 (ticks past-day empty tape=missed, hits catch-up replay/retry) + B2 (V2 value mixed unit, BIGINT overflow, no index bars). FIX-tick | sprints/sprint-02/5-review.tech.md
 2026-10-18 21:00 | lead    | FE-scenario-form         | merged    | 3b4bf5c; vitest 39/39, tsc 0, 442 lines <= 450 | sprints/sprint-03/3-pr.FE-scenario-form.md
 2026-10-18 21:02 | lead    | BE-whatif-api            | merged    | merge 58156bb; 0 must-fix; kernel 194 passed, N2 20 req 0.107s, contracts clean | 3-pr.BE-whatif-api.md
+2026-10-18 21:03 | dev     | FIX-ticks-probe          | pr-open   | 191 passed (not db), 18 passed (db), ruff+mypy clean; 96+/17- | 3-build.FIX-ticks-probe.md
+2026-10-18 21:04 | dev     | FIX-index-value          | pr-open   | kernel 197 passed, ruff/mypy/imports clean; +80/-11 vs ~110 plan; 1 plan example deviation | 3-build.FIX-index-value.md
+2026-10-18 21:05 | dev     | FE-scenario-cards        | pr-open   | tsc 0; vitest 52/52 passed (13 new); 258 src lines vs ~250 | 3-build.FE-scenario-cards.md
+2026-10-18 21:06 | lead    | FIX-ticks-probe          | changes   | 1 must-fix (flaky probe -> complete 0 rows, overwrites partial); kernel 197 passed, db 20 passed; H 884a6aa | 3-pr.FIX-ticks-probe.md
+2026-10-18 21:07 | lead    | FE-scenario-cards        | merged    | 97056f8; tsc 0, vitest 52/52, 0 must-fix, 4 nits | 3-pr.FE-scenario-cards.md
+2026-10-18 21:07 | dev     | FIX-ticks-probe          | pr-open   | fix round 1: flaky probe -> missed; kernel 198 passed, ruff/mypy clean; head e71f52c | 3-build.FIX-ticks-probe.md
+2026-10-18 21:08 | lead    | FIX-index-value          | merged    | e0402af; 0 must-fix, 4 nits; kernel 203 passed, affected 32 passed, 6 new tests fail on old code | 3-pr.FIX-index-value.md
+2026-10-18 21:09 | dev     | FE-scenario-table        | pr-open   | tsc ok, vitest 56/56, +261/-20 lines | 3-build.FE-scenario-table.md
+2026-10-18 21:09 | lead    | FE-scenario-table        | merged    | 5c3a8c9; 0 must-fix, 3 nits; tsc ok, vitest 56/56 | 3-pr.FE-scenario-table.md
