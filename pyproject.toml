@@ -2,19 +2,20 @@
 name = "finvest"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["finvest-market-data", "finvest-crawler", "finvest-api", "finvest-rules"]
+dependencies = ["finvest-market-data", "finvest-crawler", "finvest-api", "finvest-rules", "finvest-analytics"]
 
 [tool.uv.workspace]
-members = ["packages/market_data", "packages/market_rules", "services/crawler", "apps/api"]
+members = ["packages/market_data", "packages/market_rules", "services/crawler", "services/analytics", "apps/api"]
 
 [tool.uv.sources]
 finvest-market-data = { workspace = true }
 finvest-crawler = { workspace = true }
 finvest-api = { workspace = true }
 finvest-rules = { workspace = true }
+finvest-analytics = { workspace = true }
 
 [dependency-groups]
-dev = ["pytest", "pytest-socket", "ruff", "mypy", "import-linter", "httpx"]
+dev = ["pytest", "pytest-socket", "ruff", "mypy", "import-linter", "httpx", "hypothesis"]
 
 [tool.ruff]
 line-length = 110
@@ -33,7 +34,7 @@ files = ["packages/market_data/finvest_market_data/domain"]
 strict = true
 
 [tool.importlinter]
-root_packages = ["finvest_market_data", "finvest_crawler", "finvest_api", "finvest_rules"]
+root_packages = ["finvest_market_data", "finvest_crawler", "finvest_api", "finvest_rules", "finvest_analytics"]
 
 [[tool.importlinter.contracts]]
 name = "domain imports no outer layer of market_data"
@@ -58,3 +59,9 @@ name = "finvest_rules imports nothing of ours"
 type = "forbidden"
 source_modules = ["finvest_rules"]
 forbidden_modules = ["finvest_market_data", "finvest_crawler", "finvest_api"]
+
+[[tool.importlinter.contracts]]
+name = "finvest_analytics imports no finvest_crawler/finvest_api"
+type = "forbidden"
+source_modules = ["finvest_analytics"]
+forbidden_modules = ["finvest_crawler", "finvest_api"]
