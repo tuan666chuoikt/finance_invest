@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import math
 from datetime import UTC, date, datetime, time
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -40,27 +41,49 @@ def parse_symbols(
     ]
 
 
+BIGINT_MAX = 2**63 - 1
+
+
+def _value_vnd(av: Decimal | None, ref: int | Decimal | None, sym: str, day: date, raw: Path) -> int | None:
+    """`accumulatedValue` -> integer VND. The unit is mixed (payloads.py): million VND or raw VND.
+
+    Stocks: pick the reading whose ratio to `ref = v x c` is closest to 1 (log distance). Indices (`ref` None,
+    or no volume): `av >= 1e9` is VND, else million. Outside BIGINT or negative -> None + warning (bar kept).
+    """
+    if av is None:
+        return None
+    if ref and ref > 0 and av > 0:
+        vnd = min((av, av * 1_000_000), key=lambda x: abs(math.log(float(x) / float(ref))))
+    else:
+        vnd = av if av >= 1_000_000_000 else av * 1_000_000
+    value = to_vnd(vnd, "vnd")
+    if not 0 <= value <= BIGINT_MAX:
+        log.warning("vci value dropped: %s %s: %s outside BIGINT (raw: %s)", sym, day, value, raw)
+        return None
+    return value
+
+
 def _rows(payload: bytes, raw_path: Path):
-    """Yield (symbol, trading day, o, h, l, c, v, value in VND) per V2 column-array row."""
+    """Yield (symbol, trading day, o, h, l, c, v, raw accumulatedValue) per V2 column-array row."""
     for s in validate(_BARS, payload, raw_path):
         cols = (s.o, s.h, s.l, s.c, s.v, s.accumulatedValue)
         if any(len(x) != len(s.t) for x in cols):
             raise PayloadShapeError(f"vci payload shape changed: {s.symbol} ragged arrays", raw_path)
         for t, o, h, lo, c, v, av in zip(s.t, s.o, s.h, s.l, s.c, s.v, s.accumulatedValue, strict=True):
-            # t is 00:00 UTC of the trading day; accumulatedValue is million VND
+            # t is 00:00 UTC of the trading day
             if v == 0 and min(o, h, lo, c) <= 0:
                 continue  # no-data placeholder day (live 2026-10-16: o/h/l/c = 0, v = 0)
-            yield (s.symbol, datetime.fromtimestamp(t, UTC).date(), o, h, lo, c, v,
-                   None if av is None else to_vnd(av, "million_vnd"))
+            yield s.symbol, datetime.fromtimestamp(t, UTC).date(), o, h, lo, c, v, av
 
 
 def parse_bars(payload: bytes, raw_path: Path = Path("<unarchived>")) -> list[Bar]:
     """Pure: V2 column arrays -> daily bars in integer VND (adjusted floats rounded half-up, data.md §1.4)."""
     bars = []
-    for sym, day, o, h, lo, c, v, value in _rows(payload, raw_path):
+    for sym, day, o, h, lo, c, v, av in _rows(payload, raw_path):
         try:
             bars.append(Bar(sym, datetime.combine(day, time(), VN).astimezone(UTC),
-                            *(to_vnd(x, "vnd") for x in (o, h, lo, c)), v, value, "vci"))
+                            *(to_vnd(x, "vnd") for x in (o, h, lo, c)), v,
+                            _value_vnd(av, v * c, sym, day, raw_path), "vci"))
         except ValueError as e:
             # live 2026-10-16: a few traded days carry close = 0; one bad day must not drop all history
             log.warning("vci bar dropped: %s %s: %s (raw: %s)", sym, day, e, raw_path)
@@ -70,8 +93,9 @@ def parse_bars(payload: bytes, raw_path: Path = Path("<unarchived>")) -> list[Ba
 def parse_index_bars(payload: bytes, raw_path: Path = Path("<unarchived>")) -> list[IndexBar]:
     """Pure: V2 payload for index codes (VNINDEX...) -> levels at 2 decimals, half-up (platform.md §1.2)."""
     q = Decimal("0.01")
-    return [IndexBar(sym, day, *(x.quantize(q, ROUND_HALF_UP) for x in (o, h, lo, c)), v, value)
-            for sym, day, o, h, lo, c, v, value in _rows(payload, raw_path)]
+    return [IndexBar(sym, day, *(x.quantize(q, ROUND_HALF_UP) for x in (o, h, lo, c)), v,
+                     _value_vnd(av, None, sym, day, raw_path))
+            for sym, day, o, h, lo, c, v, av in _rows(payload, raw_path)]
 
 
 class VciSource:
