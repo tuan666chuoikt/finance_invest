@@ -62,7 +62,7 @@ def parse_snapshot(
             o, h, lo, c = (to_vnd(x, "vnd") for x in (r.openPrice, r.highest, r.lowest, r.matchedPrice))  # type: ignore[arg-type]
             if h < max(o, c) or lo > min(o, c):
                 raise ValueError(f"high {h} / low {lo} do not bracket open {o} close {c}")
-            value = to_vnd(r.nmTotalTradedValue or 0, "vnd")
+            value = None if r.nmTotalTradedValue is None else to_vnd(r.nmTotalTradedValue, "vnd")
             bars.append(Bar(r.stockSymbol, ts, o, h, lo, c, r.nmTotalTradedQty, value, "ssi"))
         except (ValueError, TypeError, ArithmeticError) as e:  # None price -> TypeError/InvalidOperation
             raise PayloadShapeError(f"ssi board {exchange} {r.stockSymbol}: {e}", raw_path) from e
@@ -104,7 +104,9 @@ class SsiSource:
     def snapshot_bars(self, session: date) -> tuple[list[Bar], list[str]]:
         """S1 x3 exchanges: the finished session's bar for every listed name. A board of another session is
         never archived under `session`; a replay of an accepted day costs 0 requests."""
-        f, bars, idle = self.fetcher, [], []
+        f = self.fetcher
+        bars: list[Bar] = []
+        idle: list[str] = []
         for ex in ("hose", "hnx", "upcom"):
             name = f"board-{ex}"
             url = EXCHANGE_URL.format(ex=ex)
@@ -113,7 +115,8 @@ class SsiSource:
             b, i = parse_snapshot(payload, session, path, ex.upper())
             if not path.exists():
                 f.archive.write("bars_1d", session, name, payload)
-            bars, idle = bars + b, idle + i
+            bars += b
+            idle += i
         return bars, idle
 
     def index_members(self, index_code: str, as_of: date) -> list[str]:

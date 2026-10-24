@@ -131,6 +131,11 @@ def test_snapshot_filters_types_and_no_trade_rows():
     assert [b.symbol for b in bars] == ["A"] and idle == ["Z", "Y"]
 
 
+def test_snapshot_unknown_turnover_stays_none():
+    bars, _ = parse_snapshot(board({"stockSymbol": "A", "nmTotalTradedValue": None}), S1)
+    assert len(bars) == 1 and bars[0].value is None
+
+
 def test_snapshot_other_session_is_no_longer_served():
     with pytest.raises(SourceNoLongerServes) as e:
         parse_snapshot(hose(), date(2026, 10, 17), exchange="HOSE")
