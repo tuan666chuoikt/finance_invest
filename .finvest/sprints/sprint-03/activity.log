@@ -111,3 +111,9 @@
 2026-10-24 15:18 | sm      | S-v2-batch               | note      | SM: V2 418 = source IP block (no job running); no header spoofing; retry spike later, others continue | -
 2026-10-24 15:19 | lead    | FIX-session-ledger       | merged    | 458c8d6; 0 must-fix, 4 nits; db 24 passed, kernel 226 passed, lint-imports 5/0 | 3-pr.FIX-session-ledger.md
 2026-10-24 15:20 | lead    | FIX-whatif-nodata-msg    | merged    | 481a424; kernel 227 passed, api+analytics 80 passed, 0 must-fix | 3-pr.FIX-whatif-nodata-msg.md
+2026-10-24 16:11 | dev     | S-v2-batch               | consult   | V2 gap-chart returned 200 [] for all multi-symbol calls (9 live calls, over cap 6); no fixture | sprints/sprint-03/3-consult.S-v2-batch.md
+2026-10-24 16:14 | arch    | S-v2-batch               | answered  | consult: take B, fresh cap 6 calls by hand (control FPT cb8 first); cap=1 fallback pre-wired as BATCH_MAX; platform v1.11, dag rev 10 | sprints/sprint-03/3-consult.S-v2-batch.answer.sa.md
+2026-10-24 16:15 | dev     | S-v2-batch               | built     | spike: FPT cb8 -> 8 bars (200, 0.44s); FPT+VNM -> [] ; cap=1, no fixture, 2 live calls | 3-build.S-v2-batch.md
+2026-10-24 16:16 | lead    | S-v2-batch               | merged    | APPROVE; empty diff (spike report only), cap=1 verdict, merge sha 481a424 no-op; no code checks needed | .finvest/sprints/sprint-03/3-pr.S-v2-batch.md
+2026-10-24 16:19 | dev     | BE-bars-batch            | pr-open   | kernel 233 passed, ruff+mypy clean, 150+/38- lines, BATCH_MAX=1, 418 blocked | 3-build.BE-bars-batch.md
+2026-10-24 16:21 | lead    | BE-bars-batch            | merged    | 7e0f4a4; 0 must-fix, 3 nits; kernel 233 passed, ruff/mypy/lint-imports green; OLD_DIGEST verified on pre-change code | 3-pr.BE-bars-batch.md

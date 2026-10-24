@@ -813,30 +813,40 @@ FE-1  FE-fix-crawl-c1-c2-s1                      (start now; FE-crawl-button mer
 
 #### S-v2-batch — spike (T4): how many symbols does V2 `gap-chart` serve per call, and how fast
 - Story: S03-BE ; Side: be ; Effort: medium ; Size: ~20 lines (fixture + report, no production code) ; Lead: sonnet
-- Files: `services/crawler/tests/fixtures/vci/gap_chart/batch50-1d-8.json.gz` (new, exact bytes, gzip, ≤ 200 KB),
-  `SPRINT_DIR/3-build.S-v2-batch.md`
-- Change:
-  - Anonymous, ≤ 2 req/s, ≤ 6 live requests total: `POST https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart`
-    body `{"timeFrame":"ONE_DAY","symbols":[…],"countBack":8,"to":<today 23:59:59 VN epoch>}` with 50 HOSE+HNX symbols
-    taken from the local `symbols` table (include 2 delisted ones); record the payload as the fixture. Repeat with 100 and
-    200 symbols (not recorded): report HTTP status, symbols returned / asked, bars per symbol, bytes, and **wall time per
-    call** (the live job measured ≈ 6.7 s per 1-symbol call — say whether a 50-symbol call is slower).
-  - One call with 8 symbols × `countBack 6000` (the back-fill shape): status, bytes, wall time. Not recorded.
-  - Report = data.md §1.2-style line for the V2 row (cap, latency) + verdict: batch of 50 OK / cap is N / delisted symbols
-    come back empty or are omitted (BE-bars-batch needs this for the `no_trades` accounting).
-- Contract: data.md §1.2 V2; platform.md §2.6 v1.10 (step 2 batching).
-- Acceptance: fixture committed and `parse_bars(fixture)` returns bars for ≥ 48 distinct symbols with exactly 8 (or fewer,
-  listed) days each; report names every number above; `make test-kernel` unaffected.
-- Out of scope: any feed/adapter change; 1m bars; other sources.
+- Files: `services/crawler/tests/fixtures/vci/gap_chart/batch50-1d-8.json.gz` (new, exact bytes, gzip, ≤ 200 KB; only if
+  a ≥ 2-name call returns bars), `SPRINT_DIR/3-build.S-v2-batch.md`
+- Change (**rev 2, consult 2026-10-24 16:11** — 14 live calls so far: 5 × HTTP 418 at 15:18, then 9 × `200 []` for every
+  multi-name body; no 1-name `countBack 8` control and no live-only 2-name call was ever made, so nothing is settled yet):
+  - **Fresh cap: ≤ 6 live requests, ≥ 1 s apart, one at a time by hand (no script loop — the 9-call overrun came from one).**
+    Same URL/body shape as `_gap_chart` (`source.py`), project UA, `to` = today 23:59:59 VN. Ladder, stop at the first rung
+    that returns `[]`/non-200 **after** rung 1 succeeded:
+    1. control `["FPT"]`, `countBack 8` — must return 8 bars (if `[]`: retry once with `countBack 60`; if still empty or
+       418 → the client is blocked/throttled, report and stop: verdict "blocked, retry on <date>");
+    2. `["FPT","VNM"]` (2 live HOSE), `countBack 8`;
+    3. `["FPT","SHB"]` (live HOSE + live HNX — the earlier lists always mixed exchanges), `countBack 8`;
+    4. `["FPT","VNM","VTS"]` (live + delisted), `countBack 8`;
+    5. 50 live HOSE+HNX names from `symbols`, `countBack 8` → **the fixture**;
+    6. spare: 8 live names × `countBack 6000` (back-fill shape) — only if 5 worked.
+  - Report every call as a citable line: exact body (incl. the `to` epoch), status, bytes, wall time, symbols returned /
+    asked, bars per symbol. A `[]` line is a result too. Verdict = the largest rung that returned bars → **cap = 50 / N / 1**;
+    plus: delisted names omitted vs empty (rung 4), and whether a 50-name call is slower than the 1-name control.
+- Contract: data.md §1.2 V2 (row marked unverified 2026-10-24); platform.md §2.6 v1.11 (cap pending this spike).
+- Acceptance: cap ≥ 2 → fixture committed and `parse_bars(fixture)` returns bars for ≥ 48 distinct symbols with exactly 8
+  (or fewer, listed) days each; cap = 1 → no fixture, the report's rung-1 line is the citation BE-bars-batch uses; either
+  way the report names every number above and `make test-kernel` is unaffected.
+- Out of scope: any feed/adapter change; browser-like headers or any other bot-check work-around (SM 15:18); 1m bars.
 
 #### BE-bars-batch — T4 + T2: step 2 fetches indices first with `COUNT`, then symbols in batches; a press finishes in minutes
 - Story: S03-BE ; Side: be ; Effort: high ; Size: ~180 lines (≈ 60 prod + 110 tests + 10 docs) ; Lead: opus
 - Files: `services/crawler/finvest_crawler/feeds/bars_1d.py`, `services/crawler/finvest_crawler/adapters/vci/source.py`,
-  `packages/market_data/finvest_market_data/domain/ports.py` (one method), `services/crawler/tests/test_feed_bars_1d.py`,
-  `services/crawler/tests/test_adapter_vci.py`, `ops/README.md` (one line)
+  `services/crawler/finvest_crawler/fetch.py` (one line), `packages/market_data/finvest_market_data/domain/ports.py` (one
+  method), `services/crawler/tests/test_feed_bars_1d.py`, `services/crawler/tests/test_adapter_vci.py`,
+  `services/crawler/tests/test_fetch.py` (one test), `ops/README.md` (one line)
 - Change:
   - `feeds/bars_1d.py` `_run`: (1) `INDICES` first, each as today but **always `count=COUNT`** (ignore the `count` arg for
-    indices); (2) symbols in batches of `max(1, min(50, 50_000 // count))` (adjust 50 to the cap `S-v2-batch` reports) via
+    indices); (2) symbols in batches of `max(1, min(BATCH_MAX, 50_000 // count))`, `BATCH_MAX` a module constant set to the
+    cap `S-v2-batch` reports (50 expected; **if the spike reports 1, `BATCH_MAX = 1`, the batching tests below shrink to
+    "batches of 1" and the ≈ 40-request figures in `ops/README.md`/§2.6 are replaced by ≈ 1 780 ≈ 15 min at 2 req/s**) via
     `source.bars(batch, "1d", run_date, count)`; per batch: group bars by symbol, symbols with no bars → `no_trades`,
     `PayloadShapeError`/`HTTPError` → every symbol of the batch `skipped` with `_skip_reason(e)`, `SourceBlocked` → the batch
     and all remaining names `skipped("source_blocked")`, `status blocked` (today's rule); upsert + `commit()` per batch;
@@ -847,7 +857,10 @@ FE-1  FE-fix-crawl-c1-c2-s1                      (start now; FE-crawl-button mer
     `MarketDataSource.archive_name(symbols: list[str], count: int) -> str` (ports.py), vci returns the existing
     `<key>-1d-<count>` rule (hash for ≥ 4 symbols); the feed stats `fetcher.archive.path(FEED, run_date, source.archive_name(...))`.
   - `assert fetched + len(no_trades) + len(skipped) == len(names)` kept; `symbols_fetched` counts names that returned bars.
-  - `ops/README.md`: a press costs ≈ 40 requests (2 index + ⌈names/50⌉); a full back-fill ≈ 220 and is resumable (archive).
+  - `fetch.py` `_blocked`: add status **418** (the live 2026-10-24 15:18 answers: 418 after a 30 s hold, 5 in a row — today
+    it is a plain `HTTPError`, retried 3× with back-off, so one blocked name costs ≈ 100 s and never trips `SourceBlocked`;
+    that, not the bucket, is the likely origin of the 6.7 s/name average). One test in `test_fetch.py`.
+  - `ops/README.md`: a press costs ≈ 40 requests (2 index + ⌈names/BATCH_MAX⌉); a full back-fill ≈ 220 and is resumable (archive).
 - Contract: platform.md §2.6 v1.10 (step 2: indices first with full history, batching, progress in names); §4 manifest
   invariant unchanged; data.md §1.2 V2 (+ the spike's cap line).
 - Acceptance (`test_feed_bars_1d.py`, fake source recording calls):
@@ -861,7 +874,8 @@ FE-1  FE-fix-crawl-c1-c2-s1                      (start now; FE-crawl-button mer
     names skipped `source_blocked`, status `blocked`, indices already upserted.
   - Checksum: the same bars fed through the batched run and the previous one-by-one fixture run give the same
     `checksum` (test keeps the old expected digest).
-  - `test_adapter_vci.py`: `parse_bars(batch50 fixture)` → ≥ 48 symbols × 8 bars; `archive_name(["FPT"], 8) == "FPT-1d-8"`,
+  - `test_adapter_vci.py`: `parse_bars(batch50 fixture)` → ≥ 48 symbols × 8 bars (skip when the spike reports cap = 1);
+    `archive_name(["FPT"], 8) == "FPT-1d-8"`,
     `archive_name(<50>, 8)` equals the file name `_gap_chart` writes (one request through a fake fetcher, path exists).
   - Runner tests (`apps/api/tests/test_jobs.py`) stay green unchanged (the runner's `count` rule and callbacks are untouched).
 - Out of scope: the runner (`apps/api`), threads/concurrency, SSI as a second source, 1m bars, dropping delisted symbols
