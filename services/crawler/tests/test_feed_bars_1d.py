@@ -68,7 +68,7 @@ class FakeRepo:
         return {"HOSE": 50}
 
 
-def run(tmp_path, repo, only=("FPT", "ZZZ"), blocked=(), today=TODAY, run_date=D, serve=None):
+def run(tmp_path, repo, only=("FPT", "ZZZ"), blocked=(), today=TODAY, run_date=D, serve=None, **kw):
     def handler(req):
         sym = json.loads(req.content)["symbols"][0]
         if serve and sym in serve:
@@ -80,7 +80,7 @@ def run(tmp_path, repo, only=("FPT", "ZZZ"), blocked=(), today=TODAY, run_date=D
     f = Fetcher(httpx.Client(transport=httpx.MockTransport(handler)), {"vci": TokenBucket(1000)},
                 Archive(tmp_path / "raw"), "ua", sleep=lambda s: None)
     m = run_bars_1d(Settings(_env_file=None, data_dir=tmp_path), run_date, only=list(only) if only else None,
-                    fetcher=f, conn=MagicMock(), repo=repo, today=today)
+                    fetcher=f, conn=MagicMock(), repo=repo, today=today, **kw)
     return m, f
 
 
@@ -143,3 +143,14 @@ def test_recorded_vn30_payload_is_stored_with_coverage_summary(tmp_path, capsys)
 def test_future_run_date_is_refused(tmp_path):
     with pytest.raises(ValueError):
         run(tmp_path, FakeRepo(), run_date=date(2026, 10, 17))
+
+
+def test_count_bounds_the_fetch_and_progress_reports_every_name(tmp_path):
+    calls = []
+    repo = FakeRepo()
+    m7, _ = run(tmp_path / "a", repo, only=("FPT", "ZZZ"), count=7, on_progress=lambda *a: calls.append(a))
+    assert calls == [(1, 2), (2, 2)]  # one call per name, fetched or no_trades
+    assert list((tmp_path / "a/raw").rglob("FPT-1d-7*"))  # archive name carries the count
+    mc, _ = run(tmp_path / "b", FakeRepo(), only=("FPT", "ZZZ"))
+    assert (m7.status, m7.rows, m7.symbols_fetched) == (mc.status, mc.rows, mc.symbols_fetched)
+    assert m7.checksum == mc.checksum
