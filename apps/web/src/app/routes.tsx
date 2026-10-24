@@ -23,8 +23,8 @@ function Layout() {
   return (
     <>
       <TopBar />
-      {ROUTES.find((r) => r.path === pathname)?.analysis && <Disclaimer />}
       <main>
+        {ROUTES.find((r) => r.path === pathname)?.analysis && <Disclaimer />}
         <Outlet />
       </main>
     </>

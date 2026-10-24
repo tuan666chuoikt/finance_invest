@@ -6,12 +6,13 @@ import { CardMenu } from "./CardMenu";
 import { InfoButton } from "./HowComputed";
 import type { Benchmark, WhatIfEnvelope } from "./result";
 import { Sparkline } from "./Sparkline";
+import { defaultName } from "./defaultName";
 import { Skeleton } from "./states";
 
 const arrow = (text: string) => (text.startsWith("+") ? "▲" : text.startsWith("−") ? "▼" : "=");
 const cls = (text: string) => (text.startsWith("+") ? "up" : text.startsWith("−") ? "down" : "zero");
 /** Sign for an integer-VND string; display only. */
-const signedVnd = (v: string) => (v.startsWith("-") ? `−${formatVnd(v.slice(1))}` : v === "0" ? formatVnd(v) : `+${formatVnd(v)}`);
+const signedVnd = (v: string) => (v.startsWith("-") || v === "0" ? formatVnd(v) : `+${formatVnd(v)}`);
 
 const CSS = `
 .sc-grid{display:grid;gap:16px;grid-template-columns:1fr}
@@ -26,7 +27,13 @@ export const GRID_CSS = CSS;
 function Bench({ b }: { b: Benchmark }) {
   const { t, i18n } = useTranslation();
   if (!b.available)
-    return <li data-testid="bench">{t("card.bench_na", { name: b.name, date: formatDate(b.first_available) })}</li>;
+    return (
+      <li data-testid="bench">
+        {b.first_available
+          ? t("card.bench_na", { name: b.name, date: formatDate(b.first_available) })
+          : t("card.bench_na_nodate", { name: b.name })}
+      </li>
+    );
   const pct = formatPct(b.pl_pct.value);
   return (
     <li data-testid="bench" className="row">
@@ -92,19 +99,26 @@ export function ScenarioCard({ scenario: s, onEdit }: { scenario: Scenario; onEd
   const q = useWhatIf(s);
   if (q.isPending) return <Skeleton />;
   const code = q.error instanceof ApiError ? q.error.code : "INTERNAL";
+  const first = q.error instanceof ApiError ? q.error.details.first_available : undefined;
+  const reason = code === "NO_DATA" && typeof first === "string"
+    ? t("error.NO_DATA_before", { symbol: s.symbol, date: formatDate(first) })
+    : t(`error.${code}`, { defaultValue: t("error.INTERNAL") });
   return (
-    <article className="sc-card" aria-label={s.name} data-testid="scenario-card">
+    <article className="sc-card" data-testid="scenario-card">
       <div className="row" style={{ display: "flex", justifyContent: "space-between" }}>
-        <strong>
-          {s.symbol} · {s.style === "dca"
-            ? t("card.dca", { amount: formatVnd(s.amount_vnd), day: Number(s.buy_date.slice(8)) })
-            : t("card.lump")}
-        </strong>
+        <div>
+          <h3 style={{ margin: 0, fontSize: "1em" }}>{s.name || defaultName(s.symbol, s.amount_vnd, s.buy_date)}</h3>
+          <small>
+            {s.symbol} · {s.style === "dca"
+              ? t("card.dca", { amount: formatVnd(s.amount_vnd), day: Number(s.buy_date.slice(8)) })
+              : t("card.lump")}
+          </small>
+        </div>
         <CardMenu scenario={s} onEdit={onEdit} />
       </div>
       {q.data ? <Body s={s} env={q.data} /> : (
         <div role="alert">
-          <p>{t("card.error", { reason: t(`error.${code}`, { defaultValue: t("error.INTERNAL") }) })}</p>
+          <p>{t("card.error", { reason })}</p>
           <button type="button" onClick={onEdit}>{t("card.edit")}</button>
         </div>
       )}

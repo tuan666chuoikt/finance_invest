@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi.testclient import TestClient
 from finvest_api.deps import get_engine
+from finvest_api.jobs import metadata as jobs_metadata
 from finvest_api.main import app
 from finvest_api.scenarios import tables as scenario_tables
 from finvest_market_data.infrastructure import tables
@@ -13,10 +14,12 @@ from sqlalchemy.pool import StaticPool
 @pytest.fixture
 def make_client():
     """Factory: client over a fresh in-memory SQLite; `seed=False` leaves the tables empty."""
-    def make(seed=True):
-        eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
+    def make(seed=True, path=None):  # `path`: file db, for tests that write from a second thread
+        eng = (create_engine(f"sqlite:///{path}") if path else
+               create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False}))
         tables.metadata.create_all(eng)
         scenario_tables.metadata.create_all(eng)
+        jobs_metadata.create_all(eng)
         if seed:
             t = datetime(2026, 10, 14, 11, 0, tzinfo=UTC)
             def sym(s, vi, en, d=False):
@@ -33,7 +36,7 @@ def make_client():
                     sym("FPT", "FPT Corp", "FPT Corporation"), sym("FPTX", "FPT cũ", "FPT old", True),
                     sym("VNM", "Sữa Việt Nam", "Vinamilk")])
                 c.execute(tables.bars_1d_src.insert(), [
-                    bar(date(2026, 10, 14), t), bar(date(2026, 10, 15), t),
+                    bar(date(2025, 1, 2), t), bar(date(2026, 10, 14), t), bar(date(2026, 10, 15), t),
                     bar(date(2026, 10, 16), t),
                     bar(date(2026, 10, 16), datetime(2026, 10, 17, 3, 0, tzinfo=UTC)),
                 ])
