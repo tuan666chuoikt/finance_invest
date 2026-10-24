@@ -1,8 +1,8 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Response
-from finvest_market_data.infrastructure.tables import symbols
-from sqlalchemy import delete, insert, select, update
+from finvest_market_data.infrastructure.tables import bars_1d_src, symbols
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.engine import Engine
 
 from ..deps import get_engine, vn_iso
@@ -24,6 +24,14 @@ def _check_symbol(c, sym: str) -> None:
         raise ApiError("SYMBOL_UNKNOWN", 422, f"unknown symbol {sym}", {"symbol": sym})
 
 
+def _check_first_bar(c, sym: str, buy_date) -> None:
+    q = select(func.min(bars_1d_src.c.trading_date)).where(bars_1d_src.c.symbol == sym)
+    first = c.execute(q).scalar()
+    if first is not None and buy_date < first:  # no bars at all: pass (platform.md 2.5 v1.8)
+        raise ApiError("NO_DATA", 422, f"no data for {sym} before {first.isoformat()}",
+                       {"field": "buy_date", "symbol": sym, "first_available": first.isoformat()})
+
+
 def _not_found(id: int) -> ApiError:
     return ApiError("NOT_FOUND", 404, f"unknown scenario {id}", {"id": id})
 
@@ -40,6 +48,7 @@ def create_scenario(body: ScenarioIn, engine: Engine = Depends(get_engine)):
     now = datetime.now(UTC)
     with engine.begin() as c:
         _check_symbol(c, body.symbol)
+        _check_first_bar(c, body.symbol, body.buy_date)
         vals = dict(**body.model_dump(), created_at=now, updated_at=now)
         row = c.execute(insert(t).values(**vals).returning(t)).one()
     return _out(row)
@@ -49,6 +58,7 @@ def create_scenario(body: ScenarioIn, engine: Engine = Depends(get_engine)):
 def replace_scenario(id: int, body: ScenarioIn, engine: Engine = Depends(get_engine)):
     with engine.begin() as c:
         _check_symbol(c, body.symbol)
+        _check_first_bar(c, body.symbol, body.buy_date)
         vals = dict(**body.model_dump(), updated_at=datetime.now(UTC))
         row = c.execute(update(t).where(t.c.id == id).values(**vals).returning(t)).first()
     if row is None:

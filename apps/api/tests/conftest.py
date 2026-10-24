@@ -33,7 +33,7 @@ def make_client():
                     sym("FPT", "FPT Corp", "FPT Corporation"), sym("FPTX", "FPT cũ", "FPT old", True),
                     sym("VNM", "Sữa Việt Nam", "Vinamilk")])
                 c.execute(tables.bars_1d_src.insert(), [
-                    bar(date(2026, 10, 14), t), bar(date(2026, 10, 15), t),
+                    bar(date(2025, 1, 2), t), bar(date(2026, 10, 14), t), bar(date(2026, 10, 15), t),
                     bar(date(2026, 10, 16), t),
                     bar(date(2026, 10, 16), datetime(2026, 10, 17, 3, 0, tzinfo=UTC)),
                 ])

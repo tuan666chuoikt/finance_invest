@@ -36,6 +36,12 @@ describe("ScenarioCard", () => {
     expect(screen.queryByTestId("approximate-flag")).toBeNull();
   });
 
+  it("benchmark with first_available null renders n/a without throwing", async () => {
+    const bm = [{ name: "VN-Index", investable: false, available: false, first_available: null }];
+    const card = await show(withResult({ benchmarks: bm }));
+    expect(within(card).getByTestId("bench")).toHaveTextContent(/^VN-Index — n\/a$/);
+  });
+
   it("benchmarks: available shows pct and pp; unavailable shows n/a + date, never 0 %", async () => {
     const b = structuredClone(env001.result.benchmarks);
     if (!b[0].available) throw new Error("fixture");
