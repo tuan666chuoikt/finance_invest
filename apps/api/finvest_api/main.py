@@ -1,3 +1,5 @@
+import logging
+from contextlib import asynccontextmanager
 from importlib.metadata import version
 
 from fastapi import Depends, FastAPI
@@ -7,14 +9,26 @@ from sqlalchemy.engine import Engine
 
 from . import errors
 from .deps import get_engine
-from .routes import bars, scenarios, symbols, whatif
+from .jobs.runner import mark_interrupted
+from .routes import bars, jobs, scenarios, symbols, whatif
 
-app = FastAPI(title="finvest")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        mark_interrupted(app.dependency_overrides.get(get_engine, get_engine)())
+    except Exception:  # DB down or not migrated yet: /health reports it; do not stop the api
+        logging.getLogger(__name__).exception("could not mark interrupted jobs")
+    yield
+
+
+app = FastAPI(title="finvest", lifespan=lifespan)
 errors.install(app)
 app.include_router(symbols.router)
 app.include_router(bars.router)
 app.include_router(scenarios.router)
 app.include_router(whatif.router)
+app.include_router(jobs.router)
 
 
 @app.get("/api/health")
