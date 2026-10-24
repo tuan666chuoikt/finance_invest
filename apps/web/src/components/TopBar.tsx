@@ -2,12 +2,16 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { ROUTES } from "../app/routes";
+import { useCrawlJob } from "../app/useCrawlJob";
+import { CrawlButton } from "./CrawlButton";
+import { CrawlStatus } from "./CrawlStatus";
 import { FreshnessChip } from "./FreshnessChip";
 import { LangSwitch } from "./LangSwitch";
 
 // Below 768 px the nav hides behind the menu button; CSS only, so jsdom tests see both.
 const CSS = `
 .tb{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.tb button,.tb a{min-height:24px;min-width:24px}
 .tb-menu{display:none}
 @media (max-width:767px){.tb-menu{display:inline-block}.tb-nav{display:none;width:100%}.tb-nav[data-open=true]{display:flex;flex-direction:column}}
 .tb-nav{display:flex;gap:12px}`;
@@ -15,6 +19,7 @@ const CSS = `
 export function TopBar() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const crawl = useCrawlJob();
   return (
     <header data-testid="top-bar" className="tb">
       <style>{CSS}</style>
@@ -30,7 +35,9 @@ export function TopBar() {
         ))}
       </nav>
       <FreshnessChip />
+      <CrawlButton job={crawl.job} running={crawl.running} onClick={crawl.start} />
       <LangSwitch />
+      <CrawlStatus job={crawl.job} refused={crawl.refused} startError={crawl.startError} />
     </header>
   );
 }

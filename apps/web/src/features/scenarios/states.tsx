@@ -23,7 +23,9 @@ export function NoBars() {
 export function Skeleton() {
   const { t } = useTranslation();
   return (
-    <div className="sc-card" aria-busy="true" aria-label={t("state.loading")} data-testid="card-skeleton"
-      style={{ minHeight: 220, opacity: 0.5 }} />
+    <div className="sc-card" role="status" aria-busy="true" data-testid="card-skeleton"
+      style={{ minHeight: 220, opacity: 0.5 }}>
+      <span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>{t("state.loading")}</span>
+    </div>
   );
 }

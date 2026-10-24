@@ -50,6 +50,13 @@ def test_three_429_blocked(tmp_path):
     assert [s for k, s in (x for x in clock.sleeps if isinstance(x, tuple))] == [1, 2]
 
 
+def test_418_is_blocked_not_retried_as_a_plain_error(tmp_path):
+    f, _, seen = make(tmp_path, [(418, b"")] * 3)
+    with pytest.raises(SourceBlocked) as e:
+        get(f)
+    assert e.value.last_status == 418 and len(seen) == 3
+
+
 def test_reset_after_success(tmp_path):
     f, _, seen = make(tmp_path, [(429, b""), (429, b""), (200, b"{}")])
     assert get(f) == b"{}" and len(seen) == 3

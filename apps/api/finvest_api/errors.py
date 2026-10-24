@@ -13,6 +13,23 @@ class ApiError(Exception):
 _ANALYTICS_STATUS = {"VALIDATION": 400, "SYMBOL_UNKNOWN": 422, "NO_DATA": 422, "RANGE_TOO_LARGE": 422}
 
 
+_TEMPLATES = {
+    "NO_DATA": ("no data for {symbol} before {first_available}", "no data for {symbol}"),
+    "SYMBOL_UNKNOWN": ("unknown symbol {symbol}",),
+    "RANGE_TOO_LARGE": ("range too large: {first_available} to {last_available}",),
+    "VALIDATION": ("{field}: {reason}",),
+}  # platform.md 2.5 v1.10: first template whose keys are all present wins, else the code
+
+
+def _message(code: str, details: dict) -> str:
+    for t in _TEMPLATES.get(code, ()):
+        try:
+            return t.format(**{k: v for k, v in details.items() if v is not None})
+        except KeyError:
+            pass
+    return code
+
+
 def _body(code: str, message: str, details: dict) -> dict:
     return {"error": {"code": code, "message": message, "details": details}}  # platform.md 1.3
 
@@ -24,7 +41,8 @@ def install(app: FastAPI) -> None:
 
     @app.exception_handler(AnalyticsError)
     async def _analytics(_: Request, e: AnalyticsError):
-        return JSONResponse(status_code=_ANALYTICS_STATUS[e.code], content=_body(e.code, e.code, e.details))
+        body = _body(e.code, _message(e.code, e.details), e.details)
+        return JSONResponse(status_code=_ANALYTICS_STATUS[e.code], content=body)
 
     @app.exception_handler(RequestValidationError)
     async def _val(_: Request, e: RequestValidationError):

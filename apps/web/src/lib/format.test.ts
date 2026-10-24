@@ -3,6 +3,8 @@ import { formatDate, formatDateTime, formatPct, formatPp, formatVnd, parseVndInp
 test("formatVnd", () => {
   expect(formatVnd(10610975)).toBe("10.610.975 ₫");
   expect(formatVnd("10000000")).toBe("10.000.000 ₫");
+  expect(formatVnd(-19847507)).toBe("−19.847.507 ₫");
+  expect(formatVnd("0")).toBe("0 ₫");
 });
 test("formatPct: sign always, 2 dp, U+2212 for negatives, none for zero", () => {
   expect(formatPct("6.1098")).toBe("+6,11 %");

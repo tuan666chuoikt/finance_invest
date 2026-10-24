@@ -98,6 +98,16 @@ describe("ScenarioForm", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it("server 422 NO_DATA shows the dated reason on the start date and keeps the input", async () => {
+    postReply = () => json({ error: { code: "NO_DATA", message: "x", details: { first_available: "2025-01-02" } } }, 422);
+    const { user, onClose } = setup();
+    await pickFpt(user);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("No FPT data before 02/01/2025")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("combobox")).toHaveValue("FPT");
+  });
+
   it("edit mode pre-fills, PUTs, shows Monthly for DCA", async () => {
     const s: Scenario = { id: 7, name: "Mine", symbol: "FPT", style: "dca", amount_vnd: 2000000, buy_date: "2025-01-15", sell_date: "2026-01-15", created_at: "", updated_at: "" };
     const { user } = setup(s);

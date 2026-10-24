@@ -1,6 +1,6 @@
 # ops
 
-Deployment is `docker-compose.yml` at the repo root (db, api, crawler; crawler is in the `tools` profile so `make up` does not start it).
+Deployment is `docker-compose.yml` at the repo root (db, api, web, crawler; crawler is in the `tools` profile so `make up` does not start it).
 Backups, TLS and nginx are out of scope for now.
 
 ## File ownership
@@ -15,18 +15,15 @@ container wrote:
 `data/pg` is left alone on purpose: the postgres image manages its ownership itself (it must stay owned by the
 container's postgres user). Do not chown it.
 
-## Scheduled crawl (F-019)
+## Manual crawl (F-034)
 
-`finvest-crawl catchup` runs `ticks` for every trading day from the last recorded session day (inclusive; today only, if there is none),
-skipping `complete` and `missed` days; it exits 2 if a day ended `blocked` or raised. A systemd user timer runs it
-Mon-Fri at 15:30 and 20:00 Asia/Ho_Chi_Minh (`Persistent=true` replays a run missed while the machine was off).
+There is no scheduler. Crawl by hand, by one of two ways: the web button (`POST /api/jobs`, run inside the api container,
+which mounts `./data`) or `make crawl DATE=YYYY-MM-DD`. Never run both at once. The api container runs the image built by
+`make up`: after a code change, run `make up` again.
 
-    make up                 # db must be running
-    make install-timers     # copies units to ~/.config/systemd/user, enables the timer and linger
-    systemctl --user list-timers finvest-crawl.timer
-    journalctl --user -u finvest-crawl.service
-    make uninstall-timers
+Ports on loopback: web 8080, api 8001 (8000 is the sponsor's gateway).
 
-The timer runs the image without `--build`: after a code change, run `make up` to rebuild it.
+Past-day crawls probe FPT, HPG, VNM first: an empty tape counts as no trades only once a probe shows the source still serves that day; otherwise the day is `missed`, and a `missed` run never overwrites a stored `partial`/`complete` session.
+The `crawl_sessions` ledger keeps the richest replay: a replay with fewer rows (a `missed` run, or a `partial`/`source_no_longer_serves` the morning after) leaves the stored row alone; the manifest file on disk is always written.
 
-A manual re-run of one day stays `make crawl DATE=YYYY-MM-DD`. Catch-up (and `make crawl DATE=` for a past day) probes FPT, HPG, VNM first: an empty tape counts as no trades only once a probe shows the source still serves that day; otherwise the day is `missed`, and a `missed` run never overwrites a stored `partial`/`complete` session.
+Daily bars (step 2 of a press): the two indices first, then the symbols. V2 serves one symbol per call (spike S-v2-batch, `BATCH_MAX = 1`), so a press and a full back-fill both cost about 1 780 requests, about 15 min at 2 req/s; a re-run resumes from the archive.

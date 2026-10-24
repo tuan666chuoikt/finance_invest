@@ -83,11 +83,11 @@ def serve(overrides=None):
     return handler
 
 
-def run(tmp_path, handler=None, d=D, only=None, repo=None, today=D):
+def run(tmp_path, handler=None, d=D, only=None, repo=None, today=D, **kw):
     repo = repo or FakeRepo()
     f = make(tmp_path, handler or serve())
     s = Settings(_env_file=None, data_dir=tmp_path)
-    m = feed.run_ticks(s, d, only, fetcher=f, conn=MagicMock(), repo=repo, today=today)
+    m = feed.run_ticks(s, d, only, fetcher=f, conn=MagicMock(), repo=repo, today=today, **kw)
     return m, f, repo
 
 
@@ -276,3 +276,14 @@ def test_two_runs_against_db(tmp_path, monkeypatch):
         assert c.execute(text("SELECT count(*) FROM data_anomalies")).scalar_one() == 0
         assert c.execute(text("SELECT symbols_no_trades FROM crawl_sessions")).scalar_one() == 0
     eng.dispose()
+
+
+def test_progress_after_each_symbol_and_stops_at_a_block(tmp_path):
+    calls = []
+    run(tmp_path / "a", serve({"A32": load("FPT")}), only=["A32", "FPT", "VNM"],
+        on_progress=lambda *a: calls.append(a))
+    assert calls == [(1, 3), (2, 3), (3, 3)]
+    calls.clear()
+    h = serve({"A32": load("FPT"), "VNM": lambda: httpx.Response(429)})
+    run(tmp_path / "b", h, only=["A32", "FPT", "VNM"], on_progress=lambda *a: calls.append(a))
+    assert calls == [(1, 3), (2, 3)]  # the blocked symbol is not reported

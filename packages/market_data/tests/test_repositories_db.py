@@ -139,6 +139,25 @@ def test_missed_manifest_does_not_overwrite_partial_or_complete(conn):
     assert conn.execute(q).one() == ("complete", 145_184)
 
 
+def test_ledger_keeps_the_richest_replay(conn):
+    q = text("SELECT status, rows, symbols_fetched, checksum FROM crawl_sessions")
+    big = replace(manifest("partial"), rows=145_184, symbols_fetched=400, checksum="sha256:big")
+    repo.upsert_crawl_session(conn, big)
+    repo.upsert_crawl_session(conn, replace(
+        big, rows=2_578, symbols_fetched=9, checksum="sha256:small", reason="source_no_longer_serves"))
+    assert conn.execute(q).one() == ("partial", 145_184, 400, "sha256:big")
+    repo.upsert_crawl_session(conn, replace(big, status="complete"))
+    assert conn.execute(q).one()[0] == "complete"
+    repo.upsert_crawl_session(conn, replace(
+        big, status="complete", rows=150_000, symbols_fetched=410, checksum="sha256:new"))
+    assert conn.execute(q).one() == ("complete", 150_000, 410, "sha256:new")
+
+
+def test_new_day_with_zero_rows_is_inserted(conn):
+    repo.upsert_crawl_session(conn, replace(manifest("missed"), rows=0))
+    assert conn.execute(text("SELECT status, rows FROM crawl_sessions")).one() == ("missed", 0)
+
+
 def test_missed_session_is_replaced_by_a_later_status(conn):
     repo.upsert_crawl_session(conn, replace(manifest("missed"), rows=0))
     repo.upsert_crawl_session(conn, manifest("complete"))
