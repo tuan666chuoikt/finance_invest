@@ -137,3 +137,4 @@
 2026-10-24 17:32 | ai-arch | sprint-03                | approved  | AI review PASS 0 blockers 3 notes; analytics 40 passed; golden 001 + VN-Index 14,753,846 recomputed; contracts/analytics.md v1.2 first_avail | .finvest/sprints/sprint-03/5-review.ai.md
 2026-10-24 17:33 | arch    | sprint-03                | reviewed  | 5-review.tech PASS: B1/B2 closed (sprint-02 covered), 42/42 tasks merged; T5b/T5c/T6/analytics §2.4 nullable carried to sprint-04; platform v1.13, data v1.3 wording | 5-review.tech.md
 2026-10-24 17:35 | pm      | sprint-03                | reviewed  | product ACCEPT 30/30 pts, 0 NOT DONE; retro 5 actions (D1, R2 need sponsor A24); velocity kept 20 | sprints/sprint-03/6-retro.md
+2026-10-24 17:36 | sm      | SPRINT-03                | merged    | sprint-03 (incl. sprint-02) fast-forwarded into main bb3f588; review tech/ai/product PASS 30/30 | -
