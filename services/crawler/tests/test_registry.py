@@ -13,6 +13,7 @@ from finvest_crawler.fetch import Fetcher
 from finvest_crawler.ratelimit import TokenBucket
 from finvest_crawler.settings import Settings
 from finvest_market_data.domain.models import Bar
+from finvest_market_data.domain.ports import Unsupported
 
 FIX = Path(__file__).parent / "fixtures"
 D = date(2026, 10, 15)
@@ -40,6 +41,10 @@ def test_unknown_name_lists_known(tmp_path):
 def test_defaults_follow_settings(tmp_path):
     s, f = Settings(), fetcher(tmp_path)
     assert [source_for(r, s, f).name for r in ("ticks", "symbols", "bars")] == ["kbs", "vci", "vci"]
+    assert isinstance(source_for("snapshot", s, f), SsiSource)
+    for k in (KbsSource, VciSource):
+        with pytest.raises(Unsupported):
+            k(f).snapshot_bars(D)
 
 
 @pytest.mark.parametrize("name", ["vci", "ssi"])

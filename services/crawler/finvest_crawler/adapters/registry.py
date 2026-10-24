@@ -20,6 +20,6 @@ def make_source(name: str, fetcher: Fetcher) -> MarketDataSource:
 
 
 def source_for(
-    role: Literal["ticks", "symbols", "bars"], settings: Settings, fetcher: Fetcher
+    role: Literal["ticks", "symbols", "bars", "snapshot"], settings: Settings, fetcher: Fetcher
 ) -> MarketDataSource:
     return make_source(getattr(settings, f"source_{role}"), fetcher)

@@ -29,7 +29,12 @@ class SsiEnvelope(BaseModel):
 
 
 class SsiRow(BaseModel):
-    """S1 row (data.md §1.2); `firstTradingDate` is a `yyyymmdd` string, "0" when unknown."""
+    """S1 row (data.md §1.2); `firstTradingDate` is a `yyyymmdd` string, "0" when unknown.
+
+    The same row carries the session's bar in VND (not thousands), recorded in `hose.json.gz`, 2026-10-16:
+    AAA tradingDate "20261016" open 7090 high 7190 low 7020 last 7100 qty 684300 value 4855893000.
+    A name with no trade has qty/open 0 or null.
+    """
 
     model_config = ConfigDict(extra="allow")
     stockSymbol: str
@@ -37,6 +42,13 @@ class SsiRow(BaseModel):
     companyNameVi: str | None = None
     companyNameEn: str | None = None
     firstTradingDate: str | None = None
+    tradingDate: str | None = None
+    openPrice: Decimal | None = None
+    highest: Decimal | None = None
+    lowest: Decimal | None = None
+    matchedPrice: Decimal | None = None
+    nmTotalTradedQty: int | None = None
+    nmTotalTradedValue: Decimal | None = None
 
 
 class SsiExchange(BaseModel):
