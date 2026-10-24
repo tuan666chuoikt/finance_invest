@@ -8,7 +8,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
-from finvest_market_data.domain.ports import PayloadShapeError, Unsupported
+from finvest_market_data.domain.ports import PayloadShapeError, SourceNoLongerServes, Unsupported
 from finvest_market_data.domain.units import to_vnd
 from pydantic import TypeAdapter
 
@@ -39,6 +39,34 @@ def _day(s: str | None) -> date | None:
         return datetime.strptime(s or "", "%Y%m%d").date()
     except ValueError:
         return None  # absent, "0" or garbage: unknown, never an error
+
+
+def parse_snapshot(
+    payload: bytes, session: date, raw_path: Path = Path("<unarchived>"), exchange: str = "?"
+) -> tuple[list[Bar], list[str]]:
+    """Pure: S1 board (VND) -> (one bar per traded stock/ETF, names with no trade).
+
+    SourceNoLongerServes when the board shows another session (stale weekend board, data not yet rolled)."""
+    rows = validate(_EXCHANGE, payload, raw_path, "ssi").data
+    if rows and rows[0].tradingDate != session.strftime("%Y%m%d"):
+        raise SourceNoLongerServes(exchange, _day(rows[0].tradingDate))
+    ts = datetime.combine(session, time(), VN).astimezone(UTC)
+    bars, idle = [], []
+    for r in rows:
+        if r.stockType not in _TYPES:
+            continue
+        if not r.nmTotalTradedQty or not r.openPrice:
+            idle.append(r.stockSymbol)
+            continue
+        try:
+            o, h, lo, c = (to_vnd(x, "vnd") for x in (r.openPrice, r.highest, r.lowest, r.matchedPrice))  # type: ignore[arg-type]
+            if h < max(o, c) or lo > min(o, c):
+                raise ValueError(f"high {h} / low {lo} do not bracket open {o} close {c}")
+            value = None if r.nmTotalTradedValue is None else to_vnd(r.nmTotalTradedValue, "vnd")
+            bars.append(Bar(r.stockSymbol, ts, o, h, lo, c, r.nmTotalTradedQty, value, "ssi"))
+        except (ValueError, TypeError, ArithmeticError) as e:  # None price -> TypeError/InvalidOperation
+            raise PayloadShapeError(f"ssi board {exchange} {r.stockSymbol}: {e}", raw_path) from e
+    return bars, idle
 
 
 def parse_bars(payload: bytes, symbol: str, raw_path: Path = Path("<unarchived>")) -> list[Bar]:
@@ -72,6 +100,24 @@ class SsiSource:
             payload = f.get("ssi", EXCHANGE_URL.format(ex=ex), feed="symbols", trading_date=as_of, name=ex)
             out += parse_symbols(payload, ex.upper(), f.archive.path("symbols", as_of, ex))  # type: ignore[arg-type]
         return out
+
+    def snapshot_bars(self, session: date) -> tuple[list[Bar], list[str]]:
+        """S1 x3 exchanges: the finished session's bar for every listed name. A board of another session is
+        never archived under `session`; a replay of an accepted day costs 0 requests."""
+        f = self.fetcher
+        bars: list[Bar] = []
+        idle: list[str] = []
+        for ex in ("hose", "hnx", "upcom"):
+            name = f"board-{ex}"
+            url = EXCHANGE_URL.format(ex=ex)
+            payload = f.get("ssi", url, feed="bars_1d", trading_date=session, name=name, archive=False)
+            path = f.archive.path("bars_1d", session, name)
+            b, i = parse_snapshot(payload, session, path, ex.upper())
+            if not path.exists():
+                f.archive.write("bars_1d", session, name, payload)
+            bars += b
+            idle += i
+        return bars, idle
 
     def index_members(self, index_code: str, as_of: date) -> list[str]:
         raise Unsupported("ssi index members: use vci (smaller payload)")

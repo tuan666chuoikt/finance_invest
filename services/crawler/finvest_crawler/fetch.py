@@ -17,7 +17,8 @@ TRIES = 3  # consecutive blocked responses -> SourceBlocked; also max tries on 5
 
 class SourceBlocked(Exception):
     def __init__(self, source: str, last_status: int):
-        super().__init__(f"{source} blocked (last status {last_status})")
+        why = "timed out" if last_status == 0 else f"last status {last_status}"  # 0 = timed out
+        super().__init__(f"{source} blocked ({why})")
         self.source, self.last_status = source, last_status
 
 
@@ -59,7 +60,7 @@ class Fetcher:
                         self.archive.write(feed, trading_date, name, r.content)
                     return r.content
             except httpx.TimeoutException:
-                blocked, failed, status = 0, failed + 1, 0
+                blocked, failed, status = blocked + 1, 0, 0  # the source holds, then 418s: a hold is a block
             if blocked >= TRIES:
                 raise SourceBlocked(source, status)
             if failed >= TRIES:

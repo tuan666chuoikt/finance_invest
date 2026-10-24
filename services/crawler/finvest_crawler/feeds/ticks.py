@@ -23,6 +23,7 @@ from finvest_crawler.settings import Settings
 
 FEED = "ticks"
 VN = ZoneInfo("Asia/Ho_Chi_Minh")
+FAIL_RUN = 3  # consecutive skipped names that end a run `blocked`
 PROBE_SYMBOLS = ("FPT", "HPG", "VNM")  # liquid: all three empty = day not served
 
 
@@ -113,6 +114,7 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today, on_pr
                     pass  # inconclusive probe: counts as no tape, like an empty one
             if todo and not probed:  # no probe returned a tape: day not proven served
                 todo, status, reason = [], "missed", "source_no_longer_serves"
+        streak = 0
         for i, sym in enumerate(todo):
             t0, replays0 = time.perf_counter(), fetcher.replays
             try:
@@ -125,6 +127,7 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today, on_pr
                     skipped += [(s, "source_no_longer_serves") for s in names[i:]] if fetched else []
                     break
                 no_trades.append(sym)
+                streak = 0
                 if on_progress:
                     on_progress(i + 1, len(todo))
                 continue
@@ -134,9 +137,15 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today, on_pr
                 break
             except (PayloadShapeError, httpx.HTTPError) as e:
                 skipped.append((sym, _skip_reason(e)))
+                streak += 1
+                if streak >= FAIL_RUN:
+                    skipped += [(s, "source_blocked") for s in names[i + 1:]]
+                    status, reason = "blocked", "source_blocked"
+                    break
                 if on_progress:
                     on_progress(i + 1, len(todo))
                 continue
+            streak = 0
             kept, displaced = dedupe(tape)
             changed = repo.upsert_ticks(conn, kept)
             if displaced or changed:

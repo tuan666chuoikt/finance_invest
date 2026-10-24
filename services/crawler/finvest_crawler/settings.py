@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     source_ticks: str = "kbs"
     source_symbols: str = "vci"
     source_bars: str = "vci"
+    source_snapshot: str = "ssi"
     user_agent: str = "finvest-personal/0.1 (+learning tool, single user)"
     retention_days: int | None = None  # None = keep everything (F-020)
     rate_per_s: dict[str, float] = {"kbs": 2, "vci": 2, "ssi": 1}

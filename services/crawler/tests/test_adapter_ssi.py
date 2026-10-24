@@ -6,11 +6,11 @@ from pathlib import Path
 import httpx
 import pytest
 from finvest_crawler.adapters.ssi import SsiSource
-from finvest_crawler.adapters.ssi.source import parse_bars, parse_symbols
+from finvest_crawler.adapters.ssi.source import parse_bars, parse_snapshot, parse_symbols
 from finvest_crawler.archive import Archive
 from finvest_crawler.fetch import Fetcher
 from finvest_crawler.ratelimit import TokenBucket
-from finvest_market_data.domain.ports import PayloadShapeError, Unsupported
+from finvest_market_data.domain.ports import PayloadShapeError, SourceNoLongerServes, Unsupported
 
 FIX = Path(__file__).parent / "fixtures/ssi/history"
 D = date(2026, 10, 15)
@@ -100,3 +100,75 @@ def test_symbols_makes_three_archived_calls(tmp_path):
     assert SsiSource(f).symbols(D) == []
     assert seen == ["/stock/exchange/hose", "/stock/exchange/hnx", "/stock/exchange/upcom"]
     assert (tmp_path / "symbols/2026-10-15/upcom.json.gz").exists()
+
+
+S1 = date(2026, 10, 16)
+
+
+def hose() -> bytes:
+    return gzip.decompress((Path(__file__).parent / "fixtures/ssi/exchange/hose.json.gz").read_bytes())
+
+
+def board(*rows, day="20261016") -> bytes:
+    base = {"stockType": "s", "tradingDate": day, "openPrice": 10, "highest": 12, "lowest": 9,
+            "matchedPrice": 11, "nmTotalTradedQty": 5, "nmTotalTradedValue": 55}
+    return json.dumps({"data": [{**base, **r} for r in rows]}).encode()
+
+
+def test_snapshot_fixture_aaa_and_row_accounting():
+    bars, idle = parse_snapshot(hose(), S1)
+    aaa = next(b for b in bars if b.symbol == "AAA")
+    got = (aaa.o, aaa.h, aaa.l, aaa.c, aaa.v, aaa.value, aaa.source)
+    assert got == (7090, 7190, 7020, 7100, 684300, 4855893000, "ssi")
+    assert aaa.ts == datetime(2026, 10, 15, 17, 0, tzinfo=UTC)
+    assert (len(bars), len(idle)) == (41, 5)  # 46 s|e rows = 41 traded + 5 without trades
+
+
+def test_snapshot_filters_types_and_no_trade_rows():
+    rows = [{"stockSymbol": "A"}, {"stockSymbol": "CW1", "stockType": "w"},
+            {"stockSymbol": "Z", "nmTotalTradedQty": 0}, {"stockSymbol": "Y", "openPrice": 0}]
+    bars, idle = parse_snapshot(board(*rows), S1)
+    assert [b.symbol for b in bars] == ["A"] and idle == ["Z", "Y"]
+
+
+def test_snapshot_unknown_turnover_stays_none():
+    bars, _ = parse_snapshot(board({"stockSymbol": "A", "nmTotalTradedValue": None}), S1)
+    assert len(bars) == 1 and bars[0].value is None
+
+
+def test_snapshot_other_session_is_no_longer_served():
+    with pytest.raises(SourceNoLongerServes) as e:
+        parse_snapshot(hose(), date(2026, 10, 17), exchange="HOSE")
+    assert e.value.served_date == S1
+
+
+@pytest.mark.parametrize("bad", [{"highest": 10}, {"lowest": 12}, {"matchedPrice": None}])
+def test_snapshot_inconsistent_row_is_shape_error(bad):
+    with pytest.raises(PayloadShapeError):
+        parse_snapshot(board({"stockSymbol": "A", **bad}), S1)
+
+
+def fetcher(handler, tmp_path) -> Fetcher:
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    return Fetcher(client, {"ssi": TokenBucket(100)}, Archive(tmp_path), "ua")
+
+
+def test_snapshot_bars_three_requests_archive_and_replay(tmp_path):
+    seen = []
+
+    def handler(req):
+        seen.append(req.url.path)
+        return httpx.Response(200, content=hose())
+
+    f = fetcher(handler, tmp_path)
+    first = SsiSource(f).snapshot_bars(S1)
+    assert seen == ["/stock/exchange/hose", "/stock/exchange/hnx", "/stock/exchange/upcom"]
+    assert (tmp_path / "bars_1d/2026-10-16/board-hose.json.gz").exists()
+    assert SsiSource(f).snapshot_bars(S1) == first and len(seen) == 3  # replay: 0 requests
+
+
+def test_snapshot_mismatch_is_not_archived(tmp_path):
+    f = fetcher(lambda r: httpx.Response(200, content=hose()), tmp_path)
+    with pytest.raises(SourceNoLongerServes):
+        SsiSource(f).snapshot_bars(date(2026, 10, 17))
+    assert not (tmp_path / "bars_1d/2026-10-17/board-hose.json.gz").exists()

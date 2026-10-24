@@ -252,6 +252,11 @@ def test_daily_coverage_per_exchange_includes_delisted(conn):
     assert str(repo.daily_coverage(conn)["HOSE"]) == "66.7"
 
 
+def test_last_bar_dates_is_the_latest_per_symbol(conn):
+    repo.upsert_bars_1d_src(conn, [bar("AAA", 15), bar("AAA", 16), bar("BBB", 15)], T0)
+    assert repo.last_bar_dates(conn) == {"AAA": date(2026, 10, 16), "BBB": date(2026, 10, 15)}
+
+
 def test_upsert_listed_at_fills_only_null(conn):
     repo.upsert_symbols(conn, [sym("AAA"), sym("BBB")], T0)
     assert repo.upsert_listed_at(conn, {"AAA": date(2020, 1, 2), "ZZZ": D}) == 1  # unknown symbol ignored
@@ -270,3 +275,26 @@ def test_sync_index_membership_intervals_and_idempotence(conn):
     assert repo.sync_index_membership(conn, "VN30", {"B", "C"}, d2) == (0, 0)  # rerun: no write
     assert repo.sync_index_membership(conn, "VN30", set(), d2) == (0, 0)  # empty payload: no-op
     assert [tuple(r) for r in conn.execute(q)] == want
+
+
+def test_repair_sessions_from_ticks(conn):
+    T16, T15 = (datetime(2026, 10, 16, 8, 59, tzinfo=UTC),
+                datetime(2026, 10, 15, 17, 30, tzinfo=UTC))  # both VN 10-16
+    ins = text("INSERT INTO ticks VALUES (:s, :ts, :q, 25000, 100, 'B', 'kbs')")
+    for i, s in enumerate(("AAA", "BBB", "CCC")):
+        for q, ts in enumerate((T16, T15)):
+            conn.execute(ins, {"s": s, "ts": ts, "q": q})
+    led = text("INSERT INTO crawl_sessions (feed, trading_date, status, symbols_fetched, rows, checksum, "
+               "reason) VALUES (:f, :d, 'partial', 1, :r, 'sha256:x', 'source_no_longer_serves')")
+    conn.execute(led, {"f": "ticks", "d": date(2026, 10, 16), "r": 2})
+    conn.execute(led, {"f": "ticks", "d": date(2026, 10, 15), "r": 6})  # no ticks on 10-15 VN: untouched
+    conn.execute(led, {"f": "bars_1d", "d": date(2026, 10, 16), "r": 2})
+    q = text("SELECT feed, trading_date, status, reason, rows, symbols_fetched, checksum "
+             "FROM crawl_sessions ORDER BY 1, 2")
+    before = conn.execute(q).all()
+    assert repo.repair_crawl_sessions_from_ticks(conn) == 1
+    after = conn.execute(q).all()
+    assert after[2] == ("ticks", date(2026, 10, 16), "partial", "source_no_longer_serves", 6, 3, None)
+    assert after[:2] == before[:2] and len(after) == 3  # bars_1d row and 10-15 row untouched, no insert
+    assert repo.repair_crawl_sessions_from_ticks(conn) == 0
+    assert conn.execute(q).all() == after
