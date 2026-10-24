@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import time
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from types import ModuleType
 from zoneinfo import ZoneInfo
@@ -48,6 +49,7 @@ def run_ticks(
     conn: Connection | None = None,
     repo: ModuleType = repositories,  # tests pass an in-memory fake with the same functions
     today: date | None = None,  # VN calendar day; tests inject it
+    on_progress: Callable[[int, int], None] | None = None,  # (symbols done, symbols to fetch)
 ) -> Manifest:
     own_client = httpx.Client() if fetcher is None else None
     fetcher = fetcher or _fetcher(settings, own_client)  # type: ignore[arg-type]
@@ -57,7 +59,7 @@ def run_ticks(
     commit = conn.commit if own_engine else (lambda: None)
     try:
         today = today or datetime.now(VN).date()
-        return _run(settings, trading_date, only, fetcher, conn, repo, commit, today)
+        return _run(settings, trading_date, only, fetcher, conn, repo, commit, today, on_progress)
     finally:
         if own_client:
             own_client.close()
@@ -66,7 +68,7 @@ def run_ticks(
             own_engine.dispose()
 
 
-def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Manifest:  # noqa: ANN001
+def _run(settings, trading_date, only, fetcher, conn, repo, commit, today, on_progress=None) -> Manifest:  # noqa: ANN001
     started, req0 = datetime.now(UTC), fetcher.requests
     repo.fail_unfinished_runs(conn, FEED, trading_date)
     run_id = repo.insert_crawl_run(conn, FEED, trading_date, started)
@@ -123,6 +125,8 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
                     skipped += [(s, "source_no_longer_serves") for s in names[i:]] if fetched else []
                     break
                 no_trades.append(sym)
+                if on_progress:
+                    on_progress(i + 1, len(todo))
                 continue
             except SourceBlocked:
                 skipped += [(s, "source_blocked") for s in names[i:]]
@@ -130,6 +134,8 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
                 break
             except (PayloadShapeError, httpx.HTTPError) as e:
                 skipped.append((sym, _skip_reason(e)))
+                if on_progress:
+                    on_progress(i + 1, len(todo))
                 continue
             kept, displaced = dedupe(tape)
             changed = repo.upsert_ticks(conn, kept)
@@ -141,6 +147,8 @@ def _run(settings, trading_date, only, fetcher, conn, repo, commit, today) -> Ma
             rows, fetched = rows + len(kept), fetched + 1
             print(json.dumps({"symbol": sym, "rows": len(kept), "replayed": fetcher.replays > replays0,
                               "ms": round((time.perf_counter() - t0) * 1000)}))
+            if on_progress:
+                on_progress(i + 1, len(todo))
         if status == "complete" and skipped:
             status = "partial"
         # no-trade is not a skip, so `complete` needs only an empty `skipped`; every symbol is accounted for
