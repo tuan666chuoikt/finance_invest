@@ -252,6 +252,11 @@ def test_daily_coverage_per_exchange_includes_delisted(conn):
     assert str(repo.daily_coverage(conn)["HOSE"]) == "66.7"
 
 
+def test_last_bar_dates_is_the_latest_per_symbol(conn):
+    repo.upsert_bars_1d_src(conn, [bar("AAA", 15), bar("AAA", 16), bar("BBB", 15)], T0)
+    assert repo.last_bar_dates(conn) == {"AAA": date(2026, 10, 16), "BBB": date(2026, 10, 15)}
+
+
 def test_upsert_listed_at_fills_only_null(conn):
     repo.upsert_symbols(conn, [sym("AAA"), sym("BBB")], T0)
     assert repo.upsert_listed_at(conn, {"AAA": date(2020, 1, 2), "ZZZ": D}) == 1  # unknown symbol ignored

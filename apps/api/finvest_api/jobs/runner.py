@@ -3,9 +3,10 @@
 import threading
 import time
 from datetime import UTC, date, datetime, timedelta
+from datetime import time as dtime
 
 import httpx
-from finvest_crawler.feeds.bars_1d import COUNT, run_bars_1d
+from finvest_crawler.feeds.bars_1d import COUNT, GAP_MAX, run_bars_1d
 from finvest_crawler.feeds.ticks import run_ticks
 from finvest_crawler.fetch import SourceBlocked
 from finvest_crawler.settings import Settings
@@ -19,10 +20,19 @@ from . import jobs
 
 _lock = threading.Lock()
 CLOSE_HOUR = 15  # VN close; before it the tape is partial (platform.md 4)
+CUTOFF = dtime(15, 5)  # the daily bar of today is final only after this (platform.md 2.6)
 
 
 def _now() -> datetime:  # tests monkeypatch this
     return datetime.now(VN)
+
+
+def _target(now: datetime) -> date:
+    """The session step 2 stores: today once it is final, else the last trading day before today."""
+    d = now.date()
+    if day(d).is_open and now.time() >= CUTOFF:
+        return d
+    return trading_days(d - timedelta(14), d - timedelta(1))[-1]
 
 
 def _write(engine: Engine, job_id: int, **vals) -> None:
@@ -30,14 +40,14 @@ def _write(engine: Engine, job_id: int, **vals) -> None:
         c.execute(update(jobs).where(jobs.c.id == job_id).values(**vals))
 
 
-def _count(engine: Engine, today: date) -> int:
+def _count(engine: Engine, target: date) -> int:
     """Sessions since the oldest last bar of bars_1d_src / index_1d, +2, min 5 (platform.md 2.6)."""
     with engine.connect() as c:
         maxes = (c.execute(select(func.max(t.c.trading_date))).scalar() for t in (bars_1d_src, index_1d))
         lasts = [d for d in maxes if d]
     if not lasts:
         return COUNT
-    return max(5, len(trading_days(min(lasts) + timedelta(1), today)) + 2)
+    return max(5, len(trading_days(min(lasts) + timedelta(1), target)) + 2)
 
 
 def _sessions(engine: Engine) -> int:
@@ -45,10 +55,15 @@ def _sessions(engine: Engine) -> int:
         return c.execute(select(func.count(func.distinct(bars_1d_src.c.trading_date)))).scalar_one()
 
 
+def _blocked_msg(source: str) -> str:
+    return f"nguồn {source} đang chặn tạm, thử lại sau ~1 giờ"
+
+
 def _error(e: BaseException) -> dict:
     if isinstance(e, _Blocked):
         return {"code": "SourceBlocked", "message": str(e), "source": e.source}
-    err = {"code": type(e).__name__, "message": str(e)}
+    msg = _blocked_msg(e.source) if isinstance(e, SourceBlocked) else str(e)
+    err = {"code": type(e).__name__, "message": msg}
     if isinstance(e, OSError) and e.filename:
         err["path"] = str(e.filename)
     if isinstance(e, SourceBlocked):
@@ -62,7 +77,7 @@ class _Blocked(Exception):
     """A step ended `blocked`: the crawler swallowed SourceBlocked and returned a manifest instead."""
 
     def __init__(self, m):
-        super().__init__(f"source {m.source} blocked the crawl")
+        super().__init__(_blocked_msg(m.source))
         self.source = m.source
 
 
@@ -101,9 +116,11 @@ def _run(engine: Engine, settings: Settings, job_id: int) -> None:
                 raise _Blocked(m)
         else:
             summary["no_session_today"] = True
-        step(2, "bars_1d", today)
+        target = _target(now)
+        step(2, "bars_1d", target)
         before = _sessions(engine)
-        m = run_bars_1d(settings, today, today=today, count=_count(engine, today), on_progress=on_progress)
+        m = run_bars_1d(settings, target, today=today, count=_count(engine, target), gap_max=GAP_MAX,
+                        on_progress=on_progress)
         summary["bars_1d"] = {"sessions_added": _sessions(engine) - before,
                               "symbols_fetched": m.symbols_fetched, "symbols_skipped": len(m.symbols_skipped)}
         if m.status == "blocked":
