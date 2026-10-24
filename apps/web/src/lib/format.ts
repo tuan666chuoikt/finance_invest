@@ -3,7 +3,10 @@ const NUM = new Intl.NumberFormat("vi-VN");
 const MINUS = "−"; // U+2212, not hyphen
 const TZ = "Asia/Ho_Chi_Minh";
 
-export const formatVnd = (n: number | string): string => `${NUM.format(Number(n))} ₫`;
+export const formatVnd = (n: number | string): string => {
+  const v = Number(n);
+  return `${v < 0 ? MINUS : ""}${NUM.format(Math.abs(v))} ₫`;
+};
 
 /** Round a decimal string to 2 dp half-away-from-zero without float math: "+6,11". */
 function signed2(s: string): string {
