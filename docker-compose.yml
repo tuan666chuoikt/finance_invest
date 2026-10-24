@@ -1,4 +1,5 @@
-# Only web (8080) and api (8000) are published, and only on loopback (ADR-S-001, system.md section 5).
+# Only web (8080) and api (8001) are published, and only on loopback (ADR-S-001, system.md section 5).
+# 8000 is the sponsor's gateway, not ours.
 x-app-env: &app-env
   FINVEST_DATABASE_URL: postgresql+psycopg://finvest:${POSTGRES_PASSWORD:?copy .env.example to .env}@db:5432/finvest
   HOME: /tmp  # non-root user has no writable home
@@ -23,9 +24,13 @@ services:
     image: finvest-app:local
     user: "${FINVEST_UID:-1000}:${FINVEST_GID:-1000}"
     command: sh -c "alembic -c apps/api/alembic.ini upgrade head && uvicorn finvest_api.main:app --host 0.0.0.0 --port 8000"
-    environment: *app-env
+    environment:
+      <<: *app-env
+      FINVEST_DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8001:8000"
     depends_on:
       db:
         condition: service_healthy

@@ -12,7 +12,7 @@ import { Skeleton } from "./states";
 const arrow = (text: string) => (text.startsWith("+") ? "▲" : text.startsWith("−") ? "▼" : "=");
 const cls = (text: string) => (text.startsWith("+") ? "up" : text.startsWith("−") ? "down" : "zero");
 /** Sign for an integer-VND string; display only. */
-const signedVnd = (v: string) => (v.startsWith("-") ? `−${formatVnd(v.slice(1))}` : v === "0" ? formatVnd(v) : `+${formatVnd(v)}`);
+const signedVnd = (v: string) => (v.startsWith("-") || v === "0" ? formatVnd(v) : `+${formatVnd(v)}`);
 
 const CSS = `
 .sc-grid{display:grid;gap:16px;grid-template-columns:1fr}
@@ -99,6 +99,10 @@ export function ScenarioCard({ scenario: s, onEdit }: { scenario: Scenario; onEd
   const q = useWhatIf(s);
   if (q.isPending) return <Skeleton />;
   const code = q.error instanceof ApiError ? q.error.code : "INTERNAL";
+  const first = q.error instanceof ApiError ? q.error.details.first_available : undefined;
+  const reason = code === "NO_DATA" && typeof first === "string"
+    ? t("error.NO_DATA_before", { symbol: s.symbol, date: formatDate(first) })
+    : t(`error.${code}`, { defaultValue: t("error.INTERNAL") });
   return (
     <article className="sc-card" data-testid="scenario-card">
       <div className="row" style={{ display: "flex", justifyContent: "space-between" }}>
@@ -114,7 +118,7 @@ export function ScenarioCard({ scenario: s, onEdit }: { scenario: Scenario; onEd
       </div>
       {q.data ? <Body s={s} env={q.data} /> : (
         <div role="alert">
-          <p>{t("card.error", { reason: t(`error.${code}`, { defaultValue: t("error.INTERNAL") }) })}</p>
+          <p>{t("card.error", { reason })}</p>
           <button type="button" onClick={onEdit}>{t("card.edit")}</button>
         </div>
       )}

@@ -156,7 +156,7 @@ def test_f030_compose_publishes_only_api_on_loopback():
     svc = json.loads(out.stdout)["services"]
     ports = {n: s.get("ports", []) for n, s in svc.items()}
     assert ports["db"] == [] and ports["crawler"] == []
-    assert [(p["host_ip"], p["published"]) for p in ports["api"]] == [("127.0.0.1", "8000")]
+    assert [(p["host_ip"], p["published"]) for p in ports["api"]] == [("127.0.0.1", "8001")]
 
 
 def test_f030_make_crawl_takes_date():

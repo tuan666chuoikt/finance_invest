@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import "../../i18n";
+import i18n from "../../i18n";
 import raw from "./fixtures/envelope-001.json";
 import type { Scenario } from "./api";
 import { defaultName } from "./defaultName";
@@ -99,5 +99,36 @@ describe("ScenarioCard", () => {
     render(<QueryClientProvider client={qc}><ScenarioCard scenario={lump} onEdit={() => {}} /></QueryClientProvider>);
     expect(await screen.findByText("Không tính được: Không có dữ liệu cho yêu cầu này.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sửa" })).toBeInTheDocument();
+  });
+
+  it("NO_DATA with first_available names the symbol and date", async () => {
+    const body = { error: { code: "NO_DATA", message: "x", details: { first_available: "2025-01-02" } } };
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify(body), { status: 422 }))));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={qc}><ScenarioCard scenario={lump} onEdit={() => {}} /></QueryClientProvider>);
+    expect(await screen.findByText("Không tính được: Không có dữ liệu FPT trước 02/01/2025")).toBeInTheDocument();
+  });
+
+  it.each([[1, "1 session missing"], [2, "2 sessions missing"]])("EN plural: %i", async (n, text) => {
+    await i18n.changeLanguage("en");
+    await show(withResult({ missing_sessions: ["2026-03-04", "2026-03-05"].slice(0, n) }));
+    expect(screen.getByText(new RegExp(text))).toBeInTheDocument();
+    await i18n.changeLanguage("vi");
+  });
+
+  it("negative P/L never renders an ASCII hyphen before a digit", async () => {
+    const card = await show(withResult({ returns: { ...env001.result.returns, pl_vnd: { ...env001.result.returns.pl_vnd, value: "-19847507" }, pl_pct: { ...env001.result.returns.pl_pct, value: "-1.5" } } }));
+    expect(card.textContent).toContain("−19.847.507 ₫");
+    expect(card.textContent).not.toMatch(/-\d/);
+  });
+
+  it("skeleton is a named status region without aria-label", () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+    const qc = new QueryClient();
+    render(<QueryClientProvider client={qc}><ScenarioCard scenario={lump} onEdit={() => {}} /></QueryClientProvider>);
+    const sk = screen.getByRole("status");
+    expect(sk).toHaveAttribute("aria-busy", "true");
+    expect(sk).not.toHaveAttribute("aria-label");
+    expect(sk).toHaveTextContent("Đang tải…");
   });
 });
