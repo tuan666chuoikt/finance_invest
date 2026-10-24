@@ -25,5 +25,6 @@ Ports on loopback: web 8080, api 8001 (8000 is the sponsor's gateway).
 
 Past-day crawls probe FPT, HPG, VNM first: an empty tape counts as no trades only once a probe shows the source still serves that day; otherwise the day is `missed`, and a `missed` run never overwrites a stored `partial`/`complete` session.
 The `crawl_sessions` ledger keeps the richest replay: a replay with fewer rows (a `missed` run, or a `partial`/`source_no_longer_serves` the morning after) leaves the stored row alone; the manifest file on disk is always written.
+Ledger repair from ticks: migration 0008; re-runnable via `python -c 'from finvest_market_data.infrastructure import repositories as r; ...'` (`r.repair_crawl_sessions_from_ticks(conn)`) inside the api container.
 
 Daily bars (step 2 of a press): the two indices first, then the symbols. V2 serves one symbol per call (spike S-v2-batch, `BATCH_MAX = 1`), so a press and a full back-fill both cost about 1 780 requests, about 15 min at 2 req/s; a re-run resumes from the archive.
