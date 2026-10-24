@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from types import ModuleType
 
@@ -30,6 +31,8 @@ def run_bars_1d(
     conn: Connection | None = None,
     repo: ModuleType = repositories,  # tests pass an in-memory fake with the same functions
     today: date | None = None,  # VN calendar day; tests inject it
+    count: int = COUNT,
+    on_progress: Callable[[int, int], None] | None = None,  # (names done, names total)
 ) -> Manifest:
     today = today or datetime.now(VN).date()
     if run_date > today:
@@ -40,7 +43,7 @@ def run_bars_1d(
     conn = conn or own_engine.connect()  # type: ignore[union-attr]
     commit = conn.commit if own_engine else (lambda: None)  # we only commit what we opened
     try:
-        return _run(settings, run_date, only, fetcher, conn, repo, commit)
+        return _run(settings, run_date, only, fetcher, conn, repo, commit, count, on_progress)
     finally:
         if own_client:
             own_client.close()
@@ -53,7 +56,7 @@ def _line(*cols: object) -> bytes:
     return (",".join("" if c is None else str(c) for c in cols) + "\n").encode()
 
 
-def _run(settings, run_date, only, fetcher, conn, repo, commit) -> Manifest:  # noqa: ANN001
+def _run(settings, run_date, only, fetcher, conn, repo, commit, count=COUNT, on_progress=None) -> Manifest:  # noqa: ANN001
     started, req0 = datetime.now(UTC), fetcher.requests
     repo.fail_unfinished_runs(conn, FEED, run_date)
     run_id = repo.insert_crawl_run(conn, FEED, run_date, started)
@@ -73,20 +76,24 @@ def _run(settings, run_date, only, fetcher, conn, repo, commit) -> Manifest:  # 
         for i, name in enumerate(names):
             index = name in INDICES
             try:
-                bars = (source.index_bars([name], run_date, COUNT) if index
-                        else source.bars([name], "1d", run_date, COUNT))
+                bars = (source.index_bars([name], run_date, count) if index
+                        else source.bars([name], "1d", run_date, count))
             except SourceBlocked:
                 skipped += [(s, "source_blocked") for s in names[i:]]
                 status, reason = "blocked", "source_blocked"
                 break
             except (PayloadShapeError, httpx.HTTPError) as e:
                 skipped.append((name, _skip_reason(e)))
+                if on_progress:
+                    on_progress(i + 1, len(names))
                 continue
             if not bars:
                 no_trades.append(name)
+                if on_progress:
+                    on_progress(i + 1, len(names))
                 continue
             # one bar per day; the archive file name is the adapter's `<name>-1d-<count>`
-            mtime = fetcher.archive.path(FEED, run_date, f"{name}-1d-{COUNT}").stat().st_mtime
+            mtime = fetcher.archive.path(FEED, run_date, f"{name}-1d-{count}").stat().st_mtime
             if index:
                 repo.upsert_index_1d(conn, bars)
                 keys = [_line(b.index_code, b.trading_date, source.name, b.o, b.h, b.l, b.c, b.v, b.value)
@@ -100,6 +107,8 @@ def _run(settings, run_date, only, fetcher, conn, repo, commit) -> Manifest:  # 
                 digest.update(line)
             rows, fetched = rows + len(bars), fetched + 1
             print(json.dumps({"symbol": name, "rows": len(bars)}))
+            if on_progress:
+                on_progress(i + 1, len(names))
         if status == "complete" and skipped:
             status = "partial"
         assert fetched + len(no_trades) + len(skipped) == len(names), (
