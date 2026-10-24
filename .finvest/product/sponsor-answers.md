@@ -71,3 +71,8 @@ Mapping: SM merged sprint-01 into main (fast-forward). Standing rule: SM proceed
 > kích bản đầu tư có thể chọn nhiều kiểu như từ ngày nào đến ngày nào, bao nhiêu tiền
 
 Mapping: sponsor pulls the what-if scenarios + a multi-scenario dashboard (web UI) forward to the next sprint; scenario = symbol(s), start date, end date, amount (and other styles, e.g. DCA). Priority change, not new scope (PRD already has what-if and scenario compare).
+
+## 2026-10-24 — A23: usable product + manual crawl button
+> tiếp tục thực đến khi tôi sử dụng được sản phẩm và apply workflow giúp tôi và việc cào dữ liệu bây giờ sẽ có 1 nút bấm, cứ bấm vào sẽ cào, không cào tự động nữa
+
+Mapping: A23-1 finish sprint-03 (fix FE test bugs U1–U7, review, merge to main) until the sponsor can use the app. A23-2 run the build through the sprint workflow. A23-3 scope change: crawling is manual only — a button in the web app starts a crawl; the systemd timer is removed (SM ran `make uninstall-timers` 2026-10-24). Also: crawl failed 2026-10-19..23 with PermissionError (data/raw is root-owned); ticks for those days are lost.

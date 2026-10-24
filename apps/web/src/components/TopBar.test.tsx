@@ -102,3 +102,14 @@ test("tab order: nav, chip, crawl button, language switch", async () => {
     expect(el).toHaveFocus();
   }
 });
+
+test("every top-bar button is at least 24x24 px (WCAG 2.5.8)", async () => {
+  setup(OK);
+  await screen.findByTestId("freshness-chip");
+  const buttons = screen.getAllByRole("button");
+  expect(buttons.length).toBeGreaterThanOrEqual(3); // Menu, crawl, language
+  for (const b of buttons) {
+    const cs = getComputedStyle(b);
+    expect([cs.minHeight, cs.minWidth]).toEqual(["24px", "24px"]);
+  }
+});

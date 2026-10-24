@@ -140,6 +140,8 @@
   "crawl.unit.sessions": "sessions",
   "crawl.elapsed": "running {{time}}",
   "crawl.refused": "A crawl is already running (started {{at}}) — wait for it to finish",
+  "crawl.start_failed": "Could not start: {{cause}}",
+  "crawl.unreachable": "cannot reach the server",
   "crawl.done": "✓ Done {{at}} · {{parts}}",
   "crawl.done.ticks": "{{symbols}} symbols, {{rows}} ticks",
   "crawl.done.nosession": "No session today",

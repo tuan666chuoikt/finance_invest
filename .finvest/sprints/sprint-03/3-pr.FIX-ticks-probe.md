@@ -68,3 +68,7 @@ Files reviewed (fix delta `717c1ad..e71f52c`): `feeds/ticks.py`, `test_feed_tick
 ### Checks on H
 - `make test-kernel`: **207 passed, 22 deselected**; ruff "All checks passed!"; mypy "no issues"; lint-imports kept. Exit 0.
 - `pytest -m db` repositories_db + crawler tests against compose `finvest_test` (container IP): **20 passed**.
+- Base moved during merge (`sm.sh` refused at `f95dfe2`): re-synced with `origin/sprint-03` at `6120e23` (FE + `.finvest`
+  only, no `services/`/`packages/`/`apps/api` change), clean. **Final H = `1c2eabe`**; checks re-run on it: kernel
+  207 passed / 22 deselected, ruff/mypy/lint-imports clean; db 20 passed.
+- **Merged** into `sprint-03`: merge sha `e2ff2e3` (base `6120e23`, head `1c2eabe`). Worktree removed.

@@ -11,6 +11,7 @@ import { LangSwitch } from "./LangSwitch";
 // Below 768 px the nav hides behind the menu button; CSS only, so jsdom tests see both.
 const CSS = `
 .tb{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.tb button,.tb a{min-height:24px;min-width:24px}
 .tb-menu{display:none}
 @media (max-width:767px){.tb-menu{display:inline-block}.tb-nav{display:none;width:100%}.tb-nav[data-open=true]{display:flex;flex-direction:column}}
 .tb-nav{display:flex;gap:12px}`;
@@ -36,7 +37,7 @@ export function TopBar() {
       <FreshnessChip />
       <CrawlButton job={crawl.job} running={crawl.running} onClick={crawl.start} />
       <LangSwitch />
-      <CrawlStatus job={crawl.job} refused={crawl.refused} />
+      <CrawlStatus job={crawl.job} refused={crawl.refused} startError={crawl.startError} />
     </header>
   );
 }

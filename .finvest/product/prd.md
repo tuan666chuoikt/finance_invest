@@ -1,6 +1,6 @@
 # Finvest — Product Requirements Document (PRD)
 
-Owner: `fi-po`. Status: **Approved v2** (sponsor, 2026-10-15; v1 archived as `prd.prev-1.md`).
+Owner: `fi-po`. Status: **Approved v2, revised v2.1** (A23 manual crawl, 2026-10-24; v2 archived as `prd.prev-2.md`, v1 as `prd.prev-1.md`).
 Inputs: `product/brief.md`, `product/sponsor-answers.md` (A1–A4, 2026-10-14 21:57; A5–A12, 2026-10-15 18:15),
 `knowledge/vn-market.md` (cited as VN§n), `docs/00-kha-thi.md`, `docs/04-lo-trinh-hoc.md` (levels L1–L8).
 Anything the sponsor has not confirmed is tagged `[assumed]`. Free data only; anything that costs money is an
@@ -14,7 +14,7 @@ corporate actions; whether a "best strategy" would have survived the next week; 
 opinion) accompanied a price move. Finvest is a personal learning lab that computes these honestly, shows
 every formula and data timestamp, and grows its own fine-grained data store from day one, because free tick
 history does not exist before we start crawling. The data exists to **simulate scenarios**, not to monitor or
-trade live (A7): the store is built best-effort while the sponsor's machine is on, and every hole is shown.
+trade live (A7): the store is built best-effort when the sponsor presses Crawl (A23), and every hole is shown.
 
 ## 2. Users
 
@@ -110,7 +110,7 @@ Each requirement: priority · learning outcome (L#) · acceptance the PM turns i
   delisting date, ICB sector, index membership history (VN30 etc.). Delisted symbols are kept (survivorship
   control for PR-075). Refreshed daily.
 - **PR-004 (S)** Session-phase service: current phase per venue (pre-open, ATO, continuous, break, ATC,
-  post-close, closed, holiday) used by the board and the crawler scheduler.
+  post-close, closed, holiday) used by the board and the crawler.
 
 ### 7.2 Data foundation (crawler and store) — release R1
 
@@ -125,8 +125,8 @@ Each requirement: priority · learning outcome (L#) · acceptance the PM turns i
   data-quality page. *Acceptance:* worked example for one stock with a cash dividend and one bonus issue in
   tests.
 - **PR-013 (M)** **Tick crawl after close for all symbols, best-effort** (A1, A7): time, price, volume,
-  side where given (VN§8). Raw payload archived, normalised rows stored compressed. Runs when the machine
-  is on (PR-020); a missed session is recorded as a gap, never back-filled silently. *Acceptance:* a
+  side where given (VN§8). Raw payload archived, normalised rows stored compressed. Runs when the sponsor
+  presses Crawl (PR-020); a missed session is recorded as a gap, never back-filled silently. *Acceptance:* a
   per-session manifest (symbols fetched, rows, checksum, skipped symbols, or "session missed: reason");
   re-run is idempotent; 0 silent gaps (G1). `[assumed]` the free endpoint allows a full-market pass within
   the evening at its rate limits; if not, priority order = watchlist → VN30 → HOSE → HNX → UPCoM and the
@@ -147,11 +147,12 @@ Each requirement: priority · learning outcome (L#) · acceptance the PM turns i
 - **PR-019 (C, R6)** News headlines: title, time, URL, tagged symbols, from RSS/public pages whose terms
   allow it. Headline and link only; no article body stored; no summarisation (A4). **Deferred to a later
   release (A9).**
-- **PR-020 (S)** Scheduler, best-effort (A7): the after-close crawl runs from a timer (systemd or
-  equivalent) at 15:30 with a retry at 20:00; if the machine was off, it runs at next boot and fetches the
-  day's ticks only if the source still serves them `[assumed usually not]`, otherwise records the gap. A
-  missed or partial run is shown on the data-quality page; manual re-run for a date. No always-on machine,
-  no secondary device, no alerting is required.
+- **PR-020 (S)** Manual crawl, best-effort (A7, A23): a **Crawl** button in the web app starts the
+  after-close crawl for the current session; there is no timer, scheduled or automatic crawl. The button
+  shows running/done/failed and the last crawl time; pressing it again is idempotent (PR-013); manual
+  re-run for a date. A missed or partial run is shown on the data-quality page. No always-on machine, no
+  secondary device, no alerting is required. **Risk:** ticks are free only for the current day, so a day
+  without a press loses that day's ticks (C1); the sponsor accepts this (A23).
 - **PR-021 (C, R6)** Financial statements and ratios (P/E, P/B, ROE, growth) per symbol, quarterly (L7).
 
 ### 7.3 What-if simulator — release R2 (L2, L3)
@@ -289,13 +290,13 @@ Each requirement: priority · learning outcome (L#) · acceptance the PM turns i
 ### Count
 
 61 requirements: 34 Must, 16 Should, 11 Could; Won't items are listed in §6, not as PR-###.
-(v1→v2: PR-020 M→S, PR-092 S→C, PR-136 S→C, PR-137 added as M; PR-019/092 moved to R6.)
+(v1→v2: PR-020 M→S, PR-092 S→C, PR-136 S→C, PR-137 added as M; PR-019/092 moved to R6. v2.1: PR-020 timer → manual button, A23.)
 
 ## 8. Releases and release criteria
 
 | Release | Content (PR) | Learning | Release criteria |
 |---|---|---|---|
-| **R1 Data foundation** (first; start the tick crawl as early as possible, C1) | 001–004, 010–013, 016, 017, 020, 130–133, 135, 137 | L1 (raw data, adjusted prices) | Tick manifests for ≥ 5 sessions (need not be consecutive) with 0 silent gaps and every missed session listed with a reason; daily OHLCV ≥ 99.5% coverage; adjusted series reconciled for VN30 with mismatches listed; rules page shows verification status; timer ran for a week with no manual start on days the machine was on; UI switches EN/VI |
+| **R1 Data foundation** (first; start the tick crawl as early as possible, C1) | 001–004, 010–013, 016, 017, 020, 130–133, 135, 137 | L1 (raw data, adjusted prices) | Tick manifests for ≥ 5 sessions (need not be consecutive) with 0 silent gaps and every missed session listed with a reason; daily OHLCV ≥ 99.5% coverage; adjusted series reconciled for VN30 with mismatches listed; rules page shows verification status; Crawl button started ≥ 5 crawls from the web app; UI switches EN/VI |
 | **R2 What-if** | 030–034, 037, 039, 110, 111 | L2 | All golden cases pass (1 VND); what-if vs adjusted-series return within 0.05% on 10 dividend stocks; benchmark shown; "how computed" on every figure; disclaimer on screen |
 | **R3 Price board** | 050, 051, 056, 053, 014, 015, 052, 054, 055 | L1 | Watchlist ≤ 5 s median in session, stale badge verified by cutting the source; all states (empty, loading, error, stale, closed, holiday) have UX specs and tests; colours match VN§3 for ceiling/floor/reference cases |
 | **R4 Scenarios** | 070–073, 075, 078, 035, 036, 074, 134 | L3, L4, L5 | Look-ahead test passes; same engine as R2 (shared tests); every ranking renders with OOS column; a documented walk-forward example on "best of last 7 days" |
@@ -312,12 +313,12 @@ Common Done criteria (every release): numbers verified against an independent ca
 | Free endpoint changes/blocks | PR-016 adapters + fixtures, PR-017 visibility, PR-051 stale states, PR-135 backoff; second source as a follow-up |
 | Wrong return math | PR-037 golden cases, PR-012 reconciliation, PR-032 agreement test, opus-reviewed PRs for money math |
 | Learning the wrong lesson (hindsight) | PR-073 mandatory OOS, PR-071 `as_of`, PR-074 sensitivity, PR-075 survivorship |
-| Missed crawl days = permanent tick holes | Accepted (A7, C11): holes are listed, not hidden (PR-013/017); simulation runs on daily + 1m (C3), never requires ticks; PR-020 timer + boot catch-up; R1 first |
+| Missed crawl days = permanent tick holes | Accepted (A7, C11): holes are listed, not hidden (PR-013/017); simulation runs on daily + 1m (C3), never requires ticks; PR-020 is a manual button (A23): a day without a press is a lost day of ticks; R1 first |
 | Data loss (same-disk store, no backup) | PR-136 Could + "no backup configured" notice on the data-quality page; daily/1m can be re-fetched from sources, only ticks are lost |
 | Scope creep into "trading tool" | §6 out-of-scope, PR-130 tests |
 
 ## Open questions for the sponsor
 
-Answered: A1–A12 (see `product/sponsor-answers.md`; A5, A6, A10, A11 as proposed; A7, A8, A9, A12 applied
+Answered: A1–A12, A23 (see `product/sponsor-answers.md`; A5, A6, A10, A11 as proposed; A7, A8, A9, A12, A23 applied
 above). No new questions — the remaining `[assumed]` tags are technical and the team will settle them in R1;
 the next label, if needed, is A13.

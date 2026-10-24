@@ -1,0 +1,364 @@
+{
+  "sprint": "sprint-03",
+  "plan": "v1.0",
+  "dagRev": 5,
+  "tasks": [
+    {
+      "id": "BE-rules-costs",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M1",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 90
+    },
+    {
+      "id": "AI-analytics-scaffold",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 190
+    },
+    {
+      "id": "AI-whatif-lumpsum",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [
+        "AI-analytics-scaffold",
+        "BE-rules-costs"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 250
+    },
+    {
+      "id": "AI-whatif-dca",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [
+        "AI-whatif-lumpsum"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": false,
+      "size": 410
+    },
+    {
+      "id": "AI-whatif-benchmarks",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M4",
+      "after": [
+        "AI-whatif-dca",
+        "FIX-index-value"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 5,
+      "manual": false,
+      "size": 340
+    },
+    {
+      "id": "BE-api-symbols-bars",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 200
+    },
+    {
+      "id": "BE-scenarios-api",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M3",
+      "after": [
+        "BE-api-symbols-bars"
+      ],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 230
+    },
+    {
+      "id": "BE-contracts-ts",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [
+        "BE-scenarios-api",
+        "FE-web-scaffold"
+      ],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 80
+    },
+    {
+      "id": "BE-market-view",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [
+        "AI-analytics-scaffold"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 170
+    },
+    {
+      "id": "BE-whatif-api",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [
+        "AI-whatif-lumpsum",
+        "BE-market-view",
+        "BE-contracts-ts"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": false,
+      "size": 160
+    },
+    {
+      "id": "S-etf-bars",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M4",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 4,
+      "manual": false,
+      "size": 30
+    },
+    {
+      "id": "FE-web-scaffold",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 300
+    },
+    {
+      "id": "FE-shell-bar",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M1",
+      "after": [
+        "FE-web-scaffold"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 210
+    },
+    {
+      "id": "FE-disclaimer",
+      "side": "fe",
+      "lane": "FE-2",
+      "milestone": "M3",
+      "after": [
+        "FE-web-scaffold"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 70
+    },
+    {
+      "id": "FE-how-computed",
+      "side": "fe",
+      "lane": "FE-2",
+      "milestone": "M4",
+      "after": [
+        "FE-disclaimer"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": false,
+      "size": 200
+    },
+    {
+      "id": "FE-sparkline",
+      "side": "fe",
+      "lane": "FE-2",
+      "milestone": "M3",
+      "after": [
+        "FE-how-computed"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": false,
+      "size": 150
+    },
+    {
+      "id": "FE-scenario-form",
+      "side": "fe",
+      "lane": "FE-2",
+      "milestone": "M3",
+      "after": [
+        "FE-sparkline",
+        "BE-contracts-ts"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 4,
+      "manual": false,
+      "size": 300
+    },
+    {
+      "id": "FE-scenario-cards",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M3",
+      "after": [
+        "FE-shell-bar",
+        "FE-scenario-form",
+        "FE-how-computed",
+        "FE-sparkline",
+        "BE-whatif-api"
+      ],
+      "effort": "high",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 4,
+      "manual": false,
+      "size": 250
+    },
+    {
+      "id": "FE-scenario-table",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M3",
+      "after": [
+        "FE-scenario-cards"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 5,
+      "manual": false,
+      "size": 190
+    },
+    {
+      "id": "OPS-web-compose",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M3",
+      "after": [
+        "FE-web-scaffold"
+      ],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": false,
+      "size": 90
+    },
+    {
+      "id": "FIX-ticks-probe",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 120
+    },
+    {
+      "id": "FIX-index-value",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 110
+    },
+    {
+      "id": "FIX-whatif-empty-history",
+      "side": "ai",
+      "lane": "BE-3",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 70
+    },
+    {
+      "id": "FIX-symbols-exact-first",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 30
+    }
+  ],
+  "_doc": {
+    "after": "ids that must be MERGED into sprint-03 before this task starts; sprint-02 is merged, so [] = start now",
+    "side": "fe | be | ai (ai = services/analytics, reviewed by the BE lead)",
+    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest incl. FIX-* (sprint-02 review, LIVE-03 smoke): 2-tech-plan.md"
+  }
+}

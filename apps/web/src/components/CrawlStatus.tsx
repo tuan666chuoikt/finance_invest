@@ -50,7 +50,7 @@ function text(t: TFunction, job: Job, now: number): string | null {
   return [t("crawl.error", { message: e.message ?? "", code: e.code ?? "?" }), ...where].join(" · ");
 }
 
-export function CrawlStatus({ job, refused }: { job: Job | null; refused: string | null }) {
+export function CrawlStatus({ job, refused, startError }: { job: Job | null; refused: string | null; startError?: { code: string; message: string } | null }) {
   const { t } = useTranslation();
   const [now, setNow] = useState(Date.now());
   const [dismissed, setDismissed] = useState<number | null>(null);
@@ -66,7 +66,8 @@ export function CrawlStatus({ job, refused }: { job: Job | null; refused: string
   }, [running]);
   // A done job from an earlier visit is not news (the button tooltip has it); a failure always shows.
   const shown = job && ["running", "done", "failed"].includes(job.status) && dismissed !== job.id && (job.status !== "done" || sawRunning || running);
-  const lines = [refused !== null && t("crawl.refused", { at: refused ? hhmm(refused) : "?" }), shown && text(t, job, now)].filter(Boolean);
+  const cause = startError && (startError.code === "UNREACHABLE" ? t("crawl.unreachable") : startError.message);
+  const lines = [startError && t("crawl.start_failed", { cause }), refused !== null && t("crawl.refused", { at: refused ? hhmm(refused) : "?" }), shown && text(t, job, now)].filter(Boolean);
   if (!lines.length) return null;
   return (
     <div role="status" aria-live="polite" data-testid="crawl-status" style={{ flexBasis: "100%" }}>

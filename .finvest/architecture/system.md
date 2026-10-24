@@ -27,7 +27,7 @@ Owner: `fi-software-architect`. Status: **v1, 2026-10-15** (inception, for R1 wi
 | Database | PostgreSQL 16 + TimescaleDB 2.x (Apache + Timescale Community licence, free self-hosted) in Docker | one SQL store for ticks (compressed hypertables) and everything else; ADR-S-001 |
 | Backend | Python 3.12, FastAPI + Pydantic v2, SQLAlchemy Core + psycopg 3, Alembic, `uv` for deps | data ecosystem, OpenAPI for free, typed contracts |
 | Crawler | same Python package (`services/crawler`), CLI `finvest-crawl`, `httpx` + on-disk raw archive, own adapters (ADR-S-002) | vnstock not usable (data.md §1.1) |
-| Scheduler | **systemd user timers** on the host calling `docker compose run --rm crawler …` (ADR-S-009) | PR-020 asks for a timer; survives reboots with `Persistent=true`; no in-process scheduler to babysit |
+| Scheduler | **none since 2026-10-24 (A23)**: crawling is manual — the web's "Cào dữ liệu" button starts a background job inside the api container (platform.md §2.6) or the CLI is run by hand; ADR-S-009's timers are retired | sponsor decision A23; one user, one machine |
 | Analytics | Python package `services/analytics` imported by the API (no separate service in v1) | AI architect owns; same engine for what-if and backtest (PR-071) |
 | Frontend | React 18 + Vite + TypeScript, TanStack Query, TanStack Table (virtualised), `lightweight-charts`, i18next with EN/VI JSON | ADR-S-004 |
 | Realtime (R3) | **HTTP polling** of `GET /api/board/watchlist` every 3 s (ADR-S-004 §realtime); SSE only if polling misses N4 | least code that meets G6 |
@@ -39,10 +39,10 @@ Owner: `fi-software-architect`. Status: **v1, 2026-10-15** (inception, for R1 wi
 ```
 host (Ubuntu)                                   docker compose (network: localhost only)
 ┌──────────────────────────────┐      ┌───────────────────────────────────────────────────────────┐
-│ systemd user timers          │      │  web   (vite dev / nginx static)  127.0.0.1:5173|8080      │
-│  finvest-crawl@close  15:30  │      │        │ REST /api/*  (JSON, OpenAPI)                       │
-│  finvest-crawl@retry  20:00  │──────┼─►api   (FastAPI)  127.0.0.1:8000                           │
-│  finvest-catchup  OnBoot     │ run  │        │ imports services/analytics (R2+)                  │
+│ sponsor (browser / make)     │      │  web   (vite dev / nginx static)  127.0.0.1:5173|8080      │
+│  button "Cào dữ liệu"        │      │        │ REST /api/*  (JSON, OpenAPI)                       │
+│  → POST /api/jobs {crawl}    │──────┼─►api   (FastAPI)  127.0.0.1:8001 (+ crawl thread)         │
+│  make crawl DATE= (CLI)      │ run  │        │ imports services/analytics (R2+)                  │
 └──────────────────────────────┘      │        ▼ SQL                                               │
                                       │  db    (postgres16 + timescaledb)  volume data/pg/          │
                                       │        ▲ upsert (natural keys)                              │
@@ -62,7 +62,7 @@ host (Ubuntu)                                   docker compose (network: localho
 | `packages/contracts` | OpenAPI JSON exported from the API → TS types for the web | BE |
 | `db` | schema in data.md §3; Alembic migrations in `apps/api/migrations/` | BE |
 
-Data flow, after close (R1): timer → `crawler close_snapshot` (SSI, 3 calls → nominal daily + flows) →
+Data flow, after close (R1): button/CLI → `crawler close_snapshot` (SSI, 3 calls → nominal daily + flows) →
 `crawler ticks` (KBS per symbol → raw gz → normalise → upsert → manifest) → `bars_1d_src` (VCI, adjusted) →
 `corporate_actions` (VCI IQ) → `adj_factors` recompute → `recon` + anomalies → data-quality page reads tables.
 
@@ -88,11 +88,11 @@ Data flow, after close (R1): timer → `crawler close_snapshot` (SSI, 3 calls �
 
 - `docker compose up -d` starts `db`, `api`, `web`; `docker compose run --rm crawler <feed> --date YYYY-MM-DD`
   runs one feed; `make crawl DATE=…` wraps it (F-030). Profiles: `dev` (Vite with HMR), `prod` (nginx static).
-- Ports bind `127.0.0.1` only (compose `ports: "127.0.0.1:8000:8000"`); Postgres is not published to the host at
+- Ports bind `127.0.0.1` only (compose `ports: "127.0.0.1:8001:8000"` — host 8000 belongs to the sponsor's gateway since
+  2026-10-24; the browser uses web 8080 which proxies `/api/` inside compose); Postgres is not published to the host at
   all (API/crawler reach it on the compose network). No auth `[assumed, PR-131]`.
-- `systemd --user` units installed by `make install-timers` (templates in `ops/systemd/`); `loginctl
-  enable-linger $USER` so timers run without a login session. Timers: 15:30 and 20:00 Mon–Fri
-  (`OnCalendar`), `finvest-catchup.service` `WantedBy=default.target` with a 3-min delay after boot.
+- No timer, cron or boot job (A23, 2026-10-24): the api container mounts `./data:/app/data` and runs the crawl as a
+  background thread (platform.md §2.6); `ops/systemd/` and `make install-timers` are removed (OPS-crawl-manual).
 - Backups: none in v1 (PR-136 Could); the data-quality page shows "No backup configured".
 - Logs: structured JSON to stdout (compose logs) + `crawl_runs` rows; no external services.
 - Upgrades: Alembic migrations run by the API at start-up (`alembic upgrade head`) — single user, so safe.
