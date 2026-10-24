@@ -24,13 +24,15 @@ class Clock:
 
 
 def make(tmp_path, responses, rate=2.0):
-    """responses: list of (status, body) served in order; returns fetcher, clock, seen requests."""
+    """responses: (status, body) or an exception, served in order; returns fetcher, clock, seen requests."""
     clock, seen, it = Clock(), [], iter(responses)
 
     def handler(req):
         seen.append(req)
-        s, body = next(it)
-        return httpx.Response(s, content=body)
+        x = next(it)
+        if isinstance(x, Exception):
+            raise x
+        return httpx.Response(x[0], content=x[1])
 
     buckets = {k: TokenBucket(rate, clock=clock.now, sleep=clock.sleep) for k in ("kbs", "vci")}
     f = Fetcher(httpx.Client(transport=httpx.MockTransport(handler)), buckets, Archive(tmp_path), UA,
@@ -106,3 +108,26 @@ def test_archive_false_returns_body_without_writing(tmp_path):
     f, _, seen = make(tmp_path, [(200, b"{}")])
     assert f.get("kbs", URL, feed="ticks", trading_date=D, name="a", archive=False) == b"{}"
     assert len(seen) == 1 and f.requests == 1 and Archive(tmp_path).read("ticks", D, "a") is None
+
+
+T = httpx.ReadTimeout("held")
+
+
+def test_three_timeouts_are_blocked(tmp_path):
+    f, clock, seen = make(tmp_path, [T, T, T])
+    with pytest.raises(SourceBlocked, match="timed out") as e:
+        get(f)
+    assert e.value.last_status == 0 and len(seen) == 3
+    assert [s for k, s in (x for x in clock.sleeps if isinstance(x, tuple))] == [1, 2]
+
+
+def test_timeout_then_success_resets(tmp_path):
+    f, _, seen = make(tmp_path, [T, T, (200, b"{}")])
+    assert get(f) == b"{}" and len(seen) == 3
+
+
+def test_418_after_a_timeout_is_still_blocked_at_the_third_try(tmp_path):
+    f, _, seen = make(tmp_path, [T, (418, b""), (418, b"")])
+    with pytest.raises(SourceBlocked) as e:
+        get(f)
+    assert e.value.last_status == 418 and len(seen) == 3
