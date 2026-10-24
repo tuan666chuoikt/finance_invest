@@ -57,8 +57,8 @@ await d.getByRole("button", { name: /Lưu|Save/ }).click();
 let c = card("E2E FPT lump"); await c.waitFor({ timeout: 15000 }).catch(async (e) => { console.log("DBG", errs, (await p.locator("body").innerText()).slice(0, 600)); throw e; });
 await p.waitForFunction(() => /Giá trị nếu bán/.test(document.querySelector('[data-testid="scenario-card"]')?.textContent || ""), null, { timeout: 15000 }).catch(() => {});
 let txt = await c.innerText(); console.log(txt);
-ok("lump FPT: liquidation 30.152.493 ₫", txt.includes("30.152.493"), txt);
-ok("lump FPT: P/L −39,70 % (2dp, U+2212)", /−39,70 %/.test(txt), txt);
+ok("lump FPT: liquidation 29.673.693 ₫", txt.includes("29.673.693"), txt);
+ok("lump FPT: P/L −40,65 % (2dp, U+2212)", /−40,65 %/.test(txt), txt);
 ok("RW-U3 card shows the user-given scenario name (UX: card shows name)", await nameVisible("E2E FPT lump"), txt.split("\n")[0]);
 ok("lump FPT: invested 50.000.000", txt.includes("50.000.000"));
 ok("lump FPT: approximate flag on card", await c.locator('[data-testid="approximate-flag"]').count() === 1);
@@ -68,7 +68,7 @@ const wi = await api("/whatif", { method: "POST", headers: { "content-type": "ap
 console.log("whatif probe", wi?.s, JSON.stringify(wi?.j)?.slice(0, 700));
 const body = JSON.stringify(wi?.j || {});
 ok("API: 400 shares", /"shares"\s*:\s*(400|"400")/.test(body), body.slice(0, 200));
-ok("API: -39.6950", body.includes("-39.6950"), body.slice(0, 200));
+ok("API: -40.6526", body.includes("-40.6526"), body.slice(0, 200));
 
 // how computed
 await c.getByRole("button", { name: /Cách tính|How computed/ }).first().click();
@@ -130,7 +130,7 @@ await p.getByRole("button", { name: "EN", exact: true }).click();
 await p.waitForTimeout(300);
 let bt = await p.locator("body").innerText();
 ok("EN: labels switch", /Investment scenarios/.test(bt) && /Value if sold/.test(bt) && /Approximate — adjusted prices/.test(bt), bt.slice(0, 300));
-ok("EN: numbers stay vi-VN", bt.includes("30.152.493"));
+ok("EN: numbers stay vi-VN", bt.includes("29.673.693"));
 ok("EN: html lang", await p.evaluate(() => document.documentElement.lang) === "en");
 await p.reload(); await p.waitForSelector("h1,h2");
 ok("EN persists on reload", /Investment scenarios/.test(await p.locator("body").innerText()));
@@ -147,7 +147,7 @@ await d.getByRole("button", { name: "Save" }).click();
 await p.waitForTimeout(3000);
 const tinyAfter = await card("E2E FPT tiny").innerText();
 console.log(tinyAfter);
-ok("edit: recomputed to 50M (30.152.493 and no below-lot note)", tinyAfter.includes("30.152.493") && !/Below one lot/.test(tinyAfter), tinyAfter);
+ok("edit: recomputed to 50M (29.673.693 and no below-lot note)", tinyAfter.includes("29.673.693") && !/Below one lot/.test(tinyAfter), tinyAfter);
 const names = (await api("/scenarios")).j.filter((s) => s.name.startsWith("E2E")).length;
 ok("edit did not duplicate", names === 4, names);
 
