@@ -102,3 +102,12 @@
 2026-10-24 15:10 | fe-test | sprint-03-retest         | red       | vitest 78/78; real-stack 40/40; crawl-button 45/4 fail (C1 major,C2,S1 minor) | 4-test.fe.md
 2026-10-24 15:11 | arch    | sprint-03                | note      | rework T1-T4: dag rev 8, +4 tasks (S-v2-batch, BE-bars-batch, FIX-session-ledger, FIX-whatif-nodata-msg); platform v1.10 | sprints/sprint-03/2-tech-plan.md
 2026-10-24 15:11 | arch    | sprint-03                | note      | rework +FE-fix-crawl-c1-c2-s1 (4-test.fe C1/C2/S1), dag rev 9, 37 tasks | sprints/sprint-03/2-tech-plan.md
+2026-10-24 15:13 | sm      | BUILD-rev9               | started   | 5 tasks (T1-T4, C1/C2/S1) | -
+2026-10-24 15:15 | dev     | FE-fix-crawl-c1-c2-s1    | pr-open   | tsc 0, vitest 76/76, +63/-6 | 3-build.FE-fix-crawl-c1-c2-s1.md
+2026-10-24 15:16 | dev     | FIX-session-ledger       | pr-open   | market_data 27 passed, ruff clean | 3-build.FIX-session-ledger.md
+2026-10-24 15:16 | lead    | FE-fix-crawl-c1-c2-s1    | merged    | 51bea2f; tsc 0, vitest 76/76; +63/-6 | .finvest/sprints/sprint-03/3-pr.FE-fix-crawl-c1-c2-s1.md
+2026-10-24 15:17 | dev     | FIX-whatif-nodata-msg    | pr-open   | 227 passed, ruff/mypy/lint-imports clean, 4 files | 3-build.FIX-whatif-nodata-msg.md
+2026-10-24 15:18 | dev     | S-v2-batch               | blocked   | V2 gap-chart returned HTTP 418 (30 s, 0 bytes) on 5/6 live calls incl. 1-symbol; no fixture | 3-build.S-v2-batch.md
+2026-10-24 15:18 | sm      | S-v2-batch               | note      | SM: V2 418 = source IP block (no job running); no header spoofing; retry spike later, others continue | -
+2026-10-24 15:19 | lead    | FIX-session-ledger       | merged    | 458c8d6; 0 must-fix, 4 nits; db 24 passed, kernel 226 passed, lint-imports 5/0 | 3-pr.FIX-session-ledger.md
+2026-10-24 15:20 | lead    | FIX-whatif-nodata-msg    | merged    | 481a424; kernel 227 passed, api+analytics 80 passed, 0 must-fix | 3-pr.FIX-whatif-nodata-msg.md
