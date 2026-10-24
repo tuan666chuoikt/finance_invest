@@ -33,12 +33,12 @@ def run_whatif(
     if first is None:
         raise AnalyticsError("SYMBOL_UNKNOWN", {"symbol": sym})
     if req.buy_date < first:
-        raise AnalyticsError("NO_DATA", {"first_available": first.isoformat()})
+        raise AnalyticsError("NO_DATA", {"symbol": sym, "first_available": first.isoformat()})
     # validation only: this history read never feeds a number; bounded by date.max, not view.snapshot()
     # (a SqlMarketView has served nothing yet, so its snapshot() is not a usable "today")
     bar_days = sorted(b.trading_date for b in view.bars_1d(sym, first, date.max, as_of=date.max))
     if not bar_days:
-        raise AnalyticsError("NO_DATA", {"first_available": first.isoformat()})
+        raise AnalyticsError("NO_DATA", {"symbol": sym, "first_available": first.isoformat()})
     last = bar_days[-1]
     if req.buy_date > last:
         raise AnalyticsError(

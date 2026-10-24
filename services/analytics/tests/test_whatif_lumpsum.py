@@ -34,7 +34,7 @@ def err(req=None, **vk):
 def test_validation_errors():
     assert err({"sell_date": "2026-10-09"}).code == "VALIDATION"
     e = err({"buy_date": "2026-09-30"})
-    assert (e.code, e.details) == ("NO_DATA", {"first_available": "2026-10-01"})
+    assert (e.code, e.details) == ("NO_DATA", {"symbol": "FPT", "first_available": "2026-10-01"})
     e = err({"buy_date": "2026-10-16", "sell_date": None})
     assert (e.code, e.details["last_available"]) == ("VALIDATION", "2026-10-15")
     assert err({"symbol": "XXX"}).code == "SYMBOL_UNKNOWN"
@@ -127,4 +127,4 @@ def test_history_hidden_by_as_of_is_no_data():
     view.bars_1d = lambda *a, **k: []
     with pytest.raises(AnalyticsError) as e:
         run_whatif(WhatIfRequest(**{**REQ, "buy_date": "2026-10-02"}), view)
-    assert (e.value.code, e.value.details) == ("NO_DATA", {"first_available": "2026-10-01"})
+    assert (e.value.code, e.value.details) == ("NO_DATA", {"symbol": "FPT", "first_available": "2026-10-01"})
