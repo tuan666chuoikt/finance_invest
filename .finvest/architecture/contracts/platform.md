@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.8, 2026-10-24** (§2.6 manual crawl job for F-034/A23, nullable `first_available`, scenario save checks the first bar — RW-U1/U4; v1.7 = `platform.prev-8.md`) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.9, 2026-10-24** (§2.6 `sessions_added`, `count` and `symbols_skipped` defined, §1.3 `JOB_RUNNING` — BE-jobs-crawl consult; v1.8 = `platform.prev-9.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -24,7 +24,7 @@ Base URL `http://127.0.0.1:8000/api`. No version prefix in v1 (single user); bre
 ```json
 { "error": { "code": "NOT_TRADING_DAY", "message": "2026-10-18 is a Saturday", "details": {"date": "2026-10-18"} } }
 ```
-HTTP → code: 400 `VALIDATION` · 404 `NOT_FOUND` · 409 `JOB_ALREADY_RUNNING` · 422 `NOT_TRADING_DAY`, `SYMBOL_UNKNOWN`,
+HTTP → code: 400 `VALIDATION` · 404 `NOT_FOUND` · 409 `JOB_RUNNING` · 422 `NOT_TRADING_DAY`, `SYMBOL_UNKNOWN`,
 `RANGE_TOO_LARGE` · 503 `DB_UNAVAILABLE`, `SOURCE_BLOCKED` · 500 `INTERNAL` (no stack trace in body).
 Messages are English; the web maps `code` to EN/VI text (i18n key `error.<code>`).
 
@@ -149,13 +149,16 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   "summary": null, "error": null }
 ```
   Finished: `summary = { "ticks": {"trading_date", "status", "symbols_fetched", "rows", "symbols_skipped", "partial_until"} | null,
-  "bars_1d": {"sessions_added", "symbols_fetched", "symbols_skipped"}, "no_session_today": bool, "duration_s": 221 }`;
+  "bars_1d": {"sessions_added", "symbols_fetched", "symbols_skipped"}, "no_session_today": bool, "duration_s": 221 }`.
+  `symbols_skipped` is a count (v1.9). `sessions_added` is not in any manifest: it is
+  `COUNT(DISTINCT trading_date)` of `bars_1d_src` after step 2 minus the same count before it (v1.9);
   failed: `error = {"code": "PermissionError" | "SourceBlocked" | "HTTPError" | …, "message", "path"?, "source"?, "http_status"?}`
   (always the cause **and** the path or source, UX app-shell.md §Crawl button) and `summary` keeps whatever steps finished.
 - What the job does (VN time): step 1 — if today is a trading day (`finvest_rules` calendar, VN§sessions) run
   `run_ticks(today)`; before 15:00 the manifest is `partial` (platform.md §4) and `summary.ticks.partial_until` = now; a
   non-trading day skips step 1 and sets `no_session_today: true`. Step 2 — `run_bars_1d(today, count = trading days since the
-  oldest last bar of `bars_1d_src`/`index_1d` + 2, min 5)`: catches up daily bars for every symbol and index (F-012 resume
+  older of the two table maxima MAX(trading_date) of `bars_1d_src` and `index_1d` + 2, min 5; an empty table is ignored,
+  `COUNT` only when both are empty — v1.9: so while `index_1d` is empty the job does not back-fill indices; `make backfill` does)`: catches up daily bars for every symbol and index (F-012 resume
   semantics, idempotent upserts). A `CatchupFailed`-style partial result is `failed` with the error of the raising step.
 - Progress: `done/total` are symbols in step 1 and names in step 2; the runner updates the row at most every 2 s.
 - Crash safety: on api start-up every `running` job is set `failed`, `error.code = "interrupted"` (the thread died with the

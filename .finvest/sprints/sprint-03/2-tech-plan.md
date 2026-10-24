@@ -619,7 +619,7 @@ Slip order (1-sprint-plan): FE-fix-u5-u7 first (should items), never FE-fix-u1/u
 - Out of scope: incremental per-symbol `from` dates (adapter API has `to, count` only), any api code.
 
 #### BE-jobs-crawl — F-034: `jobs` table, crawl runner thread, `POST /api/jobs`, `GET /api/jobs/current|{id}`, 409 lock
-- Story: F-034 ; Side: be ; Effort: high ; Size: ~240 lines (≈ 25 migration + 110 prod + 105 tests; generated `openapi.json`/`types.ts` excluded) ; Lead: opus
+- Story: F-034 ; Side: be ; Effort: high ; Size: ~350 lines (≈ 25 migration + 160 prod + 165 tests; generated `openapi.json`/`types.ts` and `uv.lock` excluded; re-sized 2026-10-24 after consult, actual ≈ 500) ; Lead: opus
 - Files: `apps/api/migrations/versions/0007_jobs.py`, `apps/api/finvest_api/jobs/__init__.py`,
   `apps/api/finvest_api/jobs/runner.py`, `apps/api/finvest_api/routes/jobs.py`, `apps/api/finvest_api/main.py` (router +
   start-up hook only), `apps/api/pyproject.toml` (`finvest-crawler` dep), `apps/api/tests/test_jobs.py`, `apps/api/tests/conftest.py`
@@ -632,8 +632,8 @@ Slip order (1-sprint-plan): FE-fix-u5-u7 first (should items), never FE-fix-u1/u
   - `runner.py`: `start_crawl(engine, settings) -> int | None` — `threading.Lock` non-blocking acquire; `None` when held
     (route → 409 `JOB_RUNNING` with `details {id, started_at}` read from the running row). Inside the thread: step 1 ticks when
     `finvest_rules` says today is a trading day (`partial_until` when now < 15:00 VN), step 2 `run_bars_1d(today, count=…)`
-    with `count` from `MIN(MAX(trading_date))` over `bars_1d_src` and `index_1d` (+2, min 5, `COUNT` when the tables are
-    empty); `on_progress` writes `progress` ≤ every 2 s; success → `done` + `summary`; any exception → `failed` +
+    with `count` from the older of the two table maxima `MAX(trading_date)` of `bars_1d_src` and `index_1d` (+2, min 5; an empty
+    table ignored, `COUNT` when both are empty — platform.md §2.6 v1.9); `on_progress` writes `progress` ≤ every 2 s; success → `done` + `summary`; any exception → `failed` +
     `error {code: type(e).__name__, message, path (OSError.filename), source/http_status when present}`; the lock is released
     in `finally`. `mark_interrupted(engine)` on FastAPI start-up: `running` → `failed`, `error.code = "interrupted"`.
   - `routes/jobs.py`: `POST /api/jobs` body `{kind}` (`kind != "crawl"` → 400 `VALIDATION`), 202 Job; `GET /api/jobs/current`
@@ -643,7 +643,7 @@ Slip order (1-sprint-plan): FE-fix-u5-u7 first (should items), never FE-fix-u1/u
 - Acceptance (`test_jobs.py`, runner's `run_ticks`/`run_bars_1d` monkeypatched with fakes that call `on_progress`):
   - `POST /api/jobs {kind:"crawl"}` → 202, `status == "running"`; a second POST while the fake sleeps → 409 `JOB_RUNNING`,
     `details.id` equals the first id; after the fake finishes, `GET /api/jobs/current` → `done`, `summary.bars_1d.sessions_added`
-    and `summary.ticks.rows` from the fakes' manifests, `progress.done == progress.total`.
+    (= new distinct `trading_date`s in `bars_1d_src`, §2.6 v1.9) and `summary.ticks.rows` from the fake's manifest, `progress.done == progress.total`.
   - Fake `run_ticks` raising `PermissionError(13, "Permission denied", "/app/data/raw/ticks/2026-10-26")` → job `failed`,
     `error == {code:"PermissionError", message:…, path:"/app/data/raw/ticks/2026-10-26"}`, `summary.ticks is None`; a new POST
     is accepted (lock released).
@@ -749,7 +749,7 @@ Slip order (1-sprint-plan): FE-fix-u5-u7 first (should items), never FE-fix-u1/u
 - Files: `apps/web/src/components/CrawlButton.tsx` (new), `apps/web/src/components/CrawlStatus.tsx` (new, the status line),
   `apps/web/src/app/useCrawlJob.ts` (new), `apps/web/src/components/TopBar.tsx` (insert the button left of `LangSwitch`, status
   line under the bar), `apps/web/src/components/CrawlButton.test.tsx` (new), `apps/web/src/components/TopBar.test.tsx` (tab order),
-  `apps/web/src/i18n/en.json`, `apps/web/src/i18n/vi.json` (keys `crawl.*`)
+  `apps/web/src/i18n/en.json`, `apps/web/src/i18n/vi.json` (keys `crawl.*`; rename `error.JOB_ALREADY_RUNNING` → `error.JOB_RUNNING`, platform.md §1.3 v1.9)
 - Change:
   - `useCrawlJob()`: TanStack Query on `GET /api/jobs/current` (404 → `null`), `refetchInterval` 2 000 ms while
     `status === "running"`, else off; mutation `POST /api/jobs {kind:"crawl"}`; a 409 sets a `refused` flag with

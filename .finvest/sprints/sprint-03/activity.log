@@ -87,3 +87,14 @@
 2026-10-24 14:32 | lead    | BE-fix-u4                | merged    | b61e76c; 0 must-fix; kernel 211 passed, db 2 passed | 3-pr.BE-fix-u4.md
 2026-10-24 14:32 | lead    | FE-fix-u2-u3             | merged    | dfab4b0; tsc 0, vitest 62/62, 0 must-fix | .finvest/sprints/sprint-03/3-pr.FE-fix-u2-u3.md
 2026-10-24 14:33 | lead    | BE-crawl-hooks           | merged    | 998011e; kernel 213 passed, +50/-11 | 3-pr.BE-crawl-hooks.md
+2026-10-24 14:34 | dev     | FE-fix-u5-u7             | pr-open   | tsc 0, vitest 68/68 pass, +75/-12 lines | 3-build.FE-fix-u5-u7.md
+2026-10-24 14:35 | lead    | OPS-crawl-manual         | merged    | 58300d6; kernel 214 passed, affected 18 passed, compose config 127.0.0.1:8001 + /app/data ok, 0 must-fix | 3-pr.OPS-crawl-manual.md
+2026-10-24 14:35 | lead    | FE-fix-u5-u7             | merged    | 7e80f50; tsc 0, vitest 68/68, no must-fix | 3-pr.FE-fix-u5-u7.md
+2026-10-24 14:40 | dev     | BE-jobs-crawl            | pr-open   | kernel 222 passed, ruff/mypy/lint-imports ok, test_jobs 9 passed (25 reruns stable), openapi regenerated; 438 lines vs plan 240 (over 1.5x,  | sprints/sprint-03/3-build.BE-jobs-crawl.md
+2026-10-24 14:44 | lead    | BE-jobs-crawl            | changes   | 3 must-fix (size stop no consult 438/360; blocked source reported done; no jobs-row check); kernel 223 passed, db 22 passed, H 8800f09 | 3-pr.BE-jobs-crawl.md
+2026-10-24 14:46 | dev     | BE-jobs-crawl            | note      | fix round 1: 3 must-fix done (blocked->failed, running-row guard), consult filed; kernel 226 passed | 3-build.BE-jobs-crawl.md
+2026-10-24 14:47 | arch    | BE-jobs-crawl            | answered  | Q1 A accept, Size 240->350 (actual ~500), dagRev 7; Q2 platform.md v1.9: sessions_added, count rule, JOB_RUNNING in 1.3 | .finvest/sprints/sprint-03/3-consult.BE-jobs-crawl.answer.sa.md
+2026-10-24 14:48 | dev     | BE-jobs-crawl            | pr-open   | fix round 1 done, head 2141d92; test_jobs 12 passed; sa answer: size accepted, no code change | 3-build.BE-jobs-crawl.md
+2026-10-24 14:51 | lead    | BE-jobs-crawl            | merged    | 36834ba; round 2 APPROVE, 3/3 must-fix closed; kernel 226 passed, jobs 13x3, db 22 passed, size ~492<=525 | 3-pr.BE-jobs-crawl.md
+2026-10-24 14:53 | dev     | FE-crawl-button          | pr-open   | tsc ok, vitest 73/73, +325 lines | 3-build.FE-crawl-button.md
+2026-10-24 14:54 | lead    | FE-crawl-button          | merged    | a2c9bc4; tsc 0, vitest 73/73, size 325/330 | 3-pr.FE-crawl-button.md
