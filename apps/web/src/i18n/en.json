@@ -103,6 +103,7 @@
   "card.menu": "Options for scenario {{symbol}}",
   "card.delete_confirm": "Delete scenario {{name}}?",
   "card.bench_na": "{{name}} — n/a: no data before {{date}}",
+  "card.bench_na_nodate": "{{name}} — n/a",
   "card.non_investable": "non-investable",
   "card.missing": "{{count}} sessions missing",
   "card.missing_list": "Missing sessions",

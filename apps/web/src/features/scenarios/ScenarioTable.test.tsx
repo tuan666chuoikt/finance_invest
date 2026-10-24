@@ -29,6 +29,13 @@ const order = () => screen.getAllByRole("row").slice(1).map((r) => within(r).get
 beforeEach(() => { void i18n.changeLanguage("en"); localStorage.clear(); });
 
 describe("ScenarioTable", () => {
+  it("benchmark cell is n/a when first_available is null", () => {
+    const c = structuredClone(a);
+    c.result.benchmarks = [{ name: "VN-Index", investable: false, available: false, first_available: null }];
+    render(<ScenarioTable rows={[{ scenario: sc(1, "FPT"), env: c }]} />);
+    expect(within(screen.getAllByRole("row")[1]).getAllByText("n/a").length).toBeGreaterThanOrEqual(2);
+  });
+
   it("defaults to P/L % desc with failed rows last", () => {
     render(<ScenarioTable rows={rows()} />);
     expect(order()).toEqual(["FPT test", "XYZ test", "BAD test"]);

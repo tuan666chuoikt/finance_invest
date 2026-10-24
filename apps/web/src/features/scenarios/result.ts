@@ -20,7 +20,7 @@ export interface Contribution {
 export interface EquityPoint { date: string; market_value: number; invested: number }
 export type Benchmark =
   | { name: string; investable: boolean; available: true; value_vnd: Figure; pl_pct: Figure; diff_pp: Figure }
-  | { name: string; investable: boolean; available: false; first_available: string };
+  | { name: string; investable: boolean; available: false; first_available: string | null };
 
 export interface WhatIfResult {
   dates: { buy: string; sell: string; shifts: Shift[] };
