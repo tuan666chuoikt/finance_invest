@@ -1,7 +1,7 @@
 {
   "sprint": "sprint-03",
   "plan": "v1.0",
-  "dagRev": 4,
+  "dagRev": 10,
   "tasks": [
     {
       "id": "BE-rules-costs",
@@ -328,11 +328,218 @@
       "priority": 1,
       "manual": false,
       "size": 110
+    },
+    {
+      "id": "FIX-whatif-empty-history",
+      "side": "ai",
+      "lane": "BE-3",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 70
+    },
+    {
+      "id": "FIX-symbols-exact-first",
+      "side": "be",
+      "lane": "BE-3",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 30
+    },
+    {
+      "id": "BE-crawl-hooks",
+      "side": "be",
+      "lane": "BE-4",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 70
+    },
+    {
+      "id": "BE-jobs-crawl",
+      "side": "be",
+      "lane": "BE-4",
+      "milestone": "M5",
+      "after": [
+        "BE-crawl-hooks"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 350
+    },
+    {
+      "id": "BE-fix-u4",
+      "side": "be",
+      "lane": "BE-5",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 80
+    },
+    {
+      "id": "OPS-crawl-manual",
+      "side": "be",
+      "lane": "BE-5",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 70
+    },
+    {
+      "id": "FE-fix-u1",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 60
+    },
+    {
+      "id": "FE-fix-u2-u3",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M5",
+      "after": [
+        "FE-fix-u1"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 80
+    },
+    {
+      "id": "FE-fix-u5-u7",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M5",
+      "after": [
+        "FE-fix-u2-u3",
+        "BE-fix-u4"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 3,
+      "manual": false,
+      "size": 110
+    },
+    {
+      "id": "FE-crawl-button",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M5",
+      "after": [
+        "FE-fix-u5-u7",
+        "BE-jobs-crawl"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 4,
+      "manual": false,
+      "size": 220
+    },
+    {
+      "id": "S-v2-batch",
+      "side": "be",
+      "lane": "BE-4",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 20
+    },
+    {
+      "id": "BE-bars-batch",
+      "side": "be",
+      "lane": "BE-4",
+      "milestone": "M5",
+      "after": [
+        "S-v2-batch"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 190
+    },
+    {
+      "id": "FIX-session-ledger",
+      "side": "be",
+      "lane": "BE-5",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 40
+    },
+    {
+      "id": "FIX-whatif-nodata-msg",
+      "side": "be",
+      "lane": "BE-5",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 35
+    },
+    {
+      "id": "FE-fix-crawl-c1-c2-s1",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 90
     }
   ],
   "_doc": {
     "after": "ids that must be MERGED into sprint-03 before this task starts; sprint-02 is merged, so [] = start now",
     "side": "fe | be | ai (ai = services/analytics, reviewed by the BE lead)",
-    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest incl. FIX-* (sprint-02 review): 2-tech-plan.md"
+    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest incl. FIX-* (sprint-02 review, LIVE-03 smoke): 2-tech-plan.md; replan 2026-10-24 (A23: BE-crawl-hooks, BE-jobs-crawl, BE-fix-u4, OPS-crawl-manual, FE-fix-*, FE-crawl-button): 2-tech-plan.md §Mid-sprint replan; rework 2026-10-24 pm (T1-T4: S-v2-batch, BE-bars-batch, FIX-session-ledger, FIX-whatif-nodata-msg): 2-tech-plan.md §Mid-sprint rework; FE-fix-crawl-c1-c2-s1 (4-test.fe C1/C2/S1, rev 9)"
   }
 }

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import i18n from "../i18n";
 import { TopBar } from "./TopBar";
@@ -100,4 +100,32 @@ test("mounting with a running job resumes Running; names exist in EN", async () 
   await act(() => i18n.changeLanguage("en"));
   expect(screen.getByRole("button", { name: "Crawling…" })).toBeDisabled();
   expect(status()).toHaveTextContent("Step 2/2");
+});
+
+test("start failure shows its cause (500) or unreachable, in EN", async () => {
+  await i18n.changeLanguage("en");
+  post = () => json({ error: { code: "INTERNAL", message: "boom" } }, 500);
+  setup();
+  await flush();
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  await user.click(btn());
+  await flush();
+  expect(status()).toHaveTextContent("Could not start: boom");
+  expect(btn()).toBeEnabled();
+  post = () => { throw new TypeError("down"); };
+  await user.click(btn());
+  await flush();
+  expect(status()).toHaveTextContent("Could not start: cannot reach the server");
+  post = () => json(J({}), 202);
+  await user.click(btn());
+  await flush();
+  expect(status()).not.toHaveTextContent("Could not start");
+});
+
+test("two clicks in the same tick send one POST", async () => {
+  setup();
+  await flush();
+  act(() => { fireEvent.click(btn()); fireEvent.click(btn()); });
+  await flush();
+  expect(calls("POST", "/jobs")).toBe(1);
 });

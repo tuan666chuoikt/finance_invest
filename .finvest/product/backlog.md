@@ -10,6 +10,11 @@ watchlist = top 30 by 20-session average traded value, refreshed weekly); update
 sprint-03** (slice below). Refined F-040, F-041, F-048, F-051 to Ready and narrowed them; split F-001 → F-001 + F-006
 and F-032 → F-032 + F-033; new F-055, F-056, F-057; F-042 and F-081 shrink (parts moved). No new scope: PRD R2
 (what-if, PR-030–034, PR-110) and R4 (scenario compare PR-072, DCA PR-070) already cover it.
+2026-10-24 — sponsor scope change **A23** (sponsor-answers 2026-10-24): crawling is **manual only** from a button in the
+web app; no timer. New **F-034** (5 pts) added to the S03 slice; **F-019** timer/boot-catch-up criteria superseded
+(manual `crawl --date` kept). FE test bugs U1–U7 (`sprints/sprint-03/4-test.fe.md`) added as **S03 rework** acceptance
+items on F-032/F-055/F-056 (no new ids, no points: the stories were committed and are not done until these pass).
+PO note: PRD PR-020 still says "runs from a timer" — PO to align the PRD with A23.
 
 Conventions
 - `F-###` story → `PR-###` requirement. Points 1/2/3/5/8 (nothing above 8). Status: **Ready** (refined,
@@ -24,13 +29,13 @@ Conventions
 
 | Release | Epics | Stories | Points | Status |
 |---|---|---|---|---|
-| **S03 slice — Scenario dashboard** (pulled forward) | E1, E3, E4 | 10 | 25 | Ready |
+| **S03 slice — Scenario dashboard** (pulled forward; + F-034 by A23) | E1, E3, E4 | 11 | 30 | Ready |
 | R1 Data foundation (rest) | E1, E2, E3 | 21 | 76 | Ready |
 | R2 What-if (rest) | E4, E8 | 11 | 38 | Backlog |
 | R3 Price board | E5, E8 | 13 | 45 | Backlog |
 | R4 Scenarios | E6, E8 | 14 | 46 | Backlog |
 | R5 Why it moved | E7, E8 | 7 | 24 | Backlog |
-| **v1 (slice + R1–R5)** | | **76** | **254** | |
+| **v1 (slice + R1–R5)** | | **77** | **259** | |
 | R6 Later | E9 | 9 | ~41 (rough) | Deferred |
 
 Traceability: every one of the 61 PR-### maps to at least one story (table at the end). PR-112 (exercises) has
@@ -55,7 +60,12 @@ what-if engine on the daily bars from F-012, fees/tax/lot per VN§4–§5. UX: `
 | F-056 | 5 | Scenario dashboard: cards side by side, value, P/L, mini equity curve, approximate flag, states | F-041, F-055 |
 | F-048 | 2 | Benchmarks per scenario: VN-Index (price-only), E1VFVN30 (same model) where data exists | F-041, F-057 |
 | F-051 | 2 | "How it is computed" panel for every dashboard figure | F-041 |
-| **Total** | **25** | | |
+| F-034 | 5 | "Cào dữ liệu" button: manual crawl of today (ticks + daily catch-up), no automatic crawl (A23) | F-017, F-012, F-031 |
+| **Total** | **30** | | |
+
+**S03 rework (from `4-test.fe.md`, 2026-10-18).** Acceptance items RW-U1…RW-U7 are written under the story they
+belong to (F-056: U1, U3, U6, U7; F-032: U2; F-055: U4; F-056/F-031: U5). **must** = the story is NOT DONE until it
+passes; **should** = fixed this sprint, a miss is listed at review but does not block the story.
 
 Honesty rule for the whole slice (until F-014 + F-015 + F-043/F-044 land): every result computed on source-adjusted
 closes (`bars_1d_src`) carries `price_basis = source_adjusted`, `approximate = true` and shows the flag
@@ -166,7 +176,8 @@ Not in the slice (later, unchanged): several symbols per scenario (F-089), fill 
 - Given the default watchlist is not yet computable (no stored sessions yet), Then the order starts at VN30
   until the first weekly watchlist refresh (F-061, A14/A15).
 
-**F-019 Best-effort scheduler** · PR-020 · 3 pts · Ready
+**F-019 Best-effort scheduler** · PR-020 · 3 pts · Ready · **criteria 1–2 superseded by A23 (2026-10-24): no timer, no
+boot catch-up; crawling starts only from F-034's button or the manual command below**
 - Given a systemd user timer (or equivalent), When a trading day reaches 15:30, Then the crawl starts with no manual action; retry at 20:00 if it failed.
 - Given the machine was off at 15:30 and 20:00, When it boots, Then the catch-up job runs once and either
   fetches (if served) or records the gap.
@@ -211,6 +222,31 @@ Not in the slice (later, unchanged): several symbols per scenario (F-089), fill 
 **F-032 Guardrail banner** · PR-130 · 1 pt · Ready · **S03 slice**
 - Given any analysis route (S03: the scenario dashboard and its form), Then the banner shows both "Mô phỏng để học,
   không phải lời khuyên đầu tư" and "Educational simulation, not investment advice"; a test enumerates routes and asserts it.
+- **RW-U2 (must, S03 rework)** Given axe on /scenarios, the form and the how-computed panel, Then no `region` violation:
+  the disclaimer sits inside a landmark (e.g. within `<header>`/`<main>`, or `aside` with an accessible name as `complementary`).
+
+**F-034 "Cào dữ liệu" — manual crawl button, no automatic crawl** · PR-020, PR-131, PR-013 · 5 pts · Ready · **S03 slice (A23)** · UX: `ux/app-shell.md` §Crawl button
+Decision time: n/a (data collection, no analysis). Uses the existing `POST /jobs` (contracts/platform.md, 409 when the same job runs).
+- Given the top bar, Then a button "Cào dữ liệu" / "Crawl data" sits left of the language switch on every route.
+- Given today 2026-10-26 (a trading day) at 16:10, When the sponsor presses it, Then one crawl job starts that (1) crawls
+  ticks for 26/10/2026 per F-017/F-018 and writes its manifest, then (2) back-fills daily bars for every trading day missing
+  since the last stored bar (e.g. last bar 16/10/2026 → 19/10…26/10, 6 sessions), resuming without duplicates (F-012).
+- Given today is a trading day at 10:30 (session open), When pressed, Then ticks so far are crawled and the manifest is
+  marked `partial` with the cut-off time; a later press after 15:00 re-crawls that day and replaces it (F-017 idempotent).
+- Given today is not a trading day (weekend/holiday per F-003), When pressed, Then only the daily catch-up runs and the
+  result says "Hôm nay không có phiên — chỉ cập nhật giá ngày" / "No session today — daily bars only".
+- Given a crawl is running, Then the button shows a spinner + progress ("Đang cào… 12/30 mã" / step name) and is disabled;
+  Given a second press from another tab or the CLI, Then the API answers 409 and the UI says "Đang có một lượt cào chạy"
+  — never two crawls at once. Given a page reload mid-run, Then the running state and progress come back.
+- Given the run finishes, Then the button area shows done: tick symbols + rows, daily sessions added, skipped symbols
+  count, finish time and duration, e.g. "Xong 16:14 · 30 mã, 812.344 lệnh khớp · +6 phiên giá ngày · 2 mã bỏ qua · 3 phút 41 giây";
+  the freshness chip updates without a reload.
+- Given the run fails, Then the error names the cause and the path/source, e.g. writing `data/raw/ticks/2026-10-26` raises
+  PermissionError → "Lỗi: không có quyền ghi data/raw/ticks/2026-10-26 (PermissionError)"; source blocked (F-011) →
+  "Lỗi: nguồn KBS chặn (HTTP 403 ×3)". The failure is recorded in `crawl_runs` with that reason (never silent), and the
+  button returns to idle so it can be pressed again.
+- Given the app is installed, Then no timer, cron or boot job crawls by itself (test: no systemd unit / scheduler entry in
+  the repo's install targets; `make` has no timer install step).
 
 **F-033 No-broker audit test** · PR-130 · 1 pt · Ready · (split from F-032; S04)
 - Given the dependency tree, Then an audit test finds no broker SDK and no order-placement endpoint.
@@ -329,6 +365,10 @@ Not in the slice (later, unchanged): several symbols per scenario (F-089), fill 
   Then save is refused with the field-level reason (EN/VI); nothing is stored.
 - Given an edit, Then the scenario is recomputed; Given delete, Then a confirm step, then it is gone from the list.
 - Given 20 saved scenarios of up to 10 years each, Then the dashboard computes all of them in < 2 s on the sponsor's machine.
+- **RW-U4 (should, S03 rework)** Given FPT with a start date the engine refuses (e.g. 02/01/2020, before the first stored
+  bar → `no_trading_day_near_buy`), When saving, Then `POST /scenarios` refuses it (422) with the reason "Không có dữ liệu FPT
+  trước <first bar dd/MM/yyyy>" / "No FPT data before …" on the start-date field; nothing is stored. A scenario already
+  saved with such a date shows that same reason on its card, not "Dữ liệu nhập không hợp lệ".
 
 **F-056 Scenario dashboard** · PR-072, PR-030, PR-130 · 5 pts · Ready · **S03 slice** · UX: `ux/scenario-dashboard.md`
 - Given saved scenarios, Then each is a card showing: name, symbol, style, dates, invested, value, P/L ₫ and %
@@ -339,6 +379,18 @@ Not in the slice (later, unchanged): several symbols per scenario (F-089), fill 
 - Given the toggle "Bảng / Table", Then the same scenarios render as one comparison table sortable by P/L %.
 - Given no scenarios, the API down, a symbol with partial data, or stale bars, Then the states in the UX spec apply.
 - Given the language switch, Then all labels change; numbers stay vi-VN (1.234.567 ₫, +6,11 %).
+- **RW-U1 (must, S03 rework)** Given a saved scenario and a benchmark with `available: false, first_available: null`
+  (VN-Index bars empty), When /scenarios opens (and on reload), Then the page renders, the card line reads
+  "VN-Index — n/a" and the table cell "n/a"; no error boundary. The TS contract types `first_available` as
+  `string | null`; a test feeds null to both card and table.
+- **RW-U3 (must, S03 rework)** Given two FPT scenarios named "FPT 50tr 2025" and "FPT DCA thử", Then each card header shows
+  its name as visible text (symbol · style below it); with no name, the default name from F-055 is shown.
+- **RW-U5 (should, S03 rework)** Given EN and 1 missing session, Then "1 session missing"; 2 → "2 sessions missing" (plural
+  rules via the i18n library, both languages; VI has no plural form).
+- **RW-U6 (should, S03 rework)** Given the loading state, Then skeleton cards pass axe (no `aria-label` on a role-less div:
+  e.g. `role="status"` + `aria-busy`, or a visually hidden "Đang tải…" text).
+- **RW-U7 (should, S03 rework)** Given a negative ₫ or % anywhere (card, table, panel), Then the minus is U+2212 "−"
+  (e.g. table "−19.847.507 ₫"), one shared formatter; a test scans card and table output for ASCII "-" before a digit.
 
 ### E8 Learning layer (R2 part)
 
@@ -524,10 +576,10 @@ Not in the slice (later, unchanged): several symbols per scenario (F-089), fill 
 | 017 | F-021, F-022 | 054 | F-070 | 110 | F-051 |
 | 018 | F-100 | 055 | F-071 | 111 | F-052 |
 | 019 | F-120 | 056 | F-063 | 112 | F-054, F-072, F-093, F-106 |
-| 020 | F-019 | 070 | F-057, F-081, F-082, F-083 | 113 | F-124 |
+| 020 | F-019, F-034 | 070 | F-057, F-081, F-082, F-083 | 113 | F-124 |
 | 021 | F-122 | 071 | F-080 | 114 | F-125 |
 | 030 | F-040, F-041, F-053, F-055–F-057 | 072 | F-055, F-056, F-084 | 130 | F-032, F-033, F-056 |
-| 031 | F-042 | 073 | F-085, F-086 | 131 | F-030 |
+| 031 | F-042 | 073 | F-085, F-086 | 131 | F-030, F-034 |
 | 032 | F-043–F-046 | | | 132 | F-020, F-021 |
 | | | | | 133 | F-023, F-088 |
 | | | | | 134 | F-049, F-092 |

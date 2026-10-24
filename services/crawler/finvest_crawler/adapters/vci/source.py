@@ -131,14 +131,17 @@ class VciSource:
         payload, raw = self._gap_chart(codes, to, count)
         return parse_index_bars(payload, raw)
 
+    def archive_name(self, symbols: list[str], count: int) -> str:
+        """File name of the request's archive entry; long symbol lists are hashed to keep it short."""
+        joined = ",".join(symbols)
+        key = "-".join(symbols) if len(symbols) < 4 else hashlib.sha1(joined.encode()).hexdigest()[:12]
+        return f"{key}-1d-{count}"
+
     def _gap_chart(self, symbols: list[str], to: date, count: int) -> tuple[bytes, Path]:
         f = self.fetcher
         body = {"timeFrame": "ONE_DAY", "symbols": symbols, "countBack": count,
                 "to": int(datetime.combine(to, time(23, 59, 59), VN).timestamp())}
-        # one file per request; long symbol lists are hashed to keep the file name short
-        joined = ",".join(symbols)
-        key = "-".join(symbols) if len(symbols) < 4 else hashlib.sha1(joined.encode()).hexdigest()[:12]
-        name = f"{key}-1d-{count}"
+        name = self.archive_name(symbols, count)
         payload = f.get("vci", f"{BASE}/chart/OHLCChart/gap-chart", feed="bars_1d", trading_date=to,
                         name=name, method="POST", json=body)
         return payload, f.archive.path("bars_1d", to, name)
