@@ -7,7 +7,7 @@ S04–S05 and every later release shifts by one sprint. Same PRD scope.
 
 ## Velocity
 
-- **20 points per sprint `[measured S01: 20/20 accepted]`** — kept at the sprint-01 retro (one data point,
+- **20 points per sprint `[measured S01: 20/20; S03: 30/30 in 9 days ≈ 23/7 days]`** — kept at the sprint-01 and sprint-03 retros (one data point,
   needed a 3-task fix loop). Recalibrate each retro from points accepted (not started); re-plan this file if
   actual velocity differs by more than 25 %.
 - Sprint length is one `/fi-sprint-plan` → `/fi-retro` cycle; calendar dates are not committed.

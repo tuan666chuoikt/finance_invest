@@ -133,3 +133,7 @@
 2026-10-24 17:23 | lead    | BE-bars-press            | changes   | 1 must-fix (FAIL_RUN ignores dropped snapshot, contract 2.6 'any reason'); kernel 256 passed, db 26 passed; H 88d7431 | 3-pr.BE-bars-press.md
 2026-10-24 17:24 | dev     | BE-bars-press            | pr-open   | fix round 1: snapshot skip counts toward FAIL_RUN; kernel 257 passed, ruff/mypy clean; head 80d6e76 | 3-build.BE-bars-press.md
 2026-10-24 17:26 | lead    | BE-bars-press            | merged    | 2b34322 (round 2, 0 must-fix; kernel 257 passed, ruff/mypy/lint-imports green) | 3-pr.BE-bars-press.md
+2026-10-24 17:30 | be-tester | sprint-03                | note      | round3 kernel 257 pass; T1b pass; press job6 79s 21 req SourceBlocked clear; db suite not runnable | .finvest/sprints/sprint-03/4-test.be.md
+2026-10-24 17:32 | ai-arch | sprint-03                | approved  | AI review PASS 0 blockers 3 notes; analytics 40 passed; golden 001 + VN-Index 14,753,846 recomputed; contracts/analytics.md v1.2 first_avail | .finvest/sprints/sprint-03/5-review.ai.md
+2026-10-24 17:33 | arch    | sprint-03                | reviewed  | 5-review.tech PASS: B1/B2 closed (sprint-02 covered), 42/42 tasks merged; T5b/T5c/T6/analytics §2.4 nullable carried to sprint-04; platform v1.13, data v1.3 wording | 5-review.tech.md
+2026-10-24 17:35 | pm      | sprint-03                | reviewed  | product ACCEPT 30/30 pts, 0 NOT DONE; retro 5 actions (D1, R2 need sponsor A24); velocity kept 20 | sprints/sprint-03/6-retro.md

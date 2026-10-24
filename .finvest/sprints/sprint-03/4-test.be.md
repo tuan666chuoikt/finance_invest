@@ -1,21 +1,20 @@
-# 4-test BE round 2 — sprint-03 (fi-be-tester)
+# 4-test BE round 3 — sprint-03 (fi-be-tester)
 
-**Verdict: FAIL** — 0 blocker, 2 major, 1 minor. Branch `test/sprint-03/be` merged with origin/sprint-03 (fb785ee). Previous report: `4-test.be.prev-1.md`.
-Numbers: `make test-kernel` 233 passed / 24 deselected, ruff, mypy, lint-imports green. Live: T2 PASS, T3 PASS, T1 not verifiable live, T4 FAIL (see below). Real stack (finance_invest project) used, not stopped. One press only (job 5).
+**Verdict: PASS with 1 minor + 1 minor note** (T1b fixed, T4 resolved to a clear blocked message, T5 partly). Branch test/sprint-03/be merged with origin/sprint-03 (2236c1e). Previous: `4-test.be.prev-2.md`.
+Suites: `make test-kernel` 257 passed / 26 deselected, ruff, mypy, lint-imports green (includes the block-detection unit tests; the source was not provoked). db suite (`-m db`, 26 tests): NOT RUN - the .env password is refused by the compose DB for role finvest (finvest_test exists; 172.20.0.2:5432 reached, auth failed); I did not alter roles. Owner: ops/architect.
 
-## Retest of round-1 bugs
-| Id | Result |
+| Check | Result |
 |---|---|
-| T1 session ledger | CODE PASS (`where=excluded.rows >= crawl_sessions.rows` in packages/market_data/.../repositories.py, commit 4fb491c; builder reports 2 db tests). NOT run by me: db-marked tests need the finvest_test password (the .env password was refused), and no live replay (it would hit the source again). **Row 10-16 NOT repaired**: still `ticks|2026-10-16|partial|16 fetched|1522 skipped|2578 rows|source_no_longer_serves` while the `ticks` table holds 145,184 rows / 911 symbols for that day. The builder left the repair to the tester; my UPDATE was blocked by the permission classifier, so it stays for the architect/owner to repair (rows 145184, fetched 911). The raw `_manifest.json` for 10-16 is also the overwritten one. |
-| T2 index + pre-2025 | PASS. After the press started (indices first): index_1d VNINDEX 5,675 rows 2004-01-05..2026-10-23, VN30 3,672 rows 2012-02-06..2026-10-23, no null value, 0 gaps seen at the ends. What-if FPT buy 2024-02-12 (Tet) now 200, shifted to 2024-02-15 (reason non_trading); FPT 2020-03-02 200. VN-Index benchmark available: 10,000,000 * 1774.15 / 1202.50 = 14,753,846 (matches API, VNINDEX 2024-02-15 c = 1202.50 in DB). B2 index `value` plausible (VNINDEX 10-23: 16.94e12 VND). |
-| T3 NO_DATA message | PASS: HLO 2024-01-02 -> 422-class NO_DATA "no data for HLO before 2024-06-24", details {symbol, first_available}. |
-| T4 one real press | FAIL on expectation. POST /api/jobs 202 (job 5, 16:25:55). Progress bars_1d done/total: 48 at +4 min, 53 at +9, 61 at +18, 67 at +24 min of 1777 -> about 1 symbol/min and slowing (round 1 was ~9/min), i.e. ~30 h, not the ≈15 min expected at BATCH_MAX=1 (config 2 req/s would be ~15 min, so the source or retry/backoff is the limiter, not our bucket). Never reached `done` in my window; job left running. 418 -> blocked fast: not observed (no 418 happened; unit tests only). Daily-bars session row for 2026-10-24 still `partial 0 fetched` while running. |
+| T1b migration 0008 | PASS. alembic 0008; crawl_sessions ticks 2026-10-16: partial, fetched 911, skipped 1522, rows 145,184 = ticks table count (145,184 rows / 911 symbols that day). |
+| T4 one real press | POST /api/jobs -> job 6, 17:27:45. Progress jumped to 1531/1542 in <60 s (round 2: 1 symbol/min; now fast). Ended `failed` at 17:29:05, duration 79 s, error SourceBlocked source vci "nguồn vci đang chặn tạm, thử lại sau ~1 giờ" (clear message). Summary: bars_1d fetched 962, skipped 8, no_trades 572, rows 10,357, 21 requests (session log), coverage HOSE 100 / HNX 99.0 / UPCOM 91.5. The source blocked us at ~97% of the run (not provoked; I made no second press or probes). |
+| Weekend snapshot (Sat 10-24) | Press used trading_date 2026-10-23 (Friday) with total 1542; summary `no_session_today: true`. Good. But the stale bars_1d row for 2026-10-24 from round 2 is still `partial 0/2 skipped` (nothing cleans it up). |
+| T5 session row | Row 2026-10-23 was updated by the press (blocked, 962 fetched, 10,357 rows, reason source_blocked). |
+| Block detection | unit tests only: green in kernel. |
 
 ## Bugs
 | Id | Sev | Owner | What |
 |---|---|---|---|
-| T1b | major | ops/architect | crawl_sessions row ticks 2026-10-16 still holds the downgraded numbers (2578 rows vs 145,184 in `ticks`); needs the manual repair the FIX note asks for. |
-| T4 | major | build (BE-bars-batch) / ops | Full catch-up press does not finish in ~15 min: ~1 symbol/min after the first 50 (60 symbols in 24 min). Needs a cause (per-request latency vs 2**n backoff on soft throttling) and a UI/sponsor expectation; the "1777 in ≈15 min" claim is unproven. |
-| T5 | minor | build | While a job runs, bars_1d crawl_sessions row stays `partial/0` and the 2026-10-24 (Saturday) trading_date is used for progress; cosmetic, row is written only at the end. |
-
-Not checked: job `done` summary, 418 live, injection params beyond earlier round, analytics eval harness.
+| T5b | minor | build | A `complete` bars_1d 10-23 row (4949 rows, 1 fetched) was overwritten by `blocked` (rows 10,357) - status regresses from complete to blocked, because only `rows >=` guards. Probably fine data-wise (more rows) but the status says blocked for a day that was previously complete. |
+| T5c | minor | build/ops | Orphan bars_1d row 2026-10-24 partial/0 from the weekend run of round 2 remains. |
+| T6 | minor | ops | db-marked suite can't run: .env POSTGRES_PASSWORD does not match the DB role (also round 2). |
+| T4 | info | ops | Source (vci) blocks after ~1.5 min of a full catch-up (21 requests per session log); the retry window is ~1 h, so the full press can't finish in one go today. |

@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.12, 2026-10-24 night** (§2.6 step 2 = indices + S1 snapshot + capped gap fetch, target session, blocked rules and message; §4 live `bars_1d` ledger row, `deferred` skip, ledger repair; v1.11 = `platform.prev-12.md`; v1.11: §2.6 batch cap = `BATCH_MAX`; v1.10: §2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.13, 2026-10-24 review** (§4 wording: `missed` never overwrites `partial`/`complete`, ledger row = richest manifest; v1.12 = `platform.prev-13.md`; v1.12: §2.6 step 2 = indices + S1 snapshot + capped gap fetch, target session, blocked rules and message; §4 live `bars_1d` ledger row, `deferred` skip, ledger repair; v1.11 = `platform.prev-12.md`; v1.11: §2.6 batch cap = `BATCH_MAX`; v1.10: §2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -226,7 +226,7 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   tape is never conclusive on its own (B1, S02: A32 had no trades on 2026-10-16 while K1 still served that day two days
   later): for `trading_date` before today (VN) the run first probes `PROBE_SYMBOLS = (FPT, HPG, VNM)`; if none of
   them returns a tape for `trading_date` the session is `missed` / `source_no_longer_serves` (≤ 3 requests, nothing
-  overwritten unless the stored session is not `complete`); otherwise the day is still served and an empty tape, today
+  overwritten: a `missed` manifest never replaces a stored `partial` or `complete` row); otherwise the day is still served and an empty tape, today
   or past, is **no trades**: the symbol goes to `symbols_no_trades` (sorted list, not a skip, contributes no rows,
   never archived so a re-run asks again). A probe tape that is fetched counts once (not re-fetched in the loop). Status rule: `complete` = every symbol in the universe is fetched or no-trade; `partial` = at least one
   symbol in `symbols_skipped`; `symbols_fetched + len(symbols_no_trades) + len(symbols_skipped) = universe.count`
@@ -234,7 +234,7 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   session with an illiquid name into `partial`. Caveat: "no trades" and "source answered empty by mistake" look
   the same on the tape; cross-check against daily volume once F-012 lands.
   A run first closes unfinished `crawl_runs` rows of its `(feed, trading_date)` as `failed`, reason `interrupted`.
-  The DB row `crawl_sessions` mirrors the manifest; the manifest file is the audit copy.
+  The DB row `crawl_sessions` mirrors the **richest** manifest for the day (`rows` never lowered, FIX-session-ledger; a repair may set `checksum NULL`); the manifest file on disk is the audit copy of the last run.
   v1.12: `blocked` is also the status after `FAIL_RUN = 3` consecutive skipped names/units (own reasons kept, the rest
   `source_blocked`). Ledger repair (migration 0008, re-runnable): a `ticks` row whose `rows` is below `COUNT(*)` of the
   `ticks` table for that VN day takes `rows`/`symbols_fetched` from the table and `checksum = NULL`; status/reason stay.

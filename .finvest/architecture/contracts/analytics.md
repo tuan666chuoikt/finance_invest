@@ -1,7 +1,7 @@
 # Finvest — Analytics contracts (Python interface + REST, R2/R4/R5)
 
-Owner: `fi-ai-architect`. Status: **v1.1, 2026-10-16** (S03 slice: §1.4 `price_basis`/`approximate`, §2.4 style/DCA,
-valuation, benchmarks; v1 = `analytics.prev-1.md`). §1–§2 normative for R2 (what-if); §3–§4 shape preview, normative at
+Owner: `fi-ai-architect`. Status: **v1.2, 2026-10-24** (v1.2: §2.4 `benchmarks[].first_available` nullable, mirrors platform.md v1.8;
+v1.1 = `analytics.prev-2.md`, v1 = `analytics.prev-1.md`). §1–§2 normative for R2 (what-if); §3–§4 shape preview, normative at
 R4/R5 planning. Conventions from `contracts/platform.md` §1 apply (integer VND, decimal strings for ratios, ISO times in
 Asia/Ho_Chi_Minh, error envelope, `as_of`, `data_snapshot`, `rules_version`). Semantics: `architecture/analytics.md`.
 
@@ -116,7 +116,9 @@ usual (analytics.md §1.3.1). The end is a **valuation**, not a trade: no T+2 re
 - `benchmarks` (F-048): VN-Index = `Σ amount_i × index(sell) / index(date_i)` over contributions (price-only, no lots, no
   fees, `index_1d.c` 2 decimals, result rounded half-up to VND); E1VFVN30 = the same request on symbol `E1VFVN30` through
   this engine. `diff_pp = scenario.pl_pct − benchmark.pl_pct`. A benchmark lacking a bar on any contribution date or on
-  `sell` ⇒ `available: false, first_available` (never a zero). The benchmark list is fixed in S03 (`benchmark_etf` ignored).
+  `sell` ⇒ `available: false, first_available: string | null` (never a zero) — **null when the benchmark has no bars at all**
+  (live: VNINDEX empty before the first index crawl, 4-test.fe U1; platform.md v1.8 §2.5); the web renders "n/a" without a
+  date. The benchmark list is fixed in S03 (`benchmark_etf` ignored).
 - `missing_sessions`: calendar trading days in `[buy, sell]` without a bar; the curve carries the last close forward;
   `flags += [missing_sessions]` when non-empty.
 - `equity_curve`: every trading day in `[buy, sell]`, `market_value = cash + shares × close` (no sell costs), `invested` =
