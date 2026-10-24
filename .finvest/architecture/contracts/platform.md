@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.9, 2026-10-24** (§2.6 `sessions_added`, `count` and `symbols_skipped` defined, §1.3 `JOB_RUNNING` — BE-jobs-crawl consult; v1.8 = `platform.prev-9.md`) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.10, 2026-10-24 pm** (§2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols — BE test T2/T3/T4; v1.9 = `platform.prev-10.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -125,7 +125,10 @@ Scenario:   { "id": 7, …ScenarioIn, "created_at": "2026-10-19T09:00:00+07:00",
   shows its own error card (UX scenario-dashboard.md "Error (one scenario fails)"). No stored results in S03; the
   R4 journal (analytics.md §4) is a different table.
 - `POST /whatif` error mapping (adds to §1.3): `AnalyticsError.code` → `VALIDATION` 400 · `SYMBOL_UNKNOWN`, `NO_DATA`,
-  `RANGE_TOO_LARGE` 422; `details` passed through (`first_available`, `last_available`, `min_amount`). In the result,
+  `RANGE_TOO_LARGE` 422; `details` passed through (`first_available`, `last_available`, `min_amount`); v1.10: `message` is
+  human-readable, built from `details` — `NO_DATA` "no data for {symbol} before {first_available}", `SYMBOL_UNKNOWN`
+  "unknown symbol {symbol}", `RANGE_TOO_LARGE` "range too large: {first_available} to {last_available}", the bare code when
+  a key is missing. In the result,
   `benchmarks[].first_available` is `string | null` — **null when the benchmark has no bars at all** (live: VNINDEX empty,
   4-test.fe U1); the web renders "n/a" without a date and never crashes (analytics.md §2.4 mirrors this). Calendar years
   outside `finvest_rules` `holidays.csv` are served from VNINDEX bar dates (data.md §1.2 V2), never refused.
@@ -158,9 +161,12 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   `run_ticks(today)`; before 15:00 the manifest is `partial` (platform.md §4) and `summary.ticks.partial_until` = now; a
   non-trading day skips step 1 and sets `no_session_today: true`. Step 2 — `run_bars_1d(today, count = trading days since the
   older of the two table maxima MAX(trading_date) of `bars_1d_src` and `index_1d` + 2, min 5; an empty table is ignored,
-  `COUNT` only when both are empty — v1.9: so while `index_1d` is empty the job does not back-fill indices; `make backfill` does)`: catches up daily bars for every symbol and index (F-012 resume
-  semantics, idempotent upserts). A `CatchupFailed`-style partial result is `failed` with the error of the raising step.
-- Progress: `done/total` are symbols in step 1 and names in step 2; the runner updates the row at most every 2 s.
+  `COUNT` only when both are empty — v1.9)`: catches up daily bars for every symbol and index (F-012 resume
+  semantics, idempotent upserts). v1.10: step 2 fetches the **indices first, always with the full `COUNT` history** (2
+  requests; an empty `index_1d` heals on any press), then the symbols in **batches** of `max(1, min(50, 50_000 // count))`
+  names per V2 request (one request failing marks that batch `skipped`, the run goes on; `source_blocked` stops it). A
+  normal press is therefore ≈ 40 requests; an empty-table back-fill ≈ 220, resumable from the archive. A `CatchupFailed`-style partial result is `failed` with the error of the raising step.
+- Progress: `done/total` are symbols in step 1 and names in step 2 (advanced per batch); the runner updates the row at most every 2 s.
 - Crash safety: on api start-up every `running` job is set `failed`, `error.code = "interrupted"` (the thread died with the
   container). The crawler's own `crawl_runs`/`crawl_sessions` rows are written as before (§4); the job row is additional.
 - CLI parity: `make crawl DATE=…` / `make backfill` still work and share nothing with the api lock — the sponsor is told

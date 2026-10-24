@@ -774,3 +774,150 @@ Slip order (1-sprint-plan): FE-fix-u5-u7 first (should items), never FE-fix-u1/u
   - Mount with current = `running` → Running state without a click (reload recovery). Tab order test: chip, crawl button,
     VI/EN. All buttons have names in EN and VI; `i18n.test` parity green.
 - Out of scope: "Chi tiết" link target (Data quality page, S04), SSE, cancelling, dark-theme polish.
+
+## Mid-sprint rework 2026-10-24 (pm) — BE test bugs T1–T4 (dag rev 9; previous: `2-tech-plan.prev-4.md`; also 4-test.fe.md C1/C2/S1)
+
+Inputs: `4-test.be.md` (T1–T4), origin/sprint-03 head `a2c9bc4` (all M5 tasks merged), `contracts/platform.md` **v1.10**
+(§2.5 `NO_DATA` message, §2.6 step 2 batching + indices first; v1.9 = `platform.prev-10.md`), data.md §1.2 V2 ("several
+symbols per call"), `3-build.S-etf-bars.md` (E1VFVN30 covered by the symbols universe — nothing to add).
+
+### Decisions
+- **T4 root cause is request count, not the bucket**: step 2 sends one V2 request per name (1 777 incl. 234 delisted) and the
+  live source answers in ≈ 6.7 s each (33 names / 220 s) → ≈ 3 h. The adapter already posts `symbols: [...]` to V2 and
+  `parse_bars` already yields several symbols per payload, so the fix is **batching**: ≤ 50 names per request for a catch-up
+  (`count ≤ 60`), fewer for a long back-fill (`batch = max(1, min(50, 50_000 // count))` keeps a payload ≈ ≤ 50 000 bars).
+  Normal press: 36 requests + 2 index requests → **about 1–4 min** at the observed latency, < 1 min if the latency was per
+  request. No threads, no second source (S1 is nominal, mixing it into the source-adjusted `bars_1d_src` series is wrong).
+  The batch cap is a live-source assumption with no fixture → spike `S-v2-batch` first (owner.md rule).
+- **Initial back-fill** (empty tables, `count = COUNT`) stays long (≈ 220 batches of 8 names) but is resumable as today:
+  every V2 response is archived before parsing and the feed commits per batch, so a re-press replays the archive with 0 live
+  requests for what it already has; progress shows names done / total.
+- **T2 root cause**: the job fetches the indices with the same small `count` and reaches them last (sorted names), so a
+  never-finished job never fills `index_1d`; the calendar then has no sessions before 2025. Fix in the feed: **indices
+  first, always with `COUNT`** (2 requests, ≈ 6 000 bars each, self-heals an empty `index_1d` on every press). The calendar
+  shortcut (`market_view.calendar()` → VNINDEX dates outside `holidays.csv`) stays; benchmark contract unchanged.
+  **Ops now (SM, before the build lands):** inside the api container `finvest-crawl bars --date 2026-10-24 --only
+  VNINDEX,VN30` (2 live requests, `COUNT` bars) — T2 and FE U1 clear on the live DB today.
+- **T1**: the ledger rule becomes "a replay never lowers `rows`" (`EXCLUDED.rows >= crawl_sessions.rows`), which also covers
+  the earlier `missed` rule (rows 0). The damaged 10-16 row is repaired by hand from the archived manifest (below), no code.
+- **T3**: one message map in the `AnalyticsError` handler (`errors.py`), details are already there.
+- **Note for fi-ai-architect** (cannot edit `contracts/analytics.md`): §2.4 still shows `benchmarks[].first_available` as a
+  date only; platform.md §2.5 v1.8 made it `string | null` (null = benchmark has no bars at all). Please mirror it.
+
+### Order and lanes (M5)
+```
+BE-4  S-v2-batch → BE-bars-batch              (fixture + cap, then feed batching + indices first)
+BE-5  FIX-session-ledger ∥ FIX-whatif-nodata-msg   (start now; disjoint files)
+FE-1  FE-fix-crawl-c1-c2-s1                      (start now; FE-crawl-button merged)
+```
+
+#### S-v2-batch — spike (T4): how many symbols does V2 `gap-chart` serve per call, and how fast
+- Story: S03-BE ; Side: be ; Effort: medium ; Size: ~20 lines (fixture + report, no production code) ; Lead: sonnet
+- Files: `services/crawler/tests/fixtures/vci/gap_chart/batch50-1d-8.json.gz` (new, exact bytes, gzip, ≤ 200 KB),
+  `SPRINT_DIR/3-build.S-v2-batch.md`
+- Change:
+  - Anonymous, ≤ 2 req/s, ≤ 6 live requests total: `POST https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart`
+    body `{"timeFrame":"ONE_DAY","symbols":[…],"countBack":8,"to":<today 23:59:59 VN epoch>}` with 50 HOSE+HNX symbols
+    taken from the local `symbols` table (include 2 delisted ones); record the payload as the fixture. Repeat with 100 and
+    200 symbols (not recorded): report HTTP status, symbols returned / asked, bars per symbol, bytes, and **wall time per
+    call** (the live job measured ≈ 6.7 s per 1-symbol call — say whether a 50-symbol call is slower).
+  - One call with 8 symbols × `countBack 6000` (the back-fill shape): status, bytes, wall time. Not recorded.
+  - Report = data.md §1.2-style line for the V2 row (cap, latency) + verdict: batch of 50 OK / cap is N / delisted symbols
+    come back empty or are omitted (BE-bars-batch needs this for the `no_trades` accounting).
+- Contract: data.md §1.2 V2; platform.md §2.6 v1.10 (step 2 batching).
+- Acceptance: fixture committed and `parse_bars(fixture)` returns bars for ≥ 48 distinct symbols with exactly 8 (or fewer,
+  listed) days each; report names every number above; `make test-kernel` unaffected.
+- Out of scope: any feed/adapter change; 1m bars; other sources.
+
+#### BE-bars-batch — T4 + T2: step 2 fetches indices first with `COUNT`, then symbols in batches; a press finishes in minutes
+- Story: S03-BE ; Side: be ; Effort: high ; Size: ~180 lines (≈ 60 prod + 110 tests + 10 docs) ; Lead: opus
+- Files: `services/crawler/finvest_crawler/feeds/bars_1d.py`, `services/crawler/finvest_crawler/adapters/vci/source.py`,
+  `packages/market_data/finvest_market_data/domain/ports.py` (one method), `services/crawler/tests/test_feed_bars_1d.py`,
+  `services/crawler/tests/test_adapter_vci.py`, `ops/README.md` (one line)
+- Change:
+  - `feeds/bars_1d.py` `_run`: (1) `INDICES` first, each as today but **always `count=COUNT`** (ignore the `count` arg for
+    indices); (2) symbols in batches of `max(1, min(50, 50_000 // count))` (adjust 50 to the cap `S-v2-batch` reports) via
+    `source.bars(batch, "1d", run_date, count)`; per batch: group bars by symbol, symbols with no bars → `no_trades`,
+    `PayloadShapeError`/`HTTPError` → every symbol of the batch `skipped` with `_skip_reason(e)`, `SourceBlocked` → the batch
+    and all remaining names `skipped("source_blocked")`, `status blocked` (today's rule); upsert + `commit()` per batch;
+    `on_progress(names_done, len(names))` after each batch (names, not batches — §2.6 unchanged); the checksum input stays
+    the globally sorted per-bar lines (same digest as the one-by-one run on the same bars).
+  - `fetched_at` for `upsert_bars_1d_src` stays the archive file's mtime (replays stay idempotent on the
+    `(symbol, trading_date, source, fetched_at)` key): the adapter exposes the name it archives under —
+    `MarketDataSource.archive_name(symbols: list[str], count: int) -> str` (ports.py), vci returns the existing
+    `<key>-1d-<count>` rule (hash for ≥ 4 symbols); the feed stats `fetcher.archive.path(FEED, run_date, source.archive_name(...))`.
+  - `assert fetched + len(no_trades) + len(skipped) == len(names)` kept; `symbols_fetched` counts names that returned bars.
+  - `ops/README.md`: a press costs ≈ 40 requests (2 index + ⌈names/50⌉); a full back-fill ≈ 220 and is resumable (archive).
+- Contract: platform.md §2.6 v1.10 (step 2: indices first with full history, batching, progress in names); §4 manifest
+  invariant unchanged; data.md §1.2 V2 (+ the spike's cap line).
+- Acceptance (`test_feed_bars_1d.py`, fake source recording calls):
+  - 120 symbols + indices, `count=8` → calls: `index_bars(["VNINDEX"], d, 6000)`, `index_bars(["VN30"], d, 6000)` **first**,
+    then `bars(<50>)`, `bars(<50>)`, `bars(<20>)` with `count == 8`; `on_progress` receives `(1,122), (2,122), (52,122),
+    (102,122), (122,122)`; manifest `complete`, `symbols_fetched == 122`, `requests == 5`.
+  - `count=6000` → symbol batches of 8. `count=8`, `only=["FPT","HPG"]` → one `bars(["FPT","HPG"])` call, indices not fetched
+    (`--only` keeps its meaning).
+  - A batch whose payload lacks symbol `XYZ` → `symbols_no_trades == ("XYZ",)`; a batch raising `httpx.HTTPError` → its 50
+    names `skipped` with the reason, run `partial`, later batches still fetched; `SourceBlocked` on batch 2 → batch 2 + 3
+    names skipped `source_blocked`, status `blocked`, indices already upserted.
+  - Checksum: the same bars fed through the batched run and the previous one-by-one fixture run give the same
+    `checksum` (test keeps the old expected digest).
+  - `test_adapter_vci.py`: `parse_bars(batch50 fixture)` → ≥ 48 symbols × 8 bars; `archive_name(["FPT"], 8) == "FPT-1d-8"`,
+    `archive_name(<50>, 8)` equals the file name `_gap_chart` writes (one request through a fake fetcher, path exists).
+  - Runner tests (`apps/api/tests/test_jobs.py`) stay green unchanged (the runner's `count` rule and callbacks are untouched).
+- Out of scope: the runner (`apps/api`), threads/concurrency, SSI as a second source, 1m bars, dropping delisted symbols
+  from the universe, the calendar shortcut in `market_view.py`.
+
+#### FIX-session-ledger — T1: a `crawl_sessions` replay never lowers `rows`
+- Story: S03-BE ; Side: be ; Effort: medium ; Size: ~40 lines (≈ 5 prod + 30 tests + 5 docs) ; Lead: opus
+- Files: `packages/market_data/finvest_market_data/infrastructure/repositories.py` (`upsert_crawl_session` only),
+  `packages/market_data/tests/test_repositories_db.py`, `ops/README.md` (one line)
+- Change:
+  - `ON CONFLICT (feed, trading_date) DO UPDATE … WHERE EXCLUDED.rows >= crawl_sessions.rows` — replaces the `missed`-only
+    clause (a `missed` manifest has `rows = 0`, so it is covered; equal rows still refresh status/checksum/reason).
+    Docstring: "the ledger keeps the richest replay; the manifest file on disk is always written".
+  - `ops/README.md`: a smaller replay (e.g. `partial/source_no_longer_serves` the morning after) leaves the ledger row alone.
+  - **Repair, by hand (BE tester after merge, not code):** `UPDATE crawl_sessions SET status, rows, symbols_fetched,
+    symbols_skipped, symbols_no_trades, checksum, reason` from `data/raw/ticks/2026-10-16/manifest.json`
+    (`rows = 145184`); write the numbers in the test report.
+- Contract: platform.md §4 (manifest, `crawl_sessions` ledger); data.md §3 `crawl_sessions`.
+- Acceptance (db tests): row `partial` rows 145 184, then replay manifest `partial` rows 2 578 → row unchanged (rows, fetched,
+  checksum); replay `missed` rows 0 → unchanged; replay `complete` rows 145 184 → status becomes `complete`; replay
+  `complete` rows 150 000 → all columns replaced; a first insert for a new day with rows 0 → inserted. The existing
+  `missed`-does-not-overwrite test keeps passing.
+- Out of scope: `crawl_runs` (one row per run, unchanged), the feed code, repairing other days.
+
+#### FIX-whatif-nodata-msg — T3: `POST /api/whatif` errors carry a human message, not the code
+- Story: S03-BE ; Side: be ; Effort: medium ; Size: ~35 lines (≈ 12 prod + 23 tests) ; Lead: sonnet
+- Files: `apps/api/finvest_api/errors.py`, `apps/api/tests/test_whatif.py`
+- Change: in the `AnalyticsError` handler build `message` from `details` with a small template map, falling back to the code
+  when a key is missing: `NO_DATA` → `"no data for {symbol} before {first_available}"` (same wording as `routes/scenarios.py`
+  RW-U4) or `"no data for {symbol}"` when `first_available` is absent/null; `SYMBOL_UNKNOWN` → `"unknown symbol {symbol}"`;
+  `RANGE_TOO_LARGE` → `"range too large: {first_available} to {last_available}"`; `VALIDATION` → `"{field}: {reason}"` when
+  present, else the code. `code` and `details` unchanged; the web keeps using `details` (FE-fix-u5-u7 message).
+- Contract: platform.md §2.5 v1.10 (`message` wording); §1.3 envelope.
+- Acceptance: `POST /whatif` for HLO before its first bar → 422 body `error.code == "NO_DATA"`, `message == "no data for HLO
+  before 2024-06-24"`, `details.first_available == "2024-06-24"`; a fake `AnalyticsError("NO_DATA", {})` → 422, `message == "NO_DATA"`
+  (fallback, no `KeyError`); `SYMBOL_UNKNOWN` for `ZZZZ` → `"unknown symbol ZZZZ"`; `test_openapi_current` green.
+- Out of scope: scenarios routes (already worded), FE strings, new error codes.
+
+#### FE-fix-crawl-c1-c2-s1 — F-034 C1/C2 + shell S1: start failure shows its cause, no double POST, 24 px top-bar targets
+- Story: S03-BE ; Side: fe ; Effort: medium ; Size: ~90 lines (≈ 35 prod + 55 tests) ; Lead: sonnet
+- Files: `apps/web/src/app/useCrawlJob.ts`, `apps/web/src/components/CrawlButton.tsx`, `apps/web/src/components/CrawlStatus.tsx`,
+  `apps/web/src/components/TopBar.tsx` (CSS only: `min-height: 24px; min-width: 24px` on every button/link in the bar),
+  `apps/web/src/components/CrawlButton.test.tsx`, `apps/web/src/components/TopBar.test.tsx`, `apps/web/src/i18n/en.json`,
+  `apps/web/src/i18n/vi.json` (keys `crawl.start_failed`, `crawl.unreachable`)
+- Change:
+  - C1: `start.onError` for anything not 409 sets `startError = {code, message}` from the envelope (`error.code`/`message`,
+    platform.md §1.3) or `unreachable` when there is no response; `CrawlStatus` renders it in the Error state (UX app-shell.md
+    §Crawl button §Error: "Không bắt đầu được: <cause>" / "Could not start: <cause>"; unreachable → "không kết nối được máy chủ" /
+    "cannot reach the server"); cleared on the next successful start. Button returns to idle (unchanged).
+  - C2: the button is `disabled` while `start.isPending` **and** the click handler ignores clicks when a start is pending or
+    the job is running (guard in the handler, not only in the DOM).
+  - S1: every interactive top-bar target ≥ 24×24 CSS px (WCAG 2.2 2.5.8), icon-only variant included; no layout change otherwise.
+- Contract: platform.md §1.3 envelope, §2.6 (409 unchanged); UX app-shell.md §Crawl button (Error state).
+- Acceptance (vitest, MSW): `POST /api/jobs` → 500 `{error:{code:"INTERNAL",message:"boom"}}` → status line contains
+  "Could not start" and "boom", `role="status"`; network error → contains "cannot reach the server"; 409 keeps today's
+  "already running" message; two `click` events within the same tick → exactly 1 request; TopBar test asserts
+  `getComputedStyle(...).minHeight === "24px"` for Menu, VI, EN and the crawl button (jsdom reads inline/class styles the
+  dev sets); the BE tester's `crawl-button.mjs` cases "POST 500 INTERNAL" / "POST network down" pass after merge.
+- Out of scope: retry/backoff on start, SSE, other a11y findings, the FreshnessChip.

@@ -98,3 +98,7 @@
 2026-10-24 14:51 | lead    | BE-jobs-crawl            | merged    | 36834ba; round 2 APPROVE, 3/3 must-fix closed; kernel 226 passed, jobs 13x3, db 22 passed, size ~492<=525 | 3-pr.BE-jobs-crawl.md
 2026-10-24 14:53 | dev     | FE-crawl-button          | pr-open   | tsc ok, vitest 73/73, +325 lines | 3-build.FE-crawl-button.md
 2026-10-24 14:54 | lead    | FE-crawl-button          | merged    | a2c9bc4; tsc 0, vitest 73/73, size 325/330 | 3-pr.FE-crawl-button.md
+2026-10-24 15:05 | be-test | sprint-03                | red       | 27 pass / 3 fail; T1 T2 major | 4-test.be.md
+2026-10-24 15:10 | fe-test | sprint-03-retest         | red       | vitest 78/78; real-stack 40/40; crawl-button 45/4 fail (C1 major,C2,S1 minor) | 4-test.fe.md
+2026-10-24 15:11 | arch    | sprint-03                | note      | rework T1-T4: dag rev 8, +4 tasks (S-v2-batch, BE-bars-batch, FIX-session-ledger, FIX-whatif-nodata-msg); platform v1.10 | sprints/sprint-03/2-tech-plan.md
+2026-10-24 15:11 | arch    | sprint-03                | note      | rework +FE-fix-crawl-c1-c2-s1 (4-test.fe C1/C2/S1), dag rev 9, 37 tasks | sprints/sprint-03/2-tech-plan.md
