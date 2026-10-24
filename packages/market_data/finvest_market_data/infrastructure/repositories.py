@@ -16,6 +16,7 @@ from sqlalchemy import (
     func,
     literal_column,
     select,
+    text,
     tuple_,
 )
 from sqlalchemy.dialects.postgresql import insert
@@ -289,3 +290,21 @@ def daily_coverage(conn: Connection) -> dict[str, Decimal]:
     pct = func.round(100 * func.count().filter(covered) / func.count().cast(Numeric), 1)
     q = select(symbols.c.exchange, pct).group_by(symbols.c.exchange)
     return {r[0]: r[1] for r in conn.execute(q)}
+
+
+def repair_crawl_sessions_from_ticks(conn: Connection) -> int:
+    """Raise `rows`/`symbols_fetched` of `ticks` ledger rows to what the `ticks` table holds per VN day;
+    returns rows updated. `checksum` becomes NULL: the manifest on disk is the overwritten replay,
+    so a NULL digest is honest and a stale one is not.
+    `status`/`reason` stay (the table cannot tell a skip from a no-trade).
+    Idempotent (`s.rows < t.n`); never inserts a ledger row (platform.md §4 v1.12)."""
+    return conn.execute(
+        text(
+            """
+            UPDATE crawl_sessions s SET rows = t.n, symbols_fetched = t.syms, checksum = NULL
+            FROM (SELECT (ts AT TIME ZONE 'Asia/Ho_Chi_Minh')::date AS d, COUNT(*) AS n,
+                         COUNT(DISTINCT symbol) AS syms FROM ticks GROUP BY 1) t
+            WHERE s.feed = 'ticks' AND s.trading_date = t.d AND s.rows < t.n
+            """
+        )
+    ).rowcount

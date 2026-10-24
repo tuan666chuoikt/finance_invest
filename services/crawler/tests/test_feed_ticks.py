@@ -226,9 +226,46 @@ def test_http_and_timeout_reasons(tmp_path):
         raise httpx.ReadTimeout("slow")
 
     m, *_ = run(tmp_path / "a", serve({"FPT": lambda: httpx.Response(404), "VNM": boom}))
-    assert m.symbols_skipped == (("FPT", "http_404"), ("VNM", "timeout")) and m.status == "partial"
+    assert m.symbols_skipped == (("FPT", "http_404"), ("VNM", "source_blocked"))  # 3 timeouts = blocked
+    assert (m.status, m.reason) == ("blocked", "source_blocked")
     m, *_ = run(tmp_path / "b", serve({"VNM": lambda: httpx.Response(503)}))
     assert m.symbols_skipped == (("VNM", "http_503"),)
+
+
+def names_run(tmp_path, spec):
+    """spec: {name: 404 | 503 | 'shape' | None(ok)}; returns manifest, repo and the names requested."""
+    calls = []
+    good = load("FPT")
+
+    def mk(v):
+        def f():
+            if v == "shape":
+                return httpx.Response(200, content=b'{"data":[{"x":1}]}')
+            return httpx.Response(v) if v else httpx.Response(200, content=good)
+        return f
+
+    base = serve({n: mk(v) for n, v in spec.items()})
+
+    def h(req):
+        calls.append(str(req.url))
+        return base(req)
+
+    m, f, repo = run(tmp_path, h, only=sorted(spec))
+    return m, [n for n in spec if any("/history/" + n + "?" in u for u in calls)]
+
+
+def test_three_failed_names_in_a_row_end_the_run_blocked(tmp_path):
+    m, asked = names_run(tmp_path, {"A": 404, "B": 503, "C": "shape", "D": None})
+    assert (m.status, m.reason) == ("blocked", "source_blocked")
+    assert m.symbols_skipped == (
+        ("A", "http_404"), ("B", "http_503"), ("C", "payload_shape"), ("D", "source_blocked"))
+    assert "D" not in asked and m.symbols_fetched == 0
+
+
+def test_a_fetched_name_resets_the_failure_count(tmp_path):
+    m, _ = names_run(tmp_path, {"A": 404, "B": None, "C": 404, "D": 404, "E": None})
+    assert (m.status, m.reason, m.symbols_fetched) == ("partial", None, 2)
+    assert m.symbols_skipped == (("A", "http_404"), ("C", "http_404"), ("D", "http_404"))
 
 
 def test_only_skips_universe_and_dedupe_logs_anomaly(tmp_path):
