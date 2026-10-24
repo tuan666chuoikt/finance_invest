@@ -66,12 +66,13 @@ apps/ services/ packages/ code (sẽ được tạo từ sprint 1)
 ```
 cp .env.example .env                              # đặt POSTGRES_PASSWORD
 make up                                           # db + api + web (UI: http://127.0.0.1:8080) (build lần đầu mất vài phút)
-curl http://127.0.0.1:8000/api/health             # {"status":"ok","db":"ok",...}
+curl http://127.0.0.1:8001/api/health             # {"status":"ok","db":"ok",...}
 make crawl DATE=2026-10-23                        # cào tick cả phiên của một ngày
 ```
 
 - Dữ liệu nằm trên máy: `data/pg` (Postgres), `data/raw` (tick thô). Cả `data/` bị git bỏ qua.
-- Chỉ api mở cổng, và chỉ trên `127.0.0.1:8000`; Postgres không mở cổng nào ra ngoài compose.
+- Chỉ web (`127.0.0.1:8080`) và api (`127.0.0.1:8001`) mở cổng, đều chỉ trên loopback; Postgres không mở cổng nào ra ngoài compose.
+- Không có lịch tự chạy: cào tay bằng nút trên web (`POST /api/jobs`) hoặc `make crawl`, đừng chạy cả hai cùng lúc.
 - Chạy lại một ngày: gõ lại `make crawl DATE=<ngày>`; ghi idempotent nên không trùng. Thứ bảy/chủ nhật thì in thông báo cuối tuần rồi thoát 0.
 - Khác: `make down`, `make logs`, `make db-shell`. `make down && make up` giữ nguyên dữ liệu.
 - Phát triển không dùng Docker: `uv sync`, `make test-kernel` (offline).
