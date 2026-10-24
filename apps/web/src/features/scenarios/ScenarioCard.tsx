@@ -26,7 +26,13 @@ export const GRID_CSS = CSS;
 function Bench({ b }: { b: Benchmark }) {
   const { t, i18n } = useTranslation();
   if (!b.available)
-    return <li data-testid="bench">{t("card.bench_na", { name: b.name, date: formatDate(b.first_available) })}</li>;
+    return (
+      <li data-testid="bench">
+        {b.first_available
+          ? t("card.bench_na", { name: b.name, date: formatDate(b.first_available) })
+          : t("card.bench_na_nodate", { name: b.name })}
+      </li>
+    );
   const pct = formatPct(b.pl_pct.value);
   return (
     <li data-testid="bench" className="row">
