@@ -22,7 +22,7 @@ class SourceBlocked(Exception):
 
 
 def _blocked(r: httpx.Response) -> bool:
-    return r.status_code in (429, 403) or (
+    return r.status_code in (429, 403, 418) or (
         r.status_code == 200 and (r.content.lstrip().startswith(b"<") or b"Just a moment" in r.content))
 
 

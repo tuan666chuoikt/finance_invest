@@ -177,3 +177,15 @@ def test_vn30_fixture_values_fit_bigint_and_have_no_era_jump():
     assert all(v is not None and 0 < v < 2**63 for v in vals)
     assert max(vals) / min(vals) < 1e4  # a 1e6 era mix-up would exceed this
     assert {b.trading_date: b.value for b in bars}[date(2026, 10, 16)] == 6_386_472_732_020
+
+
+def test_archive_name_matches_the_file_gap_chart_writes(tmp_path):
+    f = Fetcher(httpx.Client(transport=httpx.MockTransport(
+        lambda req: httpx.Response(200, content=load("gap_chart/FPT-1d.json.gz")))),
+        {"vci": TokenBucket(100)}, Archive(tmp_path), "ua")
+    src = VciSource(f)
+    assert src.archive_name(["FPT"], 8) == "FPT-1d-8"
+    many = [f"S{i:02d}" for i in range(50)]
+    src.bars(many, "1d", D, 8)
+    assert (tmp_path / f"bars_1d/2026-10-15/{src.archive_name(many, 8)}.json.gz").exists()
+    assert len(src.archive_name(many, 8)) < 30
