@@ -42,4 +42,9 @@ describe("disclaimer on analysis routes (F-032)", () => {
     expect(banner).toHaveTextContent(EN);
     expect(banner.querySelector("a,button,input,select,textarea,[tabindex]")).toBeNull();
   });
+
+  it.each(ROUTES.filter((r) => r.analysis))("banner sits inside the main landmark: $path", async ({ path }) => {
+    at(path);
+    expect((await screen.findByTestId("disclaimer")).closest("main")).not.toBeNull();
+  });
 });

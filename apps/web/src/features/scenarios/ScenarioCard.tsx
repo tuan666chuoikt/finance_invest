@@ -6,6 +6,7 @@ import { CardMenu } from "./CardMenu";
 import { InfoButton } from "./HowComputed";
 import type { Benchmark, WhatIfEnvelope } from "./result";
 import { Sparkline } from "./Sparkline";
+import { defaultName } from "./defaultName";
 import { Skeleton } from "./states";
 
 const arrow = (text: string) => (text.startsWith("+") ? "▲" : text.startsWith("−") ? "▼" : "=");
@@ -99,13 +100,16 @@ export function ScenarioCard({ scenario: s, onEdit }: { scenario: Scenario; onEd
   if (q.isPending) return <Skeleton />;
   const code = q.error instanceof ApiError ? q.error.code : "INTERNAL";
   return (
-    <article className="sc-card" aria-label={s.name} data-testid="scenario-card">
+    <article className="sc-card" data-testid="scenario-card">
       <div className="row" style={{ display: "flex", justifyContent: "space-between" }}>
-        <strong>
-          {s.symbol} · {s.style === "dca"
-            ? t("card.dca", { amount: formatVnd(s.amount_vnd), day: Number(s.buy_date.slice(8)) })
-            : t("card.lump")}
-        </strong>
+        <div>
+          <h3 style={{ margin: 0, fontSize: "1em" }}>{s.name || defaultName(s.symbol, s.amount_vnd, s.buy_date)}</h3>
+          <small>
+            {s.symbol} · {s.style === "dca"
+              ? t("card.dca", { amount: formatVnd(s.amount_vnd), day: Number(s.buy_date.slice(8)) })
+              : t("card.lump")}
+          </small>
+        </div>
         <CardMenu scenario={s} onEdit={onEdit} />
       </div>
       {q.data ? <Body s={s} env={q.data} /> : (
