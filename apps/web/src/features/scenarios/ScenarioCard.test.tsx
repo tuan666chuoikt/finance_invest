@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import "../../i18n";
 import raw from "./fixtures/envelope-001.json";
 import type { Scenario } from "./api";
+import { defaultName } from "./defaultName";
 import { ScenarioCard } from "./ScenarioCard";
 import type { WhatIfEnvelope } from "./result";
 
@@ -23,6 +24,16 @@ const withResult = (patch: object): WhatIfEnvelope => ({ ...env001, result: { ..
 afterEach(() => vi.unstubAllGlobals());
 
 describe("ScenarioCard", () => {
+  it.each(["FPT 50tr 2025", "FPT DCA thử"])("shows the stored name as a heading: %s", async (name) => {
+    await show(env001, { ...lump, name });
+    expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+  });
+
+  it("falls back to the default name when unnamed", async () => {
+    await show(env001, { ...lump, name: "" });
+    expect(screen.getByRole("heading", { name: defaultName("FPT", 10_000_000, "2026-10-12") })).toBeInTheDocument();
+  });
+
   it("shows the money lines with sign, arrow and the approximate flag", async () => {
     const card = within(await show(env001));
     for (const s of ["10.000.000 ₫", "10.610.975 ₫", "▲ +610.975 ₫", "▲ +6,11 %", "635.975 ₫"])
@@ -34,6 +45,12 @@ describe("ScenarioCard", () => {
   it("has no approximate flag when approximate is false", async () => {
     await show({ ...env001, approximate: false, flags: [] });
     expect(screen.queryByTestId("approximate-flag")).toBeNull();
+  });
+
+  it("benchmark with first_available null renders n/a without throwing", async () => {
+    const bm = [{ name: "VN-Index", investable: false, available: false, first_available: null }];
+    const card = await show(withResult({ benchmarks: bm }));
+    expect(within(card).getByTestId("bench")).toHaveTextContent(/^VN-Index — n\/a$/);
   });
 
   it("benchmarks: available shows pct and pp; unavailable shows n/a + date, never 0 %", async () => {
