@@ -13,9 +13,9 @@ TRADING = datetime(2026, 10, 26, 16, 0, tzinfo=VN)  # Monday, after the close
 SUNDAY = datetime(2026, 10, 25, 10, 0, tzinfo=VN)
 
 
-def _m(rows=0):
-    return SimpleNamespace(trading_date=date(2026, 10, 26), status="complete", symbols_fetched=30, rows=rows,
-                           symbols_skipped=())
+def _m(rows=0, status="complete"):
+    return SimpleNamespace(trading_date=date(2026, 10, 26), status=status, source="kbs", symbols_fetched=30,
+                           rows=rows, symbols_skipped=())
 
 
 @pytest.fixture
@@ -27,7 +27,8 @@ def make_client(make_client, tmp_path):
 @pytest.fixture
 def fakes(monkeypatch):
     """Fake crawler steps; `gate` holds the ticks step open, `calls` records them."""
-    f = SimpleNamespace(gate=threading.Event(), calls=[], ticks_exc=None, now=TRADING)
+    f = SimpleNamespace(gate=threading.Event(), calls=[], ticks_exc=None, now=TRADING,
+                        ticks_status="complete", bars_status="complete")
     f.gate.set()
 
     def ticks(settings, d, only, *, today, on_progress):
@@ -37,12 +38,12 @@ def fakes(monkeypatch):
             raise f.ticks_exc
         on_progress(12, 30)
         on_progress(30, 30)
-        return _m(rows=4521)
+        return _m(rows=4521, status=f.ticks_status)
 
     def bars(settings, d, *, today, count, on_progress):
         f.calls.append(("bars", count))
         on_progress(40, 40)
-        return _m(rows=0)
+        return _m(rows=0, status=f.bars_status)
 
     monkeypatch.setattr(runner, "run_ticks", ticks)
     monkeypatch.setattr(runner, "run_bars_1d", bars)
@@ -103,6 +104,37 @@ def test_failure_releases_lock(make_client, fakes):
     fakes.ticks_exc = None
     assert c.post("/api/jobs", json={"kind": "crawl"}).status_code == 202
     assert _wait(c)["status"] == "done"
+
+
+def test_blocked_bars_fails_job(make_client, fakes):
+    c = make_client()
+    fakes.bars_status = "blocked"
+    c.post("/api/jobs", json={"kind": "crawl"})
+    j = _wait(c)
+    assert j["status"] == "failed" and j["error"]["code"] == "SourceBlocked" and j["error"]["source"] == "kbs"
+    assert j["summary"]["ticks"]["rows"] == 4521
+
+
+def test_blocked_ticks_skips_bars(make_client, fakes):
+    c = make_client()
+    fakes.ticks_status = "blocked"
+    c.post("/api/jobs", json={"kind": "crawl"})
+    j = _wait(c)
+    assert j["status"] == "failed" and j["error"]["code"] == "SourceBlocked"
+    assert j["summary"]["ticks"]["rows"] == 4521 and j["summary"]["bars_1d"] is None
+    assert [k for k, _ in fakes.calls] == ["ticks"]
+
+
+def test_stale_running_row_blocks(make_client, fakes):
+    c = make_client()
+    eng = c.app.dependency_overrides[get_engine]()
+    with eng.begin() as cn:
+        stale = cn.execute(insert(jobs).values(kind="crawl", args={}, status="running",
+                                               created_at=datetime.now(UTC)).returning(jobs.c.id)).scalar_one()
+    r = c.post("/api/jobs", json={"kind": "crawl"})
+    assert r.status_code == 409 and r.json()["error"]["details"]["id"] == stale
+    assert fakes.calls == [] and runner._lock.acquire(blocking=False)  # lock was released
+    runner._lock.release()
 
 
 def test_non_trading_day(make_client, fakes):

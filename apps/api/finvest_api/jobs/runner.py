@@ -46,6 +46,8 @@ def _sessions(engine: Engine) -> int:
 
 
 def _error(e: BaseException) -> dict:
+    if isinstance(e, _Blocked):
+        return {"code": "SourceBlocked", "message": str(e), "source": e.source}
     err = {"code": type(e).__name__, "message": str(e)}
     if isinstance(e, OSError) and e.filename:
         err["path"] = str(e.filename)
@@ -54,6 +56,14 @@ def _error(e: BaseException) -> dict:
     elif isinstance(e, httpx.HTTPStatusError):
         err["http_status"] = e.response.status_code
     return err
+
+
+class _Blocked(Exception):
+    """A step ended `blocked`: the crawler swallowed SourceBlocked and returned a manifest instead."""
+
+    def __init__(self, m):
+        super().__init__(f"source {m.source} blocked the crawl")
+        self.source = m.source
 
 
 def _run(engine: Engine, settings: Settings, job_id: int) -> None:
@@ -87,6 +97,8 @@ def _run(engine: Engine, settings: Settings, job_id: int) -> None:
                 "partial_until": now.isoformat(timespec="seconds") if now.hour < CLOSE_HOUR else None,
             }
             _write(engine, job_id, summary=dict(summary))
+            if m.status == "blocked":  # rate budget is shared: skip step 2
+                raise _Blocked(m)
         else:
             summary["no_session_today"] = True
         step(2, "bars_1d", today)
@@ -94,6 +106,8 @@ def _run(engine: Engine, settings: Settings, job_id: int) -> None:
         m = run_bars_1d(settings, today, today=today, count=_count(engine, today), on_progress=on_progress)
         summary["bars_1d"] = {"sessions_added": _sessions(engine) - before,
                               "symbols_fetched": m.symbols_fetched, "symbols_skipped": len(m.symbols_skipped)}
+        if m.status == "blocked":
+            raise _Blocked(m)
     except Exception as e:  # any failure is reported on the row, never lost in the thread
         status, error = "failed", _error(e)
     finally:
@@ -111,6 +125,9 @@ def start_crawl(engine: Engine, settings: Settings) -> int | None:
         return None
     try:
         with engine.begin() as c:
+            if c.execute(select(jobs.c.id).where(jobs.c.kind == "crawl", jobs.c.status == "running")).first():
+                _lock.release()  # a stale `running` row (failed final write, other worker) also blocks (2.6)
+                return None
             job_id = c.execute(insert(jobs).values(kind="crawl", args={}, status="running",
                                                    created_at=datetime.now(UTC)).returning(jobs.c.id)).scalar_one()
         threading.Thread(target=_run, args=(engine, settings, job_id), daemon=True).start()
