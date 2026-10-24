@@ -140,6 +140,8 @@
   "crawl.unit.sessions": "phiên",
   "crawl.elapsed": "đã chạy {{time}}",
   "crawl.refused": "Đang có một lượt cào chạy (bắt đầu {{at}}) — chờ xong",
+  "crawl.start_failed": "Không bắt đầu được: {{cause}}",
+  "crawl.unreachable": "không kết nối được máy chủ",
   "crawl.done": "✓ Xong {{at}} · {{parts}}",
   "crawl.done.ticks": "{{symbols}} mã, {{rows}} lệnh khớp",
   "crawl.done.nosession": "Hôm nay không có phiên",
