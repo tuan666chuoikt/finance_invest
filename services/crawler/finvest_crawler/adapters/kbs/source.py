@@ -57,5 +57,8 @@ class KbsSource:
     def bars(self, symbols: list[str], grain: Literal["1m", "1d"], to: date, count: int) -> list[Bar]:
         raise Unsupported("kbs adapter serves ticks only")
 
+    def snapshot_bars(self, session: date) -> tuple[list[Bar], list[str]]:
+        raise Unsupported("kbs has no board snapshot")
+
     def index_bars(self, codes: list[str], to: date, count: int) -> list[IndexBar]:
         raise Unsupported("kbs index bars are not implemented")

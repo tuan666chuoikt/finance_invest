@@ -126,6 +126,9 @@ class VciSource:
         payload, raw = self._gap_chart(symbols, to, count)
         return parse_bars(payload, raw)
 
+    def snapshot_bars(self, session: date) -> tuple[list[Bar], list[str]]:
+        raise Unsupported("vci has no board snapshot")
+
     def index_bars(self, codes: list[str], to: date, count: int) -> list[IndexBar]:
         """Index levels keep 2 decimals, so they cannot travel as integer-VND `Bar` (platform.md 1.2)."""
         payload, raw = self._gap_chart(codes, to, count)
