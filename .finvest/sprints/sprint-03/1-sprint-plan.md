@@ -6,7 +6,24 @@ every M date below moves by the same number of days (C rows do not move: they fo
 Inputs: `product/backlog.md` (Sprint-03 slice), `product/roadmap.md` (S03 row), `product/ux/app-shell.md`,
 `product/ux/scenario-dashboard.md`, `sprint-01/6-retro.md` (R5), sponsor priority change 2026-10-16 23:17.
 
-## Goal
+## Revision 2026-10-24 — sponsor scope change A23 (previous version: `1-sprint-plan.prev-1.md`)
+
+**Goal for the rest of sprint-03: the sponsor can actually use the app.** Done when, by **Sun 2026-10-25 18:00 (M5)**:
+FE test bugs U1–U3 are fixed (must) and U4–U7 fixed (should), the "Cào dữ liệu" button (F-034) crawls on demand with
+running/done/error states, no automatic crawl remains, sprint-03 passes review and is merged to main, and the sponsor
+opens /scenarios on the real stack with ≥ 2 saved scenarios without a crash.
+- Added: **F-034** (5 pts) and the **S03 rework** items RW-U1…RW-U7 (on F-032, F-055, F-056; acceptance in
+  `product/backlog.md`, from `4-test.fe.md`). No new ids for the bugs; they are criteria of stories already committed.
+- Removed: the timer (SM ran `make uninstall-timers` 2026-10-24); F-019 criteria 1–2 superseded. C1–C5 are **missed**:
+  the crawl failed 2026-10-19…23 with PermissionError (data/raw root-owned) — those five tick tapes are lost for good.
+- Committed now **30 pts** (25 + 5) against velocity 20; the sprint end moves from Fri 10-23 to **Sun 10-25 18:00**.
+  First to slip if M5 is at risk: RW-U4…U7 (should), then F-048 benchmarks (already shows n/a). Never slipped: RW-U1–U3, F-034.
+- Order: SM fixes data/raw ownership first (blocks every crawl) → RW-U1 (blocker) ∥ F-034 BE job/progress → RW-U2, RW-U3
+  → F-034 button → U4–U7 → FE re-test → review → merge.
+- Test note: 10-24/10-25 are a weekend, so on the real stack F-034 can only show the "no session today" + daily catch-up
+  path; the tick path is proven with recorded fixtures, and on Mon 10-26 after 15:00 the sponsor's first press is the live check.
+
+## Goal (original, 2026-10-16)
 
 **The sponsor saves many investment scenarios and follows them side by side in the web UI.** By Friday
 `apps/web` runs on 127.0.0.1 in EN/VI, the sponsor creates ≥ 2 lump-sum/DCA scenarios, and the dashboard shows
@@ -33,7 +50,9 @@ adjusted-price result. F-040/F-041/F-057 worked examples pass to 1 VND.
 | F-032 | 1 | Disclaimer banner on analysis routes | after F-031 + F-056 routes |
 | F-048 | 2 | Benchmarks VN-Index + E1VFVN30 | after F-041, F-057 — first to slip |
 | F-051 | 2 | "How computed" panel | after F-041 |
-| **Total** | **25** | | |
+| F-034 | 5 | "Cào dữ liệu" manual crawl button, no automatic crawl (A23, added 2026-10-24) | after F-031 shell; uses F-017/F-012 crawlers |
+| S03-RW | 0 | Rework U1–U7 (must U1–U3, should U4–U7) on F-032/F-055/F-056 | first; U1 blocks the review |
+| **Total** | **30** | | |
 
 Acceptance criteria: as written in `product/backlog.md` (all Ready, worked examples included). Decision times:
 F-040 close of N, F-041 close of M (or latest stored bar, "as of"), F-057 close of each contribution date,
@@ -47,9 +66,10 @@ F-048 same dates/cash-flow dates as the scenario.
 | M2 | What-if engine: lump-sum, value, DCA — worked examples to 1 VND | 2026-10-20 18:00 (day 4) | F-040, F-041, F-057 |
 | M3 | Saved scenarios + dashboard + banner | 2026-10-22 18:00 (day 6) | F-055, F-056, F-032 |
 | M4 | Benchmarks + how computed | 2026-10-23 18:00 (day 7) | F-048, F-051 |
+| M5 | Usable: bugs fixed + crawl button (A23) | 2026-10-25 18:00 | S03-RW (U1–U7), F-034; then re-test, review, merge |
 | C1…C5 | Nightly crawl verification (R5), owner sm | each trading day 23:00 | see below |
 
-**Clock milestones (retro R5).** The F-019 timer is installed (BE-scheduler 7a74581: 15:30 run, 20:00 retry).
+**Clock milestones (retro R5) — superseded 2026-10-24: all five MISSED (PermissionError on data/raw), timer removed by A23.** The F-019 timer is installed (BE-scheduler 7a74581: 15:30 run, 20:00 retry).
 KBS serves only the current session and stops by next morning, so each trading evening the SM checks that the
 timer wrote that session's manifest; if it is missing at 21:00 the SM runs `make crawl` by hand (or prompts the
 sponsor) and confirms the manifest before 23:00. Weekend 10-17/10-18 has no session.
@@ -95,10 +115,14 @@ Notes (technical, left to the architects; no sponsor input):
 | BE-bars-backfill merges late | F-040 onward has no bars; start slips | M dates move with the start; F-006 + F-031 need no bars |
 | A C-row check is missed (timer fails, machine off, nobody checks) | That session's ticks lost for good | C1–C5, owner sm, 21:00 check / 23:00 deadline |
 | Back-fill re-run during 15:30–23:00 | Shares the rate budget with the tick crawl | Back-fill only outside 15:00–23:00 (S02 note 3) |
+| data/raw stays root-owned (no sudo on this machine) | F-034 errors on every press; app not usable | SM fixes ownership before any F-034 test (e.g. `docker run --rm -v $FI_ROOT/data:/d alpine chown -R $(id -u):$(id -g) /d`); F-034's error names the path if it recurs |
+| Ticks of 10-19…10-23 are lost (C1–C5 missed) | Fewer tick sessions for R1 exit counts | Accepted; recorded as gaps (F-017 "session missed"); daily bars for those days come back via F-034's catch-up |
+| Weekend: no live session before M5 | F-034 tick path not proven live by M5 | Fixtures in CI; first live press Mon 10-26 after 15:00 (sponsor), result checked by SM |
+| 30 pts vs velocity 20 | M5 slips | Slip order: RW-U4…U7, then F-048 |
 | Sponsor reads adjusted-price results as exact | Wrong lesson on dividend stocks | Approximate flag on every card, test-enforced (F-056) |
 | Index/ETF bars missing | F-048 shows n/a | DoR note 3; F-048 is first to slip anyway |
 | Money math off by rounding | Wrong P/L shown | Worked examples to 1 VND are acceptance gates; testers recompute independently |
 
 ## Sponsor questions
 
-None (A23 not needed).
+None open. A23 (2026-10-24) answered — applied in the revision above.

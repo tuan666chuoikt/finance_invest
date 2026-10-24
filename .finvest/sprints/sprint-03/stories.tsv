@@ -8,3 +8,5 @@ F-056	5	Scenario dashboard	FE-sparkline,FE-scenario-cards,FE-scenario-table
 F-032	1	Disclaimer banner on analysis routes	FE-disclaimer
 F-048	2	Benchmarks VN-Index + E1VFVN30	S-etf-bars,AI-whatif-benchmarks
 F-051	2	How computed panel	FE-how-computed
+F-034	5	Crawl-now button, manual crawl only (A23)	BE-crawl-hooks,BE-jobs-crawl,OPS-crawl-manual,FE-crawl-button
+S03-RW	0	Rework U1-U7 (must U1-U3, should U4-U7)	FE-fix-u1,FE-fix-u2-u3,BE-fix-u4,FE-fix-u5-u7

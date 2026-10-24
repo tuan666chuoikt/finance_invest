@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.7, 2026-10-18** (§2.5 `GET /symbols` exact match first, LIVE-03 L2; v1.6 = `platform.prev-7.md`) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.8, 2026-10-24** (§2.6 manual crawl job for F-034/A23, nullable `first_available`, scenario save checks the first bar — RW-U1/U4; v1.7 = `platform.prev-8.md`) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -56,8 +56,8 @@ Messages are English; the web maps `code` to EN/VI text (i18n key `error.<code>`
 | `GET /data-quality/gaps?feed=` | `[{trading_date, feed, status, reason}]` with `status ∈ missed|partial|blocked|failed` | F-021 |
 | `GET /data-quality/mismatches?symbol=&from=` | `[{symbol, trading_date, ours, theirs, diff_pct, checked_at}]` (diff_pct > "0.1" only) | F-016 |
 | `GET /data-quality/anomalies?rule=&symbol=&open=true` | `[{id, symbol, trading_date, rule, value, detected_at, resolved_at}]`; `rule ∈ outside_band|zero_volume_trading_day|duplicate_tick|bar_mismatch_1m` | F-022 |
-| `POST /jobs` body `{kind:"crawl", feed:"ticks"|"all"|…, trading_date}` → 202 `{id, status:"queued"}`; 409 if the same job runs; 422 `NOT_TRADING_DAY` | manual re-run | F-019 |
-| `GET /jobs/{id}` | `{id, kind, args, status, created_at, finished_at, log}` | F-019 |
+| `POST /jobs` | §2.6 (v1.8: body `{kind:"crawl"}` only; the server picks the dates) | F-034 |
+| `GET /jobs/current` · `GET /jobs/{id}` | §2.6 Job object | F-034 |
 
 ### 2.1 Rules payload
 ```json
@@ -117,16 +117,51 @@ Scenario:   { "id": 7, …ScenarioIn, "created_at": "2026-10-19T09:00:00+07:00",
 - `ScenarioIn` validation (400 `VALIDATION`, `details.field`): `name` 1–60 chars (the web fills the default); `symbol` 1–12
   chars, upper-cased by the server; `style ∈ lump_sum | dca`; `amount_vnd` integer `1 … 100_000_000_000` (UX form); `buy_date`
   a date; `sell_date` null or `≥ buy_date`. `symbol` not in `symbols` (delisted allowed) → 422 `SYMBOL_UNKNOWN`.
-  Date limits against stored bars are **not** enforced on save (the what-if result reports `NO_DATA`/`VALIDATION`
-  instead), so a scenario saved before a back-fill becomes computable afterwards.
+  v1.8 (RW-U4): `buy_date` earlier than the symbol's first stored bar in `bars_1d_src` → 422 `NO_DATA`,
+  `details {field:"buy_date", symbol, first_available:"2025-01-02"}` — the same code/details `POST /whatif` returns, so the
+  web shows one message ("No FPT data before 02/01/2025") on the form field and on an already-saved card. A symbol with no
+  bars at all is **not** refused on save (it becomes computable after a back-fill); other date limits stay unenforced.
 - The web computes each saved scenario with one `POST /whatif` per row (`sell_date: null` → latest bar); a failing row
   shows its own error card (UX scenario-dashboard.md "Error (one scenario fails)"). No stored results in S03; the
   R4 journal (analytics.md §4) is a different table.
 - `POST /whatif` error mapping (adds to §1.3): `AnalyticsError.code` → `VALIDATION` 400 · `SYMBOL_UNKNOWN`, `NO_DATA`,
-  `RANGE_TOO_LARGE` 422; `details` passed through (`first_available`, `last_available`, `min_amount`). Calendar years
+  `RANGE_TOO_LARGE` 422; `details` passed through (`first_available`, `last_available`, `min_amount`). In the result,
+  `benchmarks[].first_available` is `string | null` — **null when the benchmark has no bars at all** (live: VNINDEX empty,
+  4-test.fe U1); the web renders "n/a" without a date and never crashes (analytics.md §2.4 mirrors this). Calendar years
   outside `finvest_rules` `holidays.csv` are served from VNINDEX bar dates (data.md §1.2 V2), never refused.
 - `scenarios` table: data.md §3 (`id BIGINT identity PK, name, symbol, style, amount_vnd BIGINT, buy_date, sell_date,
   created_at, updated_at`), migration `0006_scenarios`.
+
+### 2.6 Manual crawl job (normative v1.8; F-034, A23 — nothing crawls unless this job or the CLI runs)
+
+Routes live in the api process; the crawl runs as a **background thread inside the api container** (same image as the
+crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a process-level lock **and** the `jobs` row.
+- `POST /jobs` body `{"kind":"crawl"}` → **202** Job (`status:"running"`). While a `crawl` job is `running` → **409**
+  `{error:{code:"JOB_RUNNING", message, details:{id, started_at}}}`. Any other `kind` → 400 `VALIDATION`.
+- `GET /jobs/current` → the newest `crawl` job of any status, or **404** `NOT_FOUND` if none ever ran (the web reads this
+  on load: running → resume the Running state; done/failed → the last-run tooltip / status line).
+- `GET /jobs/{id}` → Job; 404 `NOT_FOUND`.
+- Job object (`jobs` table, data.md §3, + `progress`, `summary` JSONB):
+```json
+{ "id": 12, "kind": "crawl", "status": "running",            // running | done | failed
+  "created_at": "2026-10-26T16:10:03+07:00", "finished_at": null,
+  "progress": { "step": 1, "steps": 2, "label": "ticks", "trading_date": "2026-10-26", "done": 12, "total": 30 },
+  "summary": null, "error": null }
+```
+  Finished: `summary = { "ticks": {"trading_date", "status", "symbols_fetched", "rows", "symbols_skipped", "partial_until"} | null,
+  "bars_1d": {"sessions_added", "symbols_fetched", "symbols_skipped"}, "no_session_today": bool, "duration_s": 221 }`;
+  failed: `error = {"code": "PermissionError" | "SourceBlocked" | "HTTPError" | …, "message", "path"?, "source"?, "http_status"?}`
+  (always the cause **and** the path or source, UX app-shell.md §Crawl button) and `summary` keeps whatever steps finished.
+- What the job does (VN time): step 1 — if today is a trading day (`finvest_rules` calendar, VN§sessions) run
+  `run_ticks(today)`; before 15:00 the manifest is `partial` (platform.md §4) and `summary.ticks.partial_until` = now; a
+  non-trading day skips step 1 and sets `no_session_today: true`. Step 2 — `run_bars_1d(today, count = trading days since the
+  oldest last bar of `bars_1d_src`/`index_1d` + 2, min 5)`: catches up daily bars for every symbol and index (F-012 resume
+  semantics, idempotent upserts). A `CatchupFailed`-style partial result is `failed` with the error of the raising step.
+- Progress: `done/total` are symbols in step 1 and names in step 2; the runner updates the row at most every 2 s.
+- Crash safety: on api start-up every `running` job is set `failed`, `error.code = "interrupted"` (the thread died with the
+  container). The crawler's own `crawl_runs`/`crawl_sessions` rows are written as before (§4); the job row is additional.
+- CLI parity: `make crawl DATE=…` / `make backfill` still work and share nothing with the api lock — the sponsor is told
+  (README) not to run both at once; the source rate budget (data.md) is the only shared resource.
 
 ## 3. R3 board (shape preview; normative at R3 planning)
 

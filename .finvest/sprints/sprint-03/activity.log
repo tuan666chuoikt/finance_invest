@@ -72,3 +72,8 @@
 2026-10-18 21:17 | lead    | FIX-symbols-exact-first  | merged    | a2d6a1c; kernel 207 passed, ruff/imports/mypy ok; 0 must-fix | 3-pr.FIX-symbols-exact-first.md
 2026-10-18 21:17 | ai      | FIX-whatif-empty-history | pr-open   | kernel 210 passed, ruff/mypy/lint-imports clean; 3 new tests red before fix; +60/-3 lines | sprints/sprint-03/3-build.FIX-whatif-empty-history.md
 2026-10-18 21:19 | lead    | FIX-whatif-empty-history | merged    | 4c5037e; 0 must-fix; kernel 210 passed, 3 new tests fail on old head (IndexError), money recomputed 9,962,600 | .finvest/sprints/sprint-03/3-pr.FIX-whatif-empty-history.md
+2026-10-18 21:29 | fe-test | SPRINT-03                | red       | vitest 61/61 (4 it.fails); e2e 33 pass/7 fail; bugs U1 blocker, U2,U3 major, U4-U7 minor | 4-test.fe.md
+2026-10-24 14:18 | sm      | A23                      | note      | sponsor: manual crawl button, no timer; finish sprint-03 to usable | -
+2026-10-24 14:21 | pm      | A23                      | changes   | F-034 5pts added (crawl button); RW-U1..U7 on F-032/F-055/F-056 (must U1-U3); plan 30pts, M5 2026-10-25 18:00 | .finvest/sprints/sprint-03/1-sprint-plan.md
+2026-10-24 14:22 | fi-po   | PRD                      | done      | PRD v2.1: PR-020 timer -> manual Crawl button (A23); v2 archived as prd.prev-2.md | -
+2026-10-24 14:28 | software-architect | replan                   | note      | dag rev 6: +8 tasks (BE-crawl-hooks, BE-jobs-crawl, BE-fix-u4, OPS-crawl-manual, FE-fix-u1, FE-fix-u2-u3, FE-fix-u5-u7, FE-crawl-button); pl | 2-tech-plan.md
