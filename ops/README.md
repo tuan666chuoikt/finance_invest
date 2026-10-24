@@ -24,3 +24,4 @@ which mounts `./data`) or `make crawl DATE=YYYY-MM-DD`. Never run both at once. 
 Ports on loopback: web 8080, api 8001 (8000 is the sponsor's gateway).
 
 Past-day crawls probe FPT, HPG, VNM first: an empty tape counts as no trades only once a probe shows the source still serves that day; otherwise the day is `missed`, and a `missed` run never overwrites a stored `partial`/`complete` session.
+The `crawl_sessions` ledger keeps the richest replay: a replay with fewer rows (a `missed` run, or a `partial`/`source_no_longer_serves` the morning after) leaves the stored row alone; the manifest file on disk is always written.
