@@ -32,7 +32,7 @@ const patch = (p: object, flags?: string[]) => ({ ...env, flags: flags ?? env.fl
 afterEach(() => { vi.unstubAllGlobals(); void i18n.changeLanguage("vi"); });
 
 describe("real-stack shapes", () => {
-  it.fails("U1: VN-Index unavailable with first_available=null (real API while VNINDEX is empty) does not throw", async () => {
+  it("U1: VN-Index unavailable with first_available=null (real API while VNINDEX is empty) does not throw", async () => {
     const b = [{ name: "VN-Index", investable: false, available: false, first_available: null }];
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify(patch({ benchmarks: b })), { status: 200 }))));
@@ -50,21 +50,22 @@ describe("real-stack shapes", () => {
     expect(c.getByText(/sẽ tích luỹ đến khi đủ 1 lô/)).toBeInTheDocument();
   });
 
-  it.fails("U3: the user-given scenario name is visible on the card (UX: card shows name)", async () => {
+  it("U3: the user-given scenario name is visible on the card (UX: card shows name)", async () => {
     const card = await show(env);
     expect(card).toHaveTextContent("Quỹ hưu trí");
   });
 
-  it.fails("U5: English plural for one missing session reads '1 session missing'", async () => {
+  it("U5: English plural for one missing session reads '1 session missing'", async () => {
     await i18n.changeLanguage("en");
     const r = { ...env.result, missing_sessions: ["2026-01-02"] };
     await show({ ...env, result: r });
-    expect(screen.getByText(/1 sessions missing/)).toBeNull();
+    expect(screen.queryByText(/1 sessions missing/)).toBeNull();
+    expect(screen.getByText(/1 session missing/)).toBeTruthy();
   });
 });
 
 describe("a11y structure", () => {
-  it.fails("U2: the disclaimer sits inside a landmark (axe 'region' rule)", async () => {
+  it("U2: the disclaimer sits inside a landmark (axe 'region' rule)", async () => {
     vi.stubGlobal("fetch", () => Promise.resolve(new Response("{}", { status: 500 })));
     render(<QueryClientProvider client={qc()}><RouterProvider router={createMemoryRouter(routeObjects, { initialEntries: ["/scenarios"] })} /></QueryClientProvider>);
     const d = await screen.findByTestId("disclaimer");

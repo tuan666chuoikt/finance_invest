@@ -28,7 +28,7 @@ async function fill(f) {
   if (f.end) { await d.getByLabel(/Hôm nay|Today/).uncheck(); await d.locator('input[type="date"]').nth(1).fill(f.end); }
   return d;
 }
-const card = (n) => p.locator(`[data-testid="scenario-card"][aria-label="${n}"]`);
+const card = (n) => p.locator('[data-testid="scenario-card"]').filter({ has: p.getByRole("heading", { name: n, exact: true }) });
 const nameVisible = async (n) => (await card(n).innerText()).includes(n);
 
 // pre-clean leftovers of an aborted run (the page crashes while one with a null-benchmark result exists)
@@ -46,10 +46,8 @@ ok("axe empty page: 0 violations", a0.violations.length === 0, a0.violations.map
   const q = await api("/scenarios", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "E2E probe", symbol: "FPT", style: "lump_sum", amount_vnd: 50000000, buy_date: "2025-03-03", sell_date: null }) });
   await goto(); await p.waitForTimeout(2500);
   const crashed = /Unexpected Application Error/.test(await p.locator("body").innerText());
-  ok("U1 unpatched: page survives VN-Index benchmark with first_available=null", !crashed, "page shows 'Unexpected Application Error' (" + errs.join("|").slice(0, 120) + ")");
+  ok("RW-U1: page survives VN-Index benchmark with first_available=null", !crashed, "page shows 'Unexpected Application Error' (" + errs.join("|").slice(0, 120) + ")");
   await api("/scenarios/" + q.j.id, { method: "DELETE" }); errs.length = 0;
-  // the rest of the run patches ONLY first_available:null -> a date so the other flows can be exercised
-  await p.route("**/api/whatif", async (route) => { const r = await route.fetch(); const j = await r.json(); for (const x of j.result?.benchmarks ?? []) if (x.available === false && x.first_available == null) x.first_available = "2025-01-02"; await route.fulfill({ response: r, json: j }); });
   await goto();
 }
 
@@ -61,7 +59,7 @@ await p.waitForFunction(() => /Giá trị nếu bán/.test(document.querySelecto
 let txt = await c.innerText(); console.log(txt);
 ok("lump FPT: liquidation 30.152.493 ₫", txt.includes("30.152.493"), txt);
 ok("lump FPT: P/L −39,70 % (2dp, U+2212)", /−39,70 %/.test(txt), txt);
-ok("U3 card shows the user-given scenario name (UX: card shows name)", await nameVisible("E2E FPT lump"), txt.split("\n")[0]);
+ok("RW-U3 card shows the user-given scenario name (UX: card shows name)", await nameVisible("E2E FPT lump"), txt.split("\n")[0]);
 ok("lump FPT: invested 50.000.000", txt.includes("50.000.000"));
 ok("lump FPT: approximate flag on card", await c.locator('[data-testid="approximate-flag"]').count() === 1);
 ok("lump FPT: down arrow cue", /▼/.test(txt), txt);
@@ -122,7 +120,7 @@ const rows = await p.locator("table tbody tr").count();
 ok("table view lists scenarios", rows >= 3, rows);
 ok("table: footer + approximate on rows", /không dự báo|does not predict/.test(await p.locator("body").innerText()) && (await p.locator("table").innerText()).match(/Xấp xỉ|Gần đúng|Approximate/g)?.length >= 3);
 const tt = await p.locator("table tbody").innerText();
-ok("U7 table P/L ₫ uses the same minus sign (U+2212) as P/L %", !/(^|\s)-\d/.test(tt), tt);
+ok("RW-U7 table P/L ₫ uses the same minus sign (U+2212) as P/L %", !/(^|\s)-\d/.test(tt), tt);
 const at = await new AxeBuilder({ page: p }).analyze();
 ok("axe table view: 0 violations", at.violations.length === 0, at.violations.map((v) => v.id + ":" + v.nodes.length + ":" + v.nodes[0].html.slice(0, 110)).join(","));
 await p.getByRole("button", { name: /Thẻ|Cards/ }).first().click();
