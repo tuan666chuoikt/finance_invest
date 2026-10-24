@@ -1,7 +1,7 @@
 {
   "sprint": "sprint-03",
   "plan": "v1.0",
-  "dagRev": 10,
+  "dagRev": 11,
   "tasks": [
     {
       "id": "BE-rules-costs",
@@ -535,11 +535,66 @@
       "priority": 1,
       "manual": false,
       "size": 90
+    },
+    {
+      "id": "BE-fetch-blocked",
+      "side": "be",
+      "lane": "BE-6",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 55
+    },
+    {
+      "id": "FIX-sessions-repair",
+      "side": "be",
+      "lane": "BE-7",
+      "milestone": "M5",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 45
+    },
+    {
+      "id": "BE-ssi-snapshot",
+      "side": "be",
+      "lane": "BE-8",
+      "milestone": "M5",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 1,
+      "manual": false,
+      "size": 95
+    },
+    {
+      "id": "BE-bars-press",
+      "side": "be",
+      "lane": "BE-8",
+      "milestone": "M5",
+      "after": [
+        "BE-ssi-snapshot",
+        "FIX-sessions-repair"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "bothLeads": false,
+      "priority": 2,
+      "manual": false,
+      "size": 200
     }
   ],
   "_doc": {
     "after": "ids that must be MERGED into sprint-03 before this task starts; sprint-02 is merged, so [] = start now",
     "side": "fe | be | ai (ai = services/analytics, reviewed by the BE lead)",
-    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest incl. FIX-* (sprint-02 review, LIVE-03 smoke): 2-tech-plan.md; replan 2026-10-24 (A23: BE-crawl-hooks, BE-jobs-crawl, BE-fix-u4, OPS-crawl-manual, FE-fix-*, FE-crawl-button): 2-tech-plan.md §Mid-sprint replan; rework 2026-10-24 pm (T1-T4: S-v2-batch, BE-bars-batch, FIX-session-ledger, FIX-whatif-nodata-msg): 2-tech-plan.md §Mid-sprint rework; FE-fix-crawl-c1-c2-s1 (4-test.fe C1/C2/S1, rev 9)"
+    "plans": "BE-rules-costs + AI-* blocks: 2-tech-plan.ai.md; the rest incl. FIX-* (sprint-02 review, LIVE-03 smoke): 2-tech-plan.md; replan 2026-10-24 (A23: BE-crawl-hooks, BE-jobs-crawl, BE-fix-u4, OPS-crawl-manual, FE-fix-*, FE-crawl-button): 2-tech-plan.md §Mid-sprint replan; rework 2026-10-24 pm (T1-T4: S-v2-batch, BE-bars-batch, FIX-session-ledger, FIX-whatif-nodata-msg): 2-tech-plan.md §Mid-sprint rework; FE-fix-crawl-c1-c2-s1 (4-test.fe C1/C2/S1, rev 9); rework round 3 2026-10-24 eve (T1b/T4/T5 + block detection: BE-fetch-blocked, FIX-sessions-repair, BE-ssi-snapshot, BE-bars-press): 2-tech-plan.md §Mid-sprint rework round 3"
   }
 }

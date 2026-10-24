@@ -1,0 +1,13 @@
+F-006	1	Trading-cost rules v1 (rules_version)	BE-rules-costs
+F-031	3	Web app shell EN/VI	FE-web-scaffold,FE-shell-bar,BE-contracts-ts,OPS-web-compose
+F-040	3	Lump-sum buy: lots, fee, residual cash	AI-analytics-scaffold,AI-whatif-lumpsum,BE-market-view,BE-whatif-api
+F-041	2	Value at end date: liquidation, P/L, CAGR	AI-whatif-lumpsum
+F-057	3	DCA in the what-if engine	AI-whatif-dca
+F-055	3	Saved scenarios: create/edit/delete	BE-api-symbols-bars,BE-scenarios-api,FE-scenario-form
+F-056	5	Scenario dashboard	FE-sparkline,FE-scenario-cards,FE-scenario-table
+F-032	1	Disclaimer banner on analysis routes	FE-disclaimer
+F-048	2	Benchmarks VN-Index + E1VFVN30	S-etf-bars,AI-whatif-benchmarks
+F-051	2	How computed panel	FE-how-computed
+F-034	5	Crawl-now button, manual crawl only (A23)	BE-crawl-hooks,BE-jobs-crawl,OPS-crawl-manual,FE-crawl-button
+S03-RW	0	Rework U1-U7 (must U1-U3, should U4-U7)	FE-fix-u1,FE-fix-u2-u3,BE-fix-u4,FE-fix-u5-u7
+S03-BE	0	BE test bugs T1-T4 (4-test.be.md)	S-v2-batch,BE-bars-batch,FIX-session-ledger,FIX-whatif-nodata-msg,FE-fix-crawl-c1-c2-s1

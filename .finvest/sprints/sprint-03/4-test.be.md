@@ -1,39 +1,21 @@
-# 4-test BE — sprint-03 (fi-be-tester)
+# 4-test BE round 2 — sprint-03 (fi-be-tester)
 
-**Verdict: FAIL** — 0 blocker, 2 major, 2 minor. Branch `test/sprint-03/be` from origin/sprint-03 (a2c9bc4), oracle in `tests_be03/oracle.py`.
-Numbers: `make test-kernel` 226 passed / 22 deselected (db-marked not run); live checks 27 pass / 3 fail (the bugs below).
-Stack: compose project `test-be-03`, dir `/home/stein/Desktop/Learning/finance_invest-worktrees/test-be-03` (data/ symlinked to FI_ROOT/data, .env copied); api 127.0.0.1:8001, web 127.0.0.1:8080. Left running.
-Today is Saturday 2026-10-24.
+**Verdict: FAIL** — 0 blocker, 2 major, 1 minor. Branch `test/sprint-03/be` merged with origin/sprint-03 (fb785ee). Previous report: `4-test.be.prev-1.md`.
+Numbers: `make test-kernel` 233 passed / 24 deselected, ruff, mypy, lint-imports green. Live: T2 PASS, T3 PASS, T1 not verifiable live, T4 FAIL (see below). Real stack (finance_invest project) used, not stopped. One press only (job 5).
+
+## Retest of round-1 bugs
+| Id | Result |
+|---|---|
+| T1 session ledger | CODE PASS (`where=excluded.rows >= crawl_sessions.rows` in packages/market_data/.../repositories.py, commit 4fb491c; builder reports 2 db tests). NOT run by me: db-marked tests need the finvest_test password (the .env password was refused), and no live replay (it would hit the source again). **Row 10-16 NOT repaired**: still `ticks|2026-10-16|partial|16 fetched|1522 skipped|2578 rows|source_no_longer_serves` while the `ticks` table holds 145,184 rows / 911 symbols for that day. The builder left the repair to the tester; my UPDATE was blocked by the permission classifier, so it stays for the architect/owner to repair (rows 145184, fetched 911). The raw `_manifest.json` for 10-16 is also the overwritten one. |
+| T2 index + pre-2025 | PASS. After the press started (indices first): index_1d VNINDEX 5,675 rows 2004-01-05..2026-10-23, VN30 3,672 rows 2012-02-06..2026-10-23, no null value, 0 gaps seen at the ends. What-if FPT buy 2024-02-12 (Tet) now 200, shifted to 2024-02-15 (reason non_trading); FPT 2020-03-02 200. VN-Index benchmark available: 10,000,000 * 1774.15 / 1202.50 = 14,753,846 (matches API, VNINDEX 2024-02-15 c = 1202.50 in DB). B2 index `value` plausible (VNINDEX 10-23: 16.94e12 VND). |
+| T3 NO_DATA message | PASS: HLO 2024-01-02 -> 422-class NO_DATA "no data for HLO before 2024-06-24", details {symbol, first_available}. |
+| T4 one real press | FAIL on expectation. POST /api/jobs 202 (job 5, 16:25:55). Progress bars_1d done/total: 48 at +4 min, 53 at +9, 61 at +18, 67 at +24 min of 1777 -> about 1 symbol/min and slowing (round 1 was ~9/min), i.e. ~30 h, not the ≈15 min expected at BATCH_MAX=1 (config 2 req/s would be ~15 min, so the source or retry/backoff is the limiter, not our bucket). Never reached `done` in my window; job left running. 418 -> blocked fast: not observed (no 418 happened; unit tests only). Daily-bars session row for 2026-10-24 still `partial 0 fetched` while running. |
 
 ## Bugs
 | Id | Sev | Owner | What |
 |---|---|---|---|
-| T1 | major | build (FIX-ticks-probe) | Replaying `finvest-crawl ticks --date 2026-10-16` (stored session partial, 145,184 rows) ends `partial/source_no_longer_serves` (16 fetched, 1522 skipped, 2578 rows, 3 requests) and **overwrites** the `crawl_sessions` row: rows 145184 -> 2578, fetched/skipped/checksum replaced. `ticks` table itself untouched (145,184 rows for 10-16, verified). The FIX only protects against a `missed` replay; a smaller `partial` replay still downgrades the ledger. Expected: a replay never replaces a row with fewer rows. (Row left in that state; I did not repair it.) |
-| T2 | major | plan/build (calendar + index data) | What-if / save for any buy_date before 2025 fails for every symbol: `400 VALIDATION no_trading_day_near_buy` (FPT has bars 2006+; 2024-12-30 ok, 2024-02-12 fails). Cause: `market_view.calendar()` falls back to VNINDEX `index_1d` outside holidays.csv years and `index_1d` has 0 rows (live VNINDEX still empty, seen by FE as U1). So FIX-index-value (B2) could not be verified live (no index rows to check); also RW-U4 is only half useful as the message is a generic VALIDATION. Needs index backfill or holidays.csv for earlier years. |
-| T3 | minor | build | `POST /api/whatif` NO_DATA message is just "NO_DATA" (scenarios route says "no data for HLO before 2024-06-24"). |
-| T4 | minor | build/ops | Crawl job is very slow on the real source: ~33 of 1777 symbols in 220 s (rate limit), full catch-up ~3 h; UI must keep polling/showing progress (progress is updated, totals ok). Not a defect, a sponsor expectation. |
+| T1b | major | ops/architect | crawl_sessions row ticks 2026-10-16 still holds the downgraded numbers (2578 rows vs 145,184 in `ticks`); needs the manual repair the FIX note asks for. |
+| T4 | major | build (BE-bars-batch) / ops | Full catch-up press does not finish in ~15 min: ~1 symbol/min after the first 50 (60 symbols in 24 min). Needs a cause (per-request latency vs 2**n backoff on soft throttling) and a UI/sponsor expectation; the "1777 in ≈15 min" claim is unproven. |
+| T5 | minor | build | While a job runs, bars_1d crawl_sessions row stays `partial/0` and the 2026-10-24 (Saturday) trading_date is used for progress; cosmetic, row is written only at the end. |
 
-## F-034 jobs (live, api 8001)
-| Case | Result |
-|---|---|
-| POST {"kind":"crawl"} | PASS 202 {id,status running} |
-| second POST while running | PASS 409 JOB_RUNNING details {id, started_at} |
-| kind "x" / no body | PASS 400 VALIDATION details.field |
-| GET /jobs/current, /jobs/{id}, 999, "abc" | PASS running with progress {step 2, label bars_1d, done/total}; 404 NOT_FOUND; 400 VALIDATION |
-| Saturday: ticks step skipped | PASS progress starts at step 2 (bars_1d); no ticks run |
-| daily-bars catch-up real | PASS bars_1d_src gained 10-19..10-23 (24/21/22/21/23 rows so far), none for Sat 10-24; /api/bars/1d/status last_trading_date 2026-10-23; no duplicate (symbol,date) among new rows |
-| api restart mid-job (x3) | PASS job -> failed, error {code interrupted, message "the api restarted while the job was running"}; new POST then accepted (202) |
-| failure naming the cause | NOT reproduced live (HTTPS_PROXY junk and unwritable data dir did not make the job fail; the job kept running). Covered only by unit tests (test_blocked_*; 12 in test_jobs.py pass). |
-| Job to `done` with summary | NOT checked live (3 h run) |
-
-## Other checks
-| Check | Result |
-|---|---|
-| RW-U4 save refuses buy_date before first bar | PASS POST and PUT: 422 NO_DATA details {field buy_date, symbol HLO, first_available 2024-06-24}; the first-bar date and next day accepted (201); unknown symbol 422 SYMBOL_UNKNOWN. Test rows deleted |
-| What-if lump sum vs independent oracle (Decimal, vn-market s4/s5, 0.15 % fee half-up, 0.1 % sell tax, lot 100) | PASS 4/4: FPT 50M 2025-03-03 400 sh liquidation 30,152,493; HPG 30M 1500 sh 31,991,270; FPT 5M 0 sh 5,000,000; MWG 77,777,777 900 sh 73,878,395 |
-| What-if DCA vs oracle (cash carries, shift forward, per-contribution qty/cash_after) | PASS 4/4: HPG 2M/month from 2025-03-31 -> 1600 sh, cash 1,824,517, invested 38,000,000, liquidation 35,180,917 (19 contributions); FPT, MWG, ACB also exact |
-| B1 FIX-ticks-probe | unit tests pass; live replay exposed T1 |
-| B2 FIX-index-value | unit tests pass (fixture); live: stocks `value > 1000*v*c` = 0 rows; index not testable (T2) |
-| Timer fully removed | PASS: no ops/systemd, no .timer/.service/crontab, test_no_scheduler green, api container has no cron |
-
-Not checked: db-marked pytest, analytics eval harness, injection params on symbol/date beyond ZZZZ, auth, job `done` path live, rules_unverified fee flags (shown, accepted).
+Not checked: job `done` summary, 418 live, injection params beyond earlier round, analytics eval harness.

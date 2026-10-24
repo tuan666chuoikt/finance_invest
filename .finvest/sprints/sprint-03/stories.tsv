@@ -11,3 +11,4 @@ F-051	2	How computed panel	FE-how-computed
 F-034	5	Crawl-now button, manual crawl only (A23)	BE-crawl-hooks,BE-jobs-crawl,OPS-crawl-manual,FE-crawl-button
 S03-RW	0	Rework U1-U7 (must U1-U3, should U4-U7)	FE-fix-u1,FE-fix-u2-u3,BE-fix-u4,FE-fix-u5-u7
 S03-BE	0	BE test bugs T1-T4 (4-test.be.md)	S-v2-batch,BE-bars-batch,FIX-session-ledger,FIX-whatif-nodata-msg,FE-fix-crawl-c1-c2-s1
+S03-BE3	0	BE retest T1b/T4/T5 + block detection (4-test.be.md round 2)	BE-fetch-blocked,FIX-sessions-repair,BE-ssi-snapshot,BE-bars-press

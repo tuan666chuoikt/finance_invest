@@ -935,3 +935,216 @@ FE-1  FE-fix-crawl-c1-c2-s1                      (start now; FE-crawl-button mer
   `getComputedStyle(...).minHeight === "24px"` for Menu, VI, EN and the crawl button (jsdom reads inline/class styles the
   dev sets); the BE tester's `crawl-button.mjs` cases "POST 500 INTERNAL" / "POST network down" pass after merge.
 - Out of scope: retry/backoff on start, SSE, other a11y findings, the FreshnessChip.
+
+## Mid-sprint rework round 3 2026-10-24 (eve) — BE retest T1b/T4/T5 + block detection (dag rev 11; previous: `2-tech-plan.prev-6.md`)
+
+Inputs: `4-test.be.md` round 2 (T1b, T4, T5), SM note 16:51 (job 5: 67 names in 3 min, then ≈ 1 name/min; the source
+holds ≈ 30 s then answers 418, `Fetcher` times out at 20 s, so a block is counted as a timeout, retried 3×, skipped, next
+name — never `SourceBlocked`; stopped by an api restart), origin/sprint-03 head `7e0f4a4`, `contracts/platform.md` **v1.12**
+(§2.6 step 2 rewritten, §4 bars_1d ledger; v1.11 = `platform.prev-12.md`), data.md §1.2 S1 row ("after-close nominal daily
+bar for every symbol", fixture `tests/fixtures/ssi/exchange/hose.json.gz` recorded 2026-10-16).
+
+### Decisions
+- **Block detection (item 1)** has two layers. (a) `Fetcher`: a timeout counts toward `blocked`, not `failed` (3 consecutive
+  timeouts/418/429/403/challenge in one `get` → `SourceBlocked`, ≈ 63 s worst case; `failed` stays for 5xx only). (b) Each
+  feed: `FAIL_RUN = 3` consecutive skipped units (any reason, across names) → the run ends `blocked` / `source_blocked`,
+  the remaining names are skipped `source_blocked`, no further request. The job row stays `failed` (the `jobs.status`
+  CHECK has no `blocked`; platform §2.6 v1.9 decision) with `error.code = "SourceBlocked"` and the message
+  **"nguồn {source} đang chặn tạm, thử lại sau ~1 giờ"**, which the web already prints verbatim (`crawl.error`).
+- **Normal-case speed (item 2) — chosen: the SSI S1 full-market snapshot.** data.md §1.2 S1 (`GET
+  iboard-query.ssi.com.vn/stock/exchange/{hose|hnx|upcom}`, host already allow-listed, adapter `SsiSource` already calls it
+  for `symbols`) returns per row `tradingDate`, `openPrice`, `highest`, `lowest`, `matchedPrice` (= ATC close after 14:45),
+  `nmTotalTradedQty`, `nmTotalTradedValue`, VND — the fixture proves the fields. So the **latest closed session** costs **3
+  requests on the SSI bucket (1 req/s)**, zero on VCI. VCI V2 per-name calls remain only for **real gaps**: names whose last
+  bar (any source) is older than the target session and that the snapshot did not mark no-trades, oldest first, capped at
+  `GAP_MAX = 40` per press (job 5 was blocked after ≈ 67 V2 calls in 3 min, so the per-press V2 budget is 2 index + ≤ 40 =
+  42; the CLI back-fill passes no cap and relies on block detection + resume). The rest are skipped `deferred` → `partial`,
+  cleared by the next presses. Resumable by construction: the gap list is computed from the DB on every run. Delisted
+  names are excluded from a catch-up press (`count < COUNT`), included in a full back-fill. Target session = last trading
+  day whose close has passed (`now ≥ 15:05 VN`), computed by the runner; S1 is used only when its `tradingDate` equals
+  the target (else the snapshot is dropped and all live names are gaps — a weekend press may hit this; the test report
+  will tell; nothing breaks).
+  - shortcut: the S1 bar is **nominal** and goes into `bars_1d_src` with `source = 'ssi'`; on the latest session nominal =
+    source-adjusted, so the read path (`DISTINCT ON trading_date ORDER BY fetched_at DESC`) is correct today. After a later
+    ex-date that day stays unadjusted until a V2 refetch covers it — the same staleness every pre-ex-date V2 row already
+    has (a press re-adjusts only `count` sessions). Upgrade when F-014/F-016 (adj factors, reconciliation) land: move S1
+    rows to `bars_1d.nominal_kind='observed'` (data.md §1.4).
+  - Interior holes (a name whose newest bar is current but misses an older day) are not detected; `make backfill`
+    (full `COUNT`, no cap, resumable) is the repair, documented in `ops/README.md`.
+  - Why not V4 `getList` (VCI): same blocked host. Why not S2 history for gaps: a second adjusted series with 100-VND
+    rounding mixed into one symbol's history; V2 stays the only history source.
+- **T5**: the feed upserts its `crawl_sessions` row after every committed unit (`status partial`, `reason running`,
+  running counts, `checksum ""`); the final manifest overwrites it (rows never lower, T1 rule). `trading_date` of the
+  `bars_1d` row and of `progress.trading_date` = the target session (was the run date — the Saturday in T5).
+- **T1b**: `repair_crawl_sessions_from_ticks(conn)` in `repositories.py` — one idempotent SQL: for every `ticks` ledger row
+  whose `rows` is below `COUNT(*)` of the `ticks` table for that VN day, set `rows`, `symbols_fetched = COUNT(DISTINCT
+  symbol)`, `checksum = NULL` (the archived manifest for that day is the overwritten one; the ledger stops vouching for a
+  digest it cannot recompute cheaply), status/reason untouched. Run once by migration `0008` (and callable any time).
+- Progress semantics unchanged (names done / total); `done` jumps by the snapshot's names in one step.
+
+### Order and lanes (M5)
+```
+BE-6  BE-fetch-blocked                         (start now; fetch.py + ticks.py)
+BE-7  FIX-sessions-repair                       (start now; repositories.py + migration)
+BE-8  BE-ssi-snapshot → BE-bars-press           (adapter first; feed + runner after BE-ssi-snapshot and FIX-sessions-repair)
+```
+
+#### BE-fetch-blocked — item 1: a held/timed-out source counts as blocked; 3 consecutive failed names end a run `blocked`
+- Story: S03-BE3 ; Side: be ; Effort: medium ; Size: ~55 lines (≈ 12 prod + 43 tests) ; Lead: opus
+- Files: `services/crawler/finvest_crawler/fetch.py`, `services/crawler/finvest_crawler/feeds/ticks.py`,
+  `services/crawler/tests/test_fetch.py`, `services/crawler/tests/test_feed_ticks.py`
+- Change:
+  - `fetch.py` `get`: `except httpx.TimeoutException` → `blocked, failed, status = blocked + 1, 0, 0` (a hold is a block;
+    SM 16:51: the source holds ≈ 30 s then 418, `timeout=20` never sees it). `failed` is now 5xx only. `timeout=20` unchanged.
+    `SourceBlocked.last_status == 0` means "timed out"; its message reads `"{source} blocked (timed out)"` in that case.
+  - `ticks.py` `_run`: module constant `FAIL_RUN = 3`; count consecutive names that ended in `skipped` (reset on a fetched
+    or no-trades name); at `FAIL_RUN` → `skipped += [(s, "source_blocked") for s in names[i+1:]]`, `status, reason =
+    "blocked", "source_blocked"`, `break` (the same exit the `SourceBlocked` branch takes). The probe loop is untouched.
+  - `_skip_reason` unchanged (`timeout` is still produced when a timeout is followed by a 5xx within one `get`).
+- Contract: platform.md §4 v1.12 (status rule: `blocked` also after `FAIL_RUN` consecutive skips; skip reason `timeout`
+  kept); data.md §1.2 rate-limit policy paragraph (unchanged wording, "3 consecutive").
+- Acceptance: `test_fetch.py`: 3 timeouts → `SourceBlocked(last_status=0)` after exactly 3 requests, sleeps 1 s + 2 s;
+  timeout, timeout, 200 → returns the body (counter resets); 418 after a timeout → still blocked at the 3rd try
+  (`timeout, 418, 418`); 503 ×3 → `httpx.HTTPError` (unchanged). `test_feed_ticks.py`: `test_http_and_timeout_reasons`
+  becomes: FPT 404 → `("FPT","http_404")`, VNM timeout ×3 → `SourceBlocked` → status `blocked`, VNM and the rest
+  `source_blocked`; new test: names A 404, B 503, C payload_shape, D ok → after C the run is `blocked`, D is skipped
+  `source_blocked`, requests stop (the fake transport records no call for D), manifest `status blocked`, `reason
+  source_blocked`, the three own reasons kept; and A 404, B ok, C 404, D 404, E ok → `partial`, 5 names fetched or
+  skipped individually (the counter resets on B). `make test-kernel` green; `test_feed_bars_1d.py` untouched (its fake
+  transport never times out).
+- Out of scope: `bars_1d.py` (BE-bars-press applies the same `FAIL_RUN` rule there), the runner, back-off timings, KBS/VCI
+  header tricks.
+
+#### FIX-sessions-repair — T1b: idempotent ledger repair from the `ticks` table, run by migration 0008
+- Story: S03-BE3 ; Side: be ; Effort: medium ; Size: ~45 lines (≈ 15 prod + 10 migration + 20 tests) ; Lead: opus
+- Files: `packages/market_data/finvest_market_data/infrastructure/repositories.py` (new function only),
+  `apps/api/migrations/versions/0008_repair_ticks_sessions.py` (new), `packages/market_data/tests/test_repositories_db.py`,
+  `ops/README.md` (one line)
+- Change:
+  - `repair_crawl_sessions_from_ticks(conn) -> int` (rows updated), one statement:
+    `UPDATE crawl_sessions s SET rows = t.n, symbols_fetched = t.syms, checksum = NULL FROM (SELECT (ts AT TIME ZONE
+    'Asia/Ho_Chi_Minh')::date AS d, COUNT(*) AS n, COUNT(DISTINCT symbol) AS syms FROM ticks GROUP BY 1) t WHERE s.feed =
+    'ticks' AND s.trading_date = t.d AND s.rows < t.n`. Idempotent: the second run updates 0 rows. `status`, `reason`,
+    `symbols_skipped`, `symbols_no_trades` untouched (the table cannot tell a skip from a no-trade; the row keeps saying
+    `partial/source_no_longer_serves` — which is what happened on 10-17 to the replay, and `rows`/`symbols_fetched` are now
+    the truth). Docstring: why `checksum` becomes NULL (the manifest on disk is the overwritten replay; a NULL digest
+    is honest, a stale one is not).
+  - Migration `0008` (`down_revision = "0007"`): `upgrade()` calls the function on `op.get_bind()` (the api already
+    imports `finvest_market_data`; raw-SQL style kept — the function holds the SQL as `text()`); `downgrade()` is a no-op
+    with a comment (data repair). `ops/README.md`: "ledger repair from ticks: migration 0008; re-runnable via
+    `python -c 'from finvest_market_data.infrastructure import repositories as r; ...'` inside the api container".
+  - SM/tester after merge: `alembic upgrade head` in the api container, then `SELECT * FROM crawl_sessions WHERE feed='ticks'
+    AND trading_date='2026-10-16'` must read `rows 145184, symbols_fetched 911, checksum NULL`; numbers go in the test report.
+- Contract: platform.md §4 v1.12 (ledger repair rule, `checksum NULL` allowed after a repair); data.md §3 `crawl_sessions`.
+- Acceptance (db tests): seed `ticks` with 3 symbols × 2 rows on 2026-10-16 VN (one row at 2026-10-16 08:59 UTC =
+  15:59 VN, one at 2026-10-15 17:30 UTC = 00:30 VN 10-16 to prove the VN-day cast) and a ledger row `partial, rows 2,
+  symbols_fetched 1, checksum 'sha256:x', reason source_no_longer_serves` → after the call: `rows 6, symbols_fetched 3,
+  checksum NULL`, status/reason unchanged, return value 1; second call → 0 and identical row; a ledger row with `rows 6`
+  already → untouched; a `bars_1d` row on the same date → untouched; a ticks day with no ledger row → no insert.
+- Out of scope: repairing `bars_1d` rows, `crawl_runs`, the manifest file on disk, recomputing the checksum.
+
+#### BE-ssi-snapshot — item 2a: `SsiSource.snapshot_bars(session)` — one bar per listed name from the S1 board, 3 requests
+- Story: S03-BE3 ; Side: be ; Effort: high ; Size: ~95 lines (≈ 40 prod + 55 tests) ; Lead: opus
+- Files: `services/crawler/finvest_crawler/adapters/ssi/source.py`, `services/crawler/finvest_crawler/adapters/ssi/payloads.py`,
+  `packages/market_data/finvest_market_data/domain/ports.py` (one method), `services/crawler/finvest_crawler/adapters/registry.py`
+  (role literal), `services/crawler/finvest_crawler/settings.py` (`source_snapshot: str = "ssi"`),
+  `services/crawler/tests/test_adapter_ssi.py`, `services/crawler/tests/test_registry.py` (one assert)
+- Change:
+  - `payloads.py` `SsiRow` gains `tradingDate: str | None`, `openPrice`, `highest`, `lowest`, `matchedPrice: Decimal | None`,
+    `nmTotalTradedQty: int | None`, `nmTotalTradedValue: Decimal | None` (all optional; `extra="allow"` kept). Docstring cites
+    the fixture (`hose.json.gz`, 2026-10-16: AAA open 7090 high 7190 low 7020 last 7100 qty 684300 value 4855893000, VND).
+  - `parse_snapshot(payload, session, raw_path) -> tuple[list[Bar], list[str]]` (pure): rows with `stockType ∈ s|e`;
+    `tradingDate != session.strftime("%Y%m%d")` on the first row → `SourceNoLongerServes(exchange, served_date)`
+    (the board shows another session: stale weekend board or a press before the data rolled); a row with
+    `nmTotalTradedQty` 0/None or `openPrice` 0/None → the name goes to the second list (no trades); otherwise
+    `Bar(symbol, ts = session 00:00 VN as UTC, o=openPrice, h=highest, l=lowest, c=matchedPrice, v=nmTotalTradedQty,
+    value=int(nmTotalTradedValue), source="ssi")` via `to_vnd(x, "vnd")`; `h < max(o,c)` or `l > min(o,c)` → `PayloadShapeError`.
+  - `SsiSource.snapshot_bars(session) -> tuple[list[Bar], list[str]]`: for `hose, hnx, upcom`: `f.get("ssi", EXCHANGE_URL,
+    feed="bars_1d", trading_date=session, name=f"board-{ex}", archive=False)`, parse, then archive the accepted payload
+    (KBS pattern `adapters/kbs/source.py`): a replay the same day costs 0 requests; a mismatching board is never archived
+    under that session.
+  - `ports.py`: `def snapshot_bars(self, session: date) -> tuple[list[Bar], list[str]]: ...`; `kbs`/`vci` raise
+    `Unsupported` (one line each — files listed under BE-bars-press? no: add the two one-liners **here**, in
+    `adapters/kbs/source.py` and `adapters/vci/source.py`, exclusive to this task). `registry.source_for` role literal
+    gains `"snapshot"`; `Settings.source_snapshot = "ssi"`.
+- Contract: data.md §1.2 S1 (fields, VND, 3 calls); platform.md §4 v1.12 (`bars_1d` canonical line unchanged: the S1 bar
+  is one more `symbol,trading_date,source,…` line with `source = ssi`); §2.6 v1.12 step 2.
+- Acceptance: `parse_snapshot(hose fixture, date(2026,10,16))` → AAA bar `o 7090 h 7190 l 7020 c 7100 v 684300 value
+  4855893000`, `ts == 2026-10-15T17:00:00Z`, `source "ssi"`; number of bars + no-trade names == number of `s|e` rows in the
+  fixture; CW/bond rows absent; the same fixture with `date(2026,10,17)` → `SourceNoLongerServes(served_date=2026-10-16)`;
+  a row with qty 0 → in the no-trades list, not a bar; `h < o` row → `PayloadShapeError`. `snapshot_bars` through a fake
+  transport: 3 requests in order hose/hnx/upcom, `data/raw/bars_1d/2026-10-16/board-hose.json.gz` exists after success and
+  does **not** exist when the board date mismatches; second call → 0 requests, same bars. `source_for("snapshot", …)`
+  returns `SsiSource`; `kbs`/`vci` `snapshot_bars` raise `Unsupported`. `make test-kernel` green, mypy clean.
+- Out of scope: the feed, foreign-flow fields, `bars_1d.nominal_kind`, ETF/CW distinctions beyond `s|e`, index rows of the board.
+
+#### BE-bars-press — item 2b + T5: step 2 = indices + S1 snapshot + capped gap fetch; live ledger row; blocked message
+- Story: S03-BE3 ; Side: be ; Effort: high ; Size: ~200 lines (≈ 75 prod + 115 tests + 10 docs) ; Lead: opus
+- Files: `services/crawler/finvest_crawler/feeds/bars_1d.py`, `apps/api/finvest_api/jobs/runner.py`,
+  `packages/market_data/finvest_market_data/infrastructure/repositories.py` (`last_bar_dates` only; FIX-sessions-repair is
+  merged first), `services/crawler/finvest_crawler/cli.py` (pass-through only if needed), `services/crawler/tests/test_feed_bars_1d.py`,
+  `apps/api/tests/test_jobs.py`, `ops/README.md` (replace the step-2 paragraph)
+- Change:
+  - `repositories.last_bar_dates(conn) -> dict[str, date]`: `SELECT symbol, MAX(trading_date) FROM bars_1d_src GROUP BY symbol`.
+  - `run_bars_1d(..., gap_max: int | None = None)` (runner passes `GAP_MAX = 40`, module constant in `bars_1d.py`; CLI passes
+    None). `_run` units, in this order, each committed and reported by `on_progress(done, len(names))`:
+    1. **indices** as today (`index_bars`, `COUNT`).
+    2. **snapshot** (skipped when `only`): `source_for("snapshot")`.`snapshot_bars(run_date)` → `(bars, no_trades)`; keep
+       bars whose symbol is in `names`; `upsert_bars_1d_src(conn, bars, fetched_at = mtime of board-hose archive)`;
+       `fetched += len(set(symbols with a bar))`; the no-trade names go to `no_trades`; `SourceNoLongerServes` /
+       `PayloadShapeError` / `httpx.HTTPError` / `Unsupported` → log one JSON line `{"snapshot": "skipped", "reason": …}`,
+       nothing marked; `SourceBlocked` → run `blocked` as for any unit (the SSI bucket is separate, but a blocked board is a
+       blocked board).
+    3. **gaps**: `last = repo.last_bar_dates(conn)`; `covered = snapshot names ∪ no_trades`; `gaps = sorted(n for n in
+       stocks if n not in covered and last.get(n, date.min) < run_date, key=lambda n: (last.get(n, date.min), n))`;
+       with `gap_max`: `gaps, deferred = gaps[:gap_max], gaps[gap_max:]`; `skipped += [(n, "deferred") for n in deferred]`;
+       fetch `gaps` in batches of `max(1, min(BATCH_MAX, 50_000 // count))` via `source.bars(...)` exactly as today
+       (per-unit skip on HTTP/shape errors, `SourceBlocked` → blocked).
+    - universe: `names = sorted(INDICES ∪ {s.symbol for s in list_symbols(conn, include_delisted = count >= COUNT)})`
+      (a catch-up press leaves the 234 delisted names alone; a back-fill keeps them — survivorship rule PR-075 intact).
+    - `FAIL_RUN = 3` consecutive skipped units (indices, snapshot or gap batches) → `blocked`, rest `source_blocked`, stop
+      (same rule as BE-fetch-blocked in ticks).
+    - **T5**: after every unit's `commit()` call `repo.upsert_crawl_session(conn, Manifest(FEED, run_date, source.name,
+      started, now, "partial", "running", fetcher.requests - req0, rows, "", fetched, tuple(skipped), tuple(no_trades),
+      uni_src, started, len(names)))` + `commit()`; the final manifest is written as today (rows ≥ running rows, so the
+      T1 rule lets it through).
+    - checksum: per-name sorted blocks in global name order, unchanged definition. Implementation: snapshot blocks and index
+      blocks are **held** (`held` becomes a list sorted by name; ≤ 1 line per snapshot name + 2 index blocks); gap names
+      stream in sorted order through the existing `feed(name, keys)` flush. Names are disjoint across units (a name with a
+      snapshot bar is never a gap), so the digest of the same bars is batch- and order-independent; `OLD_DIGEST` test stays.
+    - the assert `fetched + len(no_trades) + len(skipped) == len(names)` stays. Rule: `symbols_fetched` = names whose bar
+      for `run_date` is in the table after the run — snapshot names with a bar, gap names that returned bars, **and**
+      names already current before the run (`last ≥ run_date`, not on the board: 0 new rows, nothing requested);
+      board no-trade names → `no_trades`; deferred and failed → `skipped`. One docstring line on `_run` says so.
+  - `runner.py`: `_target(now) -> date`: `d = now.date()`; if `not day(d).is_open or now.time() < CUTOFF (15:05)` → the last
+    trading day before `d` (`trading_days(d - timedelta(14), d - timedelta(1))[-1]`). Step 2 calls `step(2, "bars_1d",
+    target)` and `run_bars_1d(settings, target, today=today, count=_count(engine, target), gap_max=GAP_MAX,
+    on_progress=…)`; `_count` takes `target`. `_Blocked.__str__` / `_error` message for `SourceBlocked`/`_Blocked`:
+    `"nguồn {source} đang chặn tạm, thử lại sau ~1 giờ"`; `http_status` kept (0 = timed out).
+  - `ops/README.md`: a press = 3 SSI requests (latest session, all names) + 2 VCI (indices) + ≤ 40 VCI (gaps, oldest
+    first, the rest `deferred` to the next press); blocked → stop, message, retry after ≈ 1 h; interior holes and a cold
+    DB → `make backfill` (no cap, resumable, may need several runs if blocked).
+- Contract: platform.md §2.6 v1.12 (step 2 order, `GAP_MAX`, `deferred`, target session, VN message), §4 v1.12 (`bars_1d`
+  `trading_date` = target session; live `partial/running` row; skip reason `deferred`); data.md §1.2 S1.
+- Acceptance (`test_feed_bars_1d.py`, fake source with `snapshot_bars` and FakeRepo with `last_bar_dates`):
+  - 6 stocks + indices, snapshot returns bars for A,B,C and no-trades D, E has a bar ≥ run_date already, F has none →
+    calls: `index_bars` ×2, `snapshot_bars(run_date)`, `bars(["F"])` only; manifest `complete`, `symbols_fetched == 5`
+    (A,B,C,E,F), `symbols_no_trades == ("D",)`, `requests == 4`; `on_progress` ends `(8, 8)`; bars_1d_src holds A,B,C from
+    `ssi` and F from `vci`.
+  - snapshot raises `SourceNoLongerServes` → all 6 stocks are gaps; with `gap_max=2` and last dates F<A<others → `bars`
+    called for F and A only, the other 4 `("X","deferred")`, status `partial`; without `gap_max` all 6 fetched.
+  - `count=COUNT` → `list_symbols(include_delisted=True)`; `count=8` → `include_delisted=False` (FakeRepo records the flag).
+  - `FAIL_RUN`: three consecutive gap batches answering 503 → `blocked`, later names `source_blocked`, no call recorded
+    for them; two 503 then a 200 → `partial`, all fetched or individually skipped.
+  - T5: `repo.sessions` (FakeRepo appends) holds one `partial/running` manifest per committed unit with non-decreasing
+    `rows`, then the final one; final `rows` equals the last running `rows`.
+  - checksum: snapshot bars for A,B,C + VCI bars for F produce the same digest as feeding the same bars one by one
+    through the old path (reuse the `OLD_DIGEST` technique: compute the expected digest with `hashlib` in the test);
+    `test_checksum_is_batch_size_independent` unchanged.
+  - `test_jobs.py`: Saturday 2026-10-24 10:00 → step 2 `trading_date == "2026-10-23"`, `run_bars_1d` called with
+    `run_date 2026-10-23`, `gap_max 40`; Friday 14:00 → target Thursday; Friday 15:10 → Friday; a `blocked` bars manifest →
+    job `failed`, `error.message == "nguồn vci đang chặn tạm, thử lại sau ~1 giờ"`, `error.code == "SourceBlocked"`
+    (existing `test_blocked_bars_fails_job` extended). `make test-kernel`, ruff, mypy, lint-imports green.
+- Out of scope: the `jobs.status` enum, FE strings, S2 as a history source, `bars_1d.nominal_kind`, interior-hole
+  detection, 1m bars, the ticks step's cost (≈ 1 500 KBS requests ≈ 12 min, unchanged — the sponsor's press time is now
+  dominated by it; a note for the retro).

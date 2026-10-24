@@ -117,3 +117,7 @@
 2026-10-24 16:16 | lead    | S-v2-batch               | merged    | APPROVE; empty diff (spike report only), cap=1 verdict, merge sha 481a424 no-op; no code checks needed | .finvest/sprints/sprint-03/3-pr.S-v2-batch.md
 2026-10-24 16:19 | dev     | BE-bars-batch            | pr-open   | kernel 233 passed, ruff+mypy clean, 150+/38- lines, BATCH_MAX=1, 418 blocked | 3-build.BE-bars-batch.md
 2026-10-24 16:21 | lead    | BE-bars-batch            | merged    | 7e0f4a4; 0 must-fix, 3 nits; kernel 233 passed, ruff/mypy/lint-imports green; OLD_DIGEST verified on pre-change code | 3-pr.BE-bars-batch.md
+2026-10-24 16:28 | fe-test | sprint-03                | green     | vitest 81/81, real-stack 40/40, crawl-button 44/47 (3 real-idle blocked by BE job); C1 C2 S1 fixed | 4-test.fe.md
+2026-10-24 16:50 | be-test | sprint-03                | red       | round2: T2,T3 pass; T1 row unrepaired; T4 press ~1 sym/min (67/1777 in 24 min) | 4-test.be.md
+2026-10-24 16:51 | sm      | T4                       | note      | SM: job 5 stuck (67/1777 after 25m): source holds 30s then 418 > httpx timeout 20s, so blocks count as timeouts, never SourceBlocked; api re | -
+2026-10-24 17:02 | arch    | sprint-03                | note      | rework round 3: dag rev 11, +4 tasks (BE-fetch-blocked, FIX-sessions-repair, BE-ssi-snapshot, BE-bars-press); S1 snapshot for the latest ses | sprints/sprint-03/2-tech-plan.md

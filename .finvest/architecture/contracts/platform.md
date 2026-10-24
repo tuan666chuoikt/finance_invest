@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.11, 2026-10-24 eve** (§2.6 batch cap = `BATCH_MAX`, pending spike S-v2-batch; v1.10 = `platform.prev-11.md`; v1.10: §2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.12, 2026-10-24 night** (§2.6 step 2 = indices + S1 snapshot + capped gap fetch, target session, blocked rules and message; §4 live `bars_1d` ledger row, `deferred` skip, ledger repair; v1.11 = `platform.prev-12.md`; v1.11: §2.6 batch cap = `BATCH_MAX`; v1.10: §2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -167,6 +167,17 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   names per V2 request (one request failing marks that batch `skipped`, the run goes on; `source_blocked` stops it —
   v1.11: HTTP 418 counts as blocked). `BATCH_MAX` = the cap spike S-v2-batch records (data.md §1.2 V2); 50 → a normal
   press ≈ 40 requests, an empty-table back-fill ≈ 220; 1 → ≈ 1 780 requests ≈ 15 min at 2 req/s. Both resumable from the archive. A `CatchupFailed`-style partial result is `failed` with the error of the raising step.
+  **v1.12 (supersedes the per-name catch-up above):** step 2 runs on the **target session** = the last trading day whose
+  close has passed (`now ≥ 15:05 VN`, else the previous trading day; `progress.trading_date` and the `bars_1d` ledger row
+  carry it). Units, in order, each committed: (1) indices with `COUNT` (2 V2 requests); (2) the **S1 full-market snapshot**
+  (data.md §1.2 S1: 3 SSI requests, 1 req/s bucket) → one `source = ssi` bar per listed name that traded, no-trade names
+  recorded, used only when the board's `tradingDate` equals the target (otherwise dropped, logged, nothing marked);
+  (3) **gaps**: names not covered by (2) whose newest bar is older than the target, oldest first, `GAP_MAX = 40` names per
+  press via V2 (batches as above); the rest are skipped `deferred` (status `partial`) and taken by the next presses. A
+  catch-up press (`count < COUNT`) excludes delisted names; a full back-fill (`make backfill`, no cap) includes them.
+  Normal press ≈ 5–45 requests. **Blocked**: a timeout counts as a blocked response in the fetcher (3 consecutive → `SourceBlocked`);
+  3 consecutive skipped units (any reason, `FAIL_RUN`) end the run `blocked`; no request follows; the job is `failed`,
+  `error.code = "SourceBlocked"`, `error.message = "nguồn <source> đang chặn tạm, thử lại sau ~1 giờ"`, `http_status` 0 = timed out.
 - Progress: `done/total` are symbols in step 1 and names in step 2 (advanced per batch); the runner updates the row at most every 2 s.
 - Crash safety: on api start-up every `running` job is set `failed`, `error.code = "interrupted"` (the thread died with the
   container). The crawler's own `crawl_runs`/`crawl_sessions` rows are written as before (§4); the job row is additional.
@@ -224,6 +235,9 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   the same on the tape; cross-check against daily volume once F-012 lands.
   A run first closes unfinished `crawl_runs` rows of its `(feed, trading_date)` as `failed`, reason `interrupted`.
   The DB row `crawl_sessions` mirrors the manifest; the manifest file is the audit copy.
+  v1.12: `blocked` is also the status after `FAIL_RUN = 3` consecutive skipped names/units (own reasons kept, the rest
+  `source_blocked`). Ledger repair (migration 0008, re-runnable): a `ticks` row whose `rows` is below `COUNT(*)` of the
+  `ticks` table for that VN day takes `rows`/`symbols_fetched` from the table and `checksum = NULL`; status/reason stay.
 - Normalisation (adapter responsibility): price → integer VND (SSI history ×1000; KBS/VCI already VND), volume →
   shares, `ts` → UTC from source-local time, `seq` = KBS accumulated volume after the trade (monotonic within the
   day) or VCI `id`; `side` → `B|S|null`.
@@ -232,7 +246,7 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   archive `data/raw/symbols/<date>/getAll.json.gz` (already the ticks universe file) + `data/raw/symbols/<date>/<exchange>.json.gz`
   for S1 listings; no manifest (nothing per-session to gap-list). A symbol absent from V3 or on board `DELISTED` gets
   `is_delisted=true`, `delisted_at` = first run date it was observed so (never deleted; the source has no date).
-  `bars_1d` back-fill (F-012): manifest + `crawl_sessions` row with feed `bars_1d`, `trading_date` = run date, the same
+  `bars_1d` back-fill (F-012): manifest + `crawl_sessions` row with feed `bars_1d`, `trading_date` = run date (v1.12: the target session when the job runs it; the row is refreshed after every committed unit as `partial`/`running` with `checksum ""`, the final manifest replaces it; skip reason `deferred` = gap name left for the next press; `symbols_fetched` = names whose bar for that date is in the table after the run), the same
   JSON keys as ticks; `rows` = bars written, `symbols_no_trades` = symbols the source answered with zero bars, checksum
   canonical line `symbol,trading_date,source,adj_o,adj_h,adj_l,adj_c,v,value` (ints, `value` empty when null). Prices
   from V2 are source-adjusted decimals → rounded half-up to integer VND into `bars_1d_src`; `value` is **nominal**

@@ -1,0 +1,10 @@
+M1	Rules v1 + app shell	2026-10-18 18:00	BE-rules-costs,FE-web-scaffold,FE-shell-bar,BE-api-symbols-bars
+M2	What-if engine: lump-sum, value, DCA (examples to 1 VND)	2026-10-20 18:00	AI-analytics-scaffold,AI-whatif-lumpsum,AI-whatif-dca,BE-market-view,BE-contracts-ts,BE-whatif-api
+M3	Saved scenarios + dashboard + banner	2026-10-22 18:00	BE-scenarios-api,FE-disclaimer,FE-sparkline,FE-scenario-form,FE-scenario-cards,FE-scenario-table,OPS-web-compose
+M4	Benchmarks + how computed	2026-10-23 18:00	S-etf-bars,AI-whatif-benchmarks,FE-how-computed
+C1	MISSED (PermissionError data/raw) - verify timer manifest 2026-10-19 session, manual crawl if missing at 21:00 (sm; lost for good if missed)	2026-10-19 23:00	-
+C2	MISSED (PermissionError data/raw) - verify timer manifest 2026-10-20 session, manual crawl if missing at 21:00 (sm; lost for good if missed)	2026-10-20 23:00	-
+C3	MISSED (PermissionError data/raw) - verify timer manifest 2026-10-21 session, manual crawl if missing at 21:00 (sm; lost for good if missed)	2026-10-21 23:00	-
+C4	MISSED (PermissionError data/raw) - verify timer manifest 2026-10-22 session, manual crawl if missing at 21:00 (sm; lost for good if missed)	2026-10-22 23:00	-
+C5	MISSED (PermissionError data/raw) - verify timer manifest 2026-10-23 session, manual crawl if missing at 21:00 (sm; lost for good if missed)	2026-10-23 23:00	-
+M5	Usable: bugs fixed + crawl button	2026-10-25 18:00	FE-fix-u1,FE-fix-u2-u3,BE-fix-u4,FE-fix-u5-u7,BE-crawl-hooks,BE-jobs-crawl,OPS-crawl-manual,FE-crawl-button,S-v2-batch,BE-bars-batch,FIX-session-ledger,FIX-whatif-nodata-msg,FE-fix-crawl-c1-c2-s1
