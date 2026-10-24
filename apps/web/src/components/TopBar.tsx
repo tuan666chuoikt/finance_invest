@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { ROUTES } from "../app/routes";
+import { useCrawlJob } from "../app/useCrawlJob";
+import { CrawlButton } from "./CrawlButton";
+import { CrawlStatus } from "./CrawlStatus";
 import { FreshnessChip } from "./FreshnessChip";
 import { LangSwitch } from "./LangSwitch";
 
@@ -15,6 +18,7 @@ const CSS = `
 export function TopBar() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const crawl = useCrawlJob();
   return (
     <header data-testid="top-bar" className="tb">
       <style>{CSS}</style>
@@ -30,7 +34,9 @@ export function TopBar() {
         ))}
       </nav>
       <FreshnessChip />
+      <CrawlButton job={crawl.job} running={crawl.running} onClick={crawl.start} />
       <LangSwitch />
+      <CrawlStatus job={crawl.job} refused={crawl.refused} />
     </header>
   );
 }
