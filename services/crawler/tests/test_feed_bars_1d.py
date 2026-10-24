@@ -334,3 +334,12 @@ def test_snapshot_and_gap_bars_hash_like_the_old_one_by_one_path(tmp_path, snap)
         for ln in sorted(by[n]):
             h.update(ln)
     assert m.checksum == "sha256:" + h.hexdigest()
+
+
+def test_a_dropped_snapshot_counts_toward_the_fail_run(tmp_path):
+    names, calls = tuple(f"S{i:03d}" for i in range(4)), []  # the autouse board raises SourceNoLongerServes
+    m, _ = run(tmp_path, FakeRepo(names), only=None, count=8, failing=names[:2], calls=calls)
+    assert (m.status, m.reason) == ("blocked", "source_blocked")
+    assert dict(m.symbols_skipped) == {names[0]: "http_503", names[1]: "http_503", names[2]: "source_blocked",
+                                       names[3]: "source_blocked"}
+    assert not {c[0][0] for c in calls} & set(names[2:])

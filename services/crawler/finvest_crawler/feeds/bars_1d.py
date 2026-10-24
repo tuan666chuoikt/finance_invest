@@ -133,15 +133,13 @@ def _run(  # noqa: ANN001
             except SourceBlocked:
                 status, reason = "blocked", "source_blocked"
                 break
-            except (SourceNoLongerServes, Unsupported) as e:
-                if kind != "snapshot":
+            except (SourceNoLongerServes, Unsupported, PayloadShapeError, httpx.HTTPError) as e:
+                gone = isinstance(e, (SourceNoLongerServes, Unsupported))
+                if gone and kind != "snapshot":
                     raise
-                # its names become gaps
-                print(json.dumps({"snapshot": "skipped", "reason": type(e).__name__}))
-                continue
-            except (PayloadShapeError, httpx.HTTPError) as e:
-                if kind == "snapshot":
-                    print(json.dumps({"snapshot": "skipped", "reason": _skip_reason(e)}))
+                if kind == "snapshot":  # names become gaps; counts toward FAIL_RUN (platform 2.6)
+                    why = type(e).__name__ if gone else _skip_reason(e)
+                    print(json.dumps({"snapshot": "skipped", "reason": why}))
                 else:
                     skipped += [(s, _skip_reason(e)) for s in unit]
                     done.update(unit)
