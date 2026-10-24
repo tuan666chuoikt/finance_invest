@@ -68,14 +68,21 @@ class FakeRepo:
         return {"HOSE": 50}
 
 
-def run(tmp_path, repo, only=("FPT", "ZZZ"), blocked=(), today=TODAY, run_date=D, serve=None, **kw):
+def run(tmp_path, repo, only=("FPT", "ZZZ"), blocked=(), today=TODAY, run_date=D, serve=None, calls=None,
+        failing=(), absent=(), **kw):
     def handler(req):
-        sym = json.loads(req.content)["symbols"][0]
-        if serve and sym in serve:
-            return httpx.Response(200, content=serve[sym])
-        if sym in blocked:
+        body = json.loads(req.content)
+        syms = body["symbols"]
+        if calls is not None:
+            calls.append((syms, body["countBack"]))
+        if serve and syms[0] in serve:
+            return httpx.Response(200, content=serve[syms[0]])
+        if blocked and set(syms) & set(blocked):
             return httpx.Response(200, content=b"<html>Just a moment</html>")
-        return httpx.Response(200, content=payload(sym))
+        if set(syms) & set(failing):
+            return httpx.Response(503)
+        return httpx.Response(200, content=json.dumps(
+            [r for s in syms if s not in absent for r in json.loads(payload(s))]).encode())
 
     f = Fetcher(httpx.Client(transport=httpx.MockTransport(handler)), {"vci": TokenBucket(1000)},
                 Archive(tmp_path / "raw"), "ua", sleep=lambda s: None)
@@ -154,3 +161,58 @@ def test_count_bounds_the_fetch_and_progress_reports_every_name(tmp_path):
     mc, _ = run(tmp_path / "b", FakeRepo(), only=("FPT", "ZZZ"))
     assert (m7.status, m7.rows, m7.symbols_fetched) == (mc.status, mc.rows, mc.symbols_fetched)
     assert m7.checksum == mc.checksum
+
+
+NAMES = tuple(f"S{i:03d}" for i in range(120))
+
+
+def test_indices_first_then_symbol_batches(tmp_path, monkeypatch):
+    monkeypatch.setattr("finvest_crawler.feeds.bars_1d.BATCH_MAX", 50)
+    calls, progress = [], []
+    m, _ = run(tmp_path, FakeRepo(NAMES), only=None, count=8, calls=calls,
+               on_progress=lambda *a: progress.append(a))
+    assert [(len(c), n) for c, n in calls] == [(1, 6000), (1, 6000), (50, 8), (50, 8), (20, 8)]
+    assert [c[0] for c, _ in calls[:2]] == ["VN30", "VNINDEX"]
+    assert progress == [(1, 122), (2, 122), (52, 122), (102, 122), (122, 122)]
+    assert (m.status, m.symbols_fetched, m.requests, m.universe_count) == ("complete", 122, 5, 122)
+
+
+def test_batch_size_shrinks_with_count_and_is_one_by_default(tmp_path, monkeypatch):
+    calls = []
+    run(tmp_path / "a", FakeRepo(), only=("FPT", "HPG"), count=8, calls=calls)
+    assert calls == [(["FPT"], 8), (["HPG"], 8)]  # BATCH_MAX = 1 (spike S-v2-batch)
+    monkeypatch.setattr("finvest_crawler.feeds.bars_1d.BATCH_MAX", 50)
+    calls.clear()
+    run(tmp_path / "b", FakeRepo(), only=("FPT", "HPG"), count=8, calls=calls)
+    assert calls == [(["FPT", "HPG"], 8)]  # --only: no indices fetched
+    calls.clear()
+    run(tmp_path / "c", FakeRepo(NAMES[:20]), only=NAMES[:20], count=6000, calls=calls)
+    assert [len(c) for c, _ in calls] == [8, 8, 4]
+
+
+def test_batch_gaps_failures_and_block(tmp_path, monkeypatch):
+    monkeypatch.setattr("finvest_crawler.feeds.bars_1d.BATCH_MAX", 50)
+    only = NAMES[:120]
+    m, _ = run(tmp_path / "a", FakeRepo(), only=only, count=8, absent=("S007",))
+    assert (m.status, m.symbols_no_trades, m.symbols_fetched) == ("complete", ("S007",), 119)
+    calls = []
+    m, _ = run(tmp_path / "b", FakeRepo(), only=only, count=8, failing=("S060",), calls=calls)
+    assert (m.status, m.symbols_fetched, len(m.symbols_skipped), len(calls) > 3) == ("partial", 70, 50, True)
+    assert {r for _, r in m.symbols_skipped} == {"http_503"} and len(calls) == 3 + 2  # 3 tries on batch 2
+    repo, calls = FakeRepo(), []
+    m, _ = run(tmp_path / "c", repo, only=("VN30", *only), count=8, blocked=("S060",), calls=calls)
+    got = (m.status, m.reason, m.symbols_fetched, len(m.symbols_skipped))
+    assert got == ("blocked", "source_blocked", 51, 70)
+    assert {r for _, r in m.symbols_skipped} == {"source_blocked"} and {i for i, _ in repo.index} == {"VN30"}
+
+
+# sha256 of the one-by-one run (before batching) over these names; the batched run must not change it
+OLD_DIGEST = "sha256:0ecbfc173a5e6bcfb6a7533cb9d51852b06ca0b42a6ccfcfe579f4e0073d7bd7"
+
+
+def test_checksum_is_batch_size_independent(tmp_path, monkeypatch):
+    only = ("FPT", "VN30", "VNINDEX", "VNM", "ZZZ")  # the indices sort between the symbols
+    m1, _ = run(tmp_path / "a", FakeRepo(), only=only)
+    monkeypatch.setattr("finvest_crawler.feeds.bars_1d.BATCH_MAX", 50)
+    m50, _ = run(tmp_path / "b", FakeRepo(), only=only)
+    assert m1.checksum == m50.checksum == OLD_DIGEST
