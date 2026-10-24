@@ -16,7 +16,8 @@ test("every literal t('key') in src exists in both files", () => {
     if (f.includes(".test.")) continue;
     for (const m of src.matchAll(/\bt\(\s*['"]([\w.-]+)['"]/g)) used.add(m[1]);
   }
-  const missing = [...used].filter((key) => !(key in en) || !(key in viJson));
+  const has = (o: Record<string, unknown>, key: string) => key in o || `${key}_other` in o; // i18next plurals
+  const missing = [...used].filter((key) => !has(en, key) || !has(viJson, key));
   expect(missing).toEqual([]);
 });
 

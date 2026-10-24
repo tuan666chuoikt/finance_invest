@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api/client";
-import { parseVndInput } from "../../lib/format";
+import { formatDate, parseVndInput } from "../../lib/format";
 import { useSaveScenario, useSymbol } from "./api";
 import type { Scenario, ScenarioIn } from "./api";
 import { SymbolCombobox } from "./SymbolCombobox";
@@ -73,8 +73,14 @@ export function ScenarioForm({ scenario, onClose }: Props) {
       onError: (ex) => {
         const d = ex instanceof ApiError ? ex.details : {};
         const code = ex instanceof ApiError ? ex.code : "INTERNAL";
-        const field = code === "SYMBOL_UNKNOWN" || d.symbol ? "symbol" : FIELD[String(d.field)] ?? "form";
-        setErrors({ [field]: t(`error.${code}`, { defaultValue: t("error.INTERNAL") }) });
+        const noData = code === "NO_DATA";
+        const field = code === "SYMBOL_UNKNOWN" || d.symbol ? "symbol" : noData ? "start" : FIELD[String(d.field)] ?? "form";
+        const first = d.first_available;
+        setErrors({
+          [field]: noData && typeof first === "string"
+            ? t("error.NO_DATA_before", { symbol, date: formatDate(first) })
+            : t(`error.${code}`, { defaultValue: t("error.INTERNAL") }),
+        });
       },
     });
   };
