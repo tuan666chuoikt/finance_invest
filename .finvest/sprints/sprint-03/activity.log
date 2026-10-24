@@ -77,3 +77,13 @@
 2026-10-24 14:21 | pm      | A23                      | changes   | F-034 5pts added (crawl button); RW-U1..U7 on F-032/F-055/F-056 (must U1-U3); plan 30pts, M5 2026-10-25 18:00 | .finvest/sprints/sprint-03/1-sprint-plan.md
 2026-10-24 14:22 | fi-po   | PRD                      | done      | PRD v2.1: PR-020 timer -> manual Crawl button (A23); v2 archived as prd.prev-2.md | -
 2026-10-24 14:28 | software-architect | replan                   | note      | dag rev 6: +8 tasks (BE-crawl-hooks, BE-jobs-crawl, BE-fix-u4, OPS-crawl-manual, FE-fix-u1, FE-fix-u2-u3, FE-fix-u5-u7, FE-crawl-button); pl | 2-tech-plan.md
+2026-10-24 14:28 | sm      | BUILD-rev6               | started   | 8 tasks (A23 + RW-U1..U7) | -
+2026-10-24 14:29 | dev     | FE-fix-u1                | pr-open   | tsc 0, vitest 37/37, +2 tests | 3-build.FE-fix-u1.md
+2026-10-24 14:29 | dev     | BE-fix-u4                | pr-open   | 211 passed, ruff/mypy/imports clean, +29/-4 | 3-build.BE-fix-u4.md
+2026-10-24 14:30 | dev     | BE-crawl-hooks           | pr-open   | kernel 212 passed, ruff+mypy clean, +50/-11 | 3-build.BE-crawl-hooks.md
+2026-10-24 14:30 | lead    | FE-fix-u1                | merged    | 7b0411e; tsc 0, vitest 58/58 | sprints/sprint-03/3-pr.FE-fix-u1.md
+2026-10-24 14:30 | dev     | OPS-crawl-manual         | pr-open   | test_no_scheduler 1 passed, ruff clean, compose config 8001+/app/data | 3-build.OPS-crawl-manual.md
+2026-10-24 14:32 | dev     | FE-fix-u2-u3             | pr-open   | tsc 0, vitest 62/62 pass | 3-build.FE-fix-u2-u3.md
+2026-10-24 14:32 | lead    | BE-fix-u4                | merged    | b61e76c; 0 must-fix; kernel 211 passed, db 2 passed | 3-pr.BE-fix-u4.md
+2026-10-24 14:32 | lead    | FE-fix-u2-u3             | merged    | dfab4b0; tsc 0, vitest 62/62, 0 must-fix | .finvest/sprints/sprint-03/3-pr.FE-fix-u2-u3.md
+2026-10-24 14:33 | lead    | BE-crawl-hooks           | merged    | 998011e; kernel 213 passed, +50/-11 | 3-pr.BE-crawl-hooks.md
