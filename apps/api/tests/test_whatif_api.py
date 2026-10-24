@@ -43,6 +43,15 @@ def test_unknown_symbol_422(post):
     r = post({**GOLDEN_001, "symbol": "NOPE"})
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "SYMBOL_UNKNOWN"
+    assert r.json()["error"]["message"] == "unknown symbol NOPE"
+
+
+def test_analytics_error_without_details_falls_back_to_code():
+    from finvest_api.errors import _message
+
+    for code in ("NO_DATA", "SYMBOL_UNKNOWN", "RANGE_TOO_LARGE", "VALIDATION"):
+        assert _message(code, {}) == code
+    assert _message("NO_DATA", {"symbol": "HLO", "first_available": None}) == "no data for HLO"
 
 
 def test_buy_before_first_bar_422(post):
@@ -51,6 +60,7 @@ def test_buy_before_first_bar_422(post):
     e = r.json()["error"]
     assert e["code"] == "NO_DATA"
     assert e["details"]["first_available"] == "2026-10-01"
+    assert e["message"] == "no data for FPT before 2026-10-01"
 
 
 def test_budget_20_requests_under_2s(post):  # N2
