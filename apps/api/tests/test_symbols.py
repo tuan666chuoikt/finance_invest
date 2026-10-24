@@ -24,7 +24,7 @@ def test_limit_validation(make_client):
 def test_detail(make_client):
     c = make_client()
     b = c.get("/api/symbols/fpt").json()["bars_1d"]
-    assert (b["first"], b["last"]) == ("2026-10-14", "2026-10-16")
+    assert (b["first"], b["last"]) == ("2025-01-02", "2026-10-16")
     assert b["as_of"] == "2026-10-17T10:00:00.000+07:00"  # latest fetched_at, 03:00Z
     assert c.get("/api/symbols/VNM").json()["bars_1d"] is None
     r = c.get("/api/symbols/ZZZ")

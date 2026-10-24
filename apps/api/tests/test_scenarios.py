@@ -66,3 +66,18 @@ def test_migration_round_trip():
     command.upgrade(cfg, "head")
     command.downgrade(cfg, "0005")
     command.upgrade(cfg, "head")
+
+
+def test_buy_date_before_first_bar(make_client):
+    c = make_client()  # seeded FPT first bar 2025-01-02; VNM has no bars
+    r = c.post("/api/scenarios", json={**OK, "buy_date": "2020-01-02"})
+    e = r.json()["error"]
+    assert r.status_code == 422 and e["code"] == "NO_DATA"
+    assert e["details"] == {"field": "buy_date", "symbol": "FPT", "first_available": "2025-01-02"}
+    assert c.get("/api/scenarios").json() == []
+    assert c.post("/api/scenarios", json={**OK, "buy_date": "2025-01-02"}).status_code == 201
+    assert c.post("/api/scenarios", json={**OK, "symbol": "VNM", "buy_date": "2020-01-02"}).status_code == 201
+    a = c.post("/api/scenarios", json=OK).json()
+    r = c.put(f"/api/scenarios/{a['id']}", json={**OK, "buy_date": "2020-01-02", "name": "new"})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "NO_DATA"
+    assert next(s for s in c.get("/api/scenarios").json() if s["id"] == a["id"]) == a
