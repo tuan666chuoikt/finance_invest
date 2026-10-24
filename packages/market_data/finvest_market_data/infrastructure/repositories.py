@@ -283,6 +283,12 @@ def upsert_index_1d(conn: Connection, bars: Sequence[IndexBar]) -> None:
         )
 
 
+def last_bar_dates(conn: Connection) -> dict[str, date]:
+    """Latest `trading_date` per symbol in `bars_1d_src`; a name with no bar is absent."""
+    q = select(bars_1d_src.c.symbol, func.max(bars_1d_src.c.trading_date)).group_by(bars_1d_src.c.symbol)
+    return {r[0]: r[1] for r in conn.execute(q)}
+
+
 def daily_coverage(conn: Connection) -> dict[str, Decimal]:
     """Per exchange: share of symbols (delisted included) with at least one `bars_1d_src` row, in percent
     with 1 decimal. Feeds platform.md §2.3 `daily_coverage_pct`."""

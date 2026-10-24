@@ -1,19 +1,22 @@
 """bars_1d back-fill on recorded fixtures with an in-memory repo (no network, no db)."""
 
 import gzip
+import hashlib
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import httpx
 import pytest
 from finvest_crawler.archive import Archive
+from finvest_crawler.feeds import bars_1d
 from finvest_crawler.feeds.bars_1d import run_bars_1d
 from finvest_crawler.fetch import Fetcher
 from finvest_crawler.ratelimit import TokenBucket
 from finvest_crawler.settings import Settings
-from finvest_market_data.domain.models import SymbolRecord
+from finvest_market_data.domain.models import Bar, SymbolRecord
+from finvest_market_data.domain.ports import SourceNoLongerServes
 
 FIX = Path(__file__).parent / "fixtures/feeds/bars_1d"
 D, TODAY = date(2026, 10, 15), date(2026, 10, 16)
@@ -35,9 +38,13 @@ class FakeRepo:
     def __init__(self, names=("FPT", "ZZZ"), fail_on_call=None):
         self.names, self.fail_on_call = names, fail_on_call
         self.bars, self.index, self.runs, self.sessions, self.calls = {}, {}, [], [], 0
+        self.last, self.delisted_flags = {}, []  # last_bar_dates() answer; include_delisted of each call
+
+    def last_bar_dates(self, conn):
+        return self.last
 
     def list_symbols(self, conn, include_delisted=True):
-        assert include_delisted
+        self.delisted_flags.append(include_delisted)
         return [SymbolRecord(n, "HOSE", "STOCK", n, n, None, False, "vci") for n in self.names]
 
     def fail_unfinished_runs(self, conn, feed, d):
@@ -66,6 +73,39 @@ class FakeRepo:
 
     def daily_coverage(self, conn):
         return {"HOSE": 50}
+
+
+class FakeSnap:
+    """Stands in for the SSI board source: records calls, counts one request, archives like the real one."""
+
+    name = "ssi"
+
+    def __init__(self):
+        self.calls, self.bars, self.idle, self.fetcher = [], [], [], None
+        self.exc = SourceNoLongerServes("board", None)
+
+    def snapshot_bars(self, session):
+        self.calls.append(session)
+        if self.exc:
+            raise self.exc
+        self.fetcher.requests += 1
+        self.fetcher.archive.write("bars_1d", session, "board-hose", b"[]")
+        return self.bars, self.idle
+
+
+@pytest.fixture(autouse=True)
+def snap(monkeypatch):
+    """Every test sees a board that no longer serves (steps 1 and 3 only) unless it sets `snap.exc = None`."""
+    s, real = FakeSnap(), bars_1d.source_for
+
+    def source_for(role, settings, fetcher):
+        if role == "snapshot":
+            s.fetcher = fetcher
+            return s
+        return real(role, settings, fetcher)
+
+    monkeypatch.setattr(bars_1d, "source_for", source_for)
+    return s
 
 
 def run(tmp_path, repo, only=("FPT", "ZZZ"), blocked=(), today=TODAY, run_date=D, serve=None, calls=None,
@@ -110,7 +150,7 @@ def test_interrupt_then_resume_equals_uninterrupted(tmp_path):
     repo = FakeRepo(fail_on_call=2)  # the second stock write (BBB) dies; FPT was never fetched
     with pytest.raises(RuntimeError):
         run(tmp_path / "x", repo, only=("AAA", "BBB", "FPT"))
-    assert repo.runs[0][0] == "failed" and repo.sessions == []
+    assert repo.runs[0][0] == "failed" and [m.reason for m in repo.sessions] == ["running"]  # AAA only
     repo.fail_on_call = None
     m, f = run(tmp_path / "x", repo, only=("AAA", "BBB", "FPT"))
     assert (m.status, f.requests, f.replays) == ("complete", 1, 2)  # AAA and BBB replay, only FPT is fetched
@@ -216,3 +256,90 @@ def test_checksum_is_batch_size_independent(tmp_path, monkeypatch):
     monkeypatch.setattr("finvest_crawler.feeds.bars_1d.BATCH_MAX", 50)
     m50, _ = run(tmp_path / "b", FakeRepo(), only=only)
     assert m1.checksum == m50.checksum == OLD_DIGEST
+
+
+LETTERS = tuple("ABCDEF")
+
+
+def board_bar(sym, day=D):
+    ts = datetime(day.year, day.month, day.day - 1, 17, 0, tzinfo=UTC)  # 00:00 Asia/Ho_Chi_Minh
+    return Bar(sym, ts, 100, 110, 90, 105, 1000, None, "ssi")
+
+
+def test_press_asks_the_board_then_only_the_gaps(tmp_path, snap):
+    repo, calls = FakeRepo(LETTERS), []
+    repo.last = {"E": D}  # E is current already; F has no bar at all
+    snap.exc, snap.bars, snap.idle = None, [board_bar(n) for n in "ABC"], ["D"]
+    progress = []
+    m, _ = run(tmp_path, repo, only=None, count=8, calls=calls, on_progress=lambda *a: progress.append(a))
+    assert calls == [(["VN30"], 6000), (["VNINDEX"], 6000), (["F"], 8)] and snap.calls == [D]
+    assert (m.status, m.symbols_fetched, m.symbols_no_trades, m.requests) == ("complete", 5 + 2, ("D",), 4)
+    assert progress[-1] == (8, 8) and m.universe_count == 8
+    assert {(k[0], k[2]) for k in repo.bars} == {("A", "ssi"), ("B", "ssi"), ("C", "ssi"), ("F", "vci")}
+
+
+def test_gap_max_defers_the_newest_and_a_dead_board_makes_everything_a_gap(tmp_path):
+    repo, calls = FakeRepo(LETTERS), []
+    repo.last = {"F": date(2026, 10, 1), "A": date(2026, 10, 5), **dict.fromkeys("BCDE", date(2026, 10, 10))}
+    m, _ = run(tmp_path / "a", repo, only=None, count=8, gap_max=2, calls=calls)
+    assert sorted(c[0][0] for c in calls[2:]) == ["A", "F"]
+    assert m.symbols_skipped == tuple((n, "deferred") for n in "BCDE") and m.status == "partial"
+    m, _ = run(tmp_path / "b", FakeRepo(LETTERS), only=None, count=8)
+    assert (m.status, m.symbols_fetched) == ("complete", 8)
+
+
+def test_delisted_names_only_in_a_back_fill(tmp_path):
+    for count, flag in ((bars_1d.COUNT, True), (8, False)):
+        repo = FakeRepo(("A",))
+        run(tmp_path / str(count), repo, only=None, count=count)
+        assert repo.delisted_flags == [flag]
+
+
+def test_three_failed_batches_in_a_row_block_the_run(tmp_path):
+    names, calls = tuple(f"S{i:03d}" for i in range(6)), []
+    m, _ = run(tmp_path / "a", FakeRepo(names), only=names, count=8, failing=names[:3], calls=calls)
+    assert (m.status, m.reason, m.symbols_fetched) == ("blocked", "source_blocked", 0)
+    assert m.symbols_skipped == tuple((n, "http_503") for n in names[:3]) + tuple(
+        (n, "source_blocked") for n in names[3:])
+    assert not {c[0][0] for c in calls} & set(names[3:])
+    m, _ = run(tmp_path / "b", FakeRepo(names), only=names, count=8, failing=names[:2])
+    assert (m.status, m.symbols_fetched, len(m.symbols_skipped)) == ("partial", 4, 2)
+
+
+def test_ledger_row_after_every_unit_then_the_final_manifest(tmp_path, snap):
+    repo = FakeRepo(("A", "F"))
+    snap.exc, snap.bars = None, [board_bar("A")]
+    m, _ = run(tmp_path, repo, only=None, count=8)
+    assert [s.reason for s in repo.sessions] == ["running"] * 4 + [None]  # 2 indices, snapshot, gap F, final
+    assert all(s.status == "partial" for s in repo.sessions[:-1]) and repo.sessions[-1] is m
+    rows = [s.rows for s in repo.sessions]
+    assert rows == sorted(rows) and rows[-1] == rows[-2]
+
+
+def line(name, b, source):  # the documented checksum line, written out again
+    return bars_1d._line(name, b.trading_date, source, b.o, b.h, b.l, b.c, b.v, b.value)
+
+
+def test_snapshot_and_gap_bars_hash_like_the_old_one_by_one_path(tmp_path, snap):
+    repo = FakeRepo(("A", "B", "C", "F"))
+    snap.exc, snap.bars = None, [board_bar(n) for n in "ABC"]
+    m, _ = run(tmp_path, repo, only=None, count=8)
+    by: dict[str, list[bytes]] = {}
+    for b in repo.bars.values():
+        by.setdefault(b.symbol, []).append(line(b.symbol, b, b.source))
+    for b in repo.index.values():
+        by.setdefault(b.index_code, []).append(line(b.index_code, b, "vci"))
+    h = hashlib.sha256()
+    for n in sorted(by):
+        for ln in sorted(by[n]):
+            h.update(ln)
+    assert m.checksum == "sha256:" + h.hexdigest()
+
+
+def test_a_dropped_snapshot_counts_toward_the_fail_run(tmp_path):
+    names, calls = tuple(f"S{i:03d}" for i in range(4)), []  # the autouse board raises SourceNoLongerServes
+    m, _ = run(tmp_path, FakeRepo(names), only=None, count=8, failing=names[:2], calls=calls)
+    assert (m.status, m.reason) == ("blocked", "source_blocked")
+    assert dict(m.symbols_skipped) == {names[0]: "http_503", names[1]: "http_503", names[2]: "source_blocked",
+                                       names[3]: "source_blocked"}
+    assert not {c[0][0] for c in calls} & set(names[2:])

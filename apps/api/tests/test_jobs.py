@@ -13,8 +13,8 @@ TRADING = datetime(2026, 10, 26, 16, 0, tzinfo=VN)  # Monday, after the close
 SUNDAY = datetime(2026, 10, 25, 10, 0, tzinfo=VN)
 
 
-def _m(rows=0, status="complete"):
-    return SimpleNamespace(trading_date=date(2026, 10, 26), status=status, source="kbs", symbols_fetched=30,
+def _m(rows=0, status="complete", source="kbs"):
+    return SimpleNamespace(trading_date=date(2026, 10, 26), status=status, source=source, symbols_fetched=30,
                            rows=rows, symbols_skipped=())
 
 
@@ -28,7 +28,7 @@ def make_client(make_client, tmp_path):
 def fakes(monkeypatch):
     """Fake crawler steps; `gate` holds the ticks step open, `calls` records them."""
     f = SimpleNamespace(gate=threading.Event(), calls=[], ticks_exc=None, now=TRADING,
-                        ticks_status="complete", bars_status="complete")
+                        ticks_status="complete", bars_status="complete", bars_args=[])
     f.gate.set()
 
     def ticks(settings, d, only, *, today, on_progress):
@@ -40,10 +40,11 @@ def fakes(monkeypatch):
         on_progress(30, 30)
         return _m(rows=4521, status=f.ticks_status)
 
-    def bars(settings, d, *, today, count, on_progress):
+    def bars(settings, d, *, today, count, gap_max, on_progress):
         f.calls.append(("bars", count))
+        f.bars_args.append((d, gap_max))
         on_progress(40, 40)
-        return _m(rows=0, status=f.bars_status)
+        return _m(rows=0, status=f.bars_status, source="vci")
 
     monkeypatch.setattr(runner, "run_ticks", ticks)
     monkeypatch.setattr(runner, "run_bars_1d", bars)
@@ -111,7 +112,8 @@ def test_blocked_bars_fails_job(make_client, fakes):
     fakes.bars_status = "blocked"
     c.post("/api/jobs", json={"kind": "crawl"})
     j = _wait(c)
-    assert j["status"] == "failed" and j["error"]["code"] == "SourceBlocked" and j["error"]["source"] == "kbs"
+    assert j["status"] == "failed" and j["error"]["code"] == "SourceBlocked" and j["error"]["source"] == "vci"
+    assert j["error"]["message"] == "nguồn vci đang chặn tạm, thử lại sau ~1 giờ"
     assert j["summary"]["ticks"]["rows"] == 4521
 
 
@@ -196,3 +198,17 @@ def test_startup_marks_interrupted(make_client):
     with eng.connect() as cn:
         row = cn.execute(select(jobs)).one()
     assert row.status == "failed" and row.error["code"] == "interrupted" and row.finished_at
+
+
+@pytest.mark.parametrize("now, target", [
+    (datetime(2026, 10, 24, 10, 0, tzinfo=VN), "2026-10-23"),  # Saturday: Friday
+    (datetime(2026, 10, 23, 14, 0, tzinfo=VN), "2026-10-22"),  # Friday before the cutoff: Thursday
+    (datetime(2026, 10, 23, 15, 10, tzinfo=VN), "2026-10-23"),  # Friday after it: Friday
+])
+def test_step_2_stores_the_last_final_session(make_client, fakes, now, target):
+    c = make_client()
+    fakes.now = now
+    c.post("/api/jobs", json={"kind": "crawl"})
+    j = _wait(c)
+    assert j["status"] == "done" and j["progress"]["trading_date"] == target
+    assert fakes.bars_args == [(date.fromisoformat(target), 40)]
