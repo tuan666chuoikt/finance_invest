@@ -13,3 +13,15 @@
 2026-10-25 17:15 | lead    | AI-rw-bench-na           | merged    | ee8cc98; web vitest 77 pass, tsc 0; 0 must-fix | 3-pr.AI-rw-bench-na.md
 2026-10-25 17:15 | dev     | FE-base                  | pr-open   | vitest 79/79, tsc 0 | 3-build.FE-base.md
 2026-10-25 17:16 | lead    | FE-base                  | merged    | dd69694; tsc 0, vitest 79/79, 0 must-fix | .finvest/sprints/sprint-04/3-pr.FE-base.md
+2026-10-25 17:17 | lead    | OPS-rw-smoke-dsn         | changes   | 1 must-fix (F-030 compose test red: kernel 1 failed/258 passed); db 26 passed; smoke (1) 4 legacy VNINDEX rows -> sa/pm | .finvest/sprints/sprint-04/3-pr.OPS-rw-smoke-dsn.md
+2026-10-25 17:17 | dev     | FE-guards                | pr-open   | 83/83 tests, tsc 0, proof done | 3-build.FE-guards.md
+2026-10-25 17:18 | dev     | FE-sc-cards              | pr-open   | tsc 0, vitest 80/80 pass | 3-build.FE-sc-cards.md
+2026-10-25 17:18 | lead    | FE-guards                | merged    | e56b845; vitest 83 pass, tsc 0, 0 must-fix | .finvest/sprints/sprint-04/3-pr.FE-guards.md
+2026-10-25 17:19 | dev     | OPS-rw-smoke-dsn         | built     | fix round 1: F-030 guard updated; test-kernel green (259 passed) | sprints/sprint-04/3-build.OPS-rw-smoke-dsn.md
+2026-10-25 17:19 | dev     | FE-sc-panel              | blocked   | setup.ts style.textContent line also edited by unmerged task/sprint-04/FE-sc-cards | -
+2026-10-25 17:19 | dev     | FE-sc-table              | blocked   | origin/task/sprint-04/FE-sc-cards unmerged edits same setup.ts lines (import + style.textContent join); no code written | -
+2026-10-25 17:19 | lead    | BE-rw-ledger-rank        | merged    | e5ac19f; kernel 259 passed, db 27 passed, new test red on old code | 3-pr.BE-rw-ledger-rank.md
+2026-10-25 17:20 | lead    | FE-sc-cards              | merged    | c2471906; tsc 0, vitest 83/83, 0 must-fix | .finvest/sprints/sprint-04/3-pr.FE-sc-cards.md
+2026-10-25 17:20 | dev     | FE-shell                 | pr-open   | tsc ok, vitest 81/81 | 3-build.FE-shell.md
+2026-10-25 17:21 | dev     | FE-sc-panel              | blocked   | setup.ts textContent line also edited by unmerged task/sprint-04/FE-shell; no code written | -
+2026-10-25 17:21 | lead    | FE-shell                 | merged    | 4f63258; tsc 0, vitest 84/84, 277+/64- vs ~210 | .finvest/sprints/sprint-04/3-pr.FE-shell.md
