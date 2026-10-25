@@ -33,7 +33,7 @@ Daily bars (step 2 of a press): stores the last final session (today after 15:05
 
 `make test-db` creates `finvest_test` in the compose db (idempotent) and runs `pytest -m db` with
 `FINVEST_DATABASE_URL=postgresql+psycopg://finvest:<POSTGRES_PASSWORD from .env>@127.0.0.1:55432/finvest_test`.
-The db is published on loopback only (`127.0.0.1:55432`). Per-branch db: `make test-db FINVEST_TEST_DB=finvest_test_<branch>`.
+The db is published on loopback only (`127.0.0.1:55432`). Per-branch db: `make test-db FINVEST_TEST_DB=finvest_<branch>_test` (the name must end in `_test`: the tests drop all tables, so the target refuses anything else). Run it from the main checkout: worktrees have no `.env`. Skips are printed (`-rs`).
 If auth fails because the role password drifted from `.env` (the S03 T6 root cause), repair once: `make db-shell`, then
 `ALTER ROLE finvest PASSWORD '<value of POSTGRES_PASSWORD in .env>';`.
 

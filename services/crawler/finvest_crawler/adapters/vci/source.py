@@ -42,13 +42,17 @@ def parse_symbols(
 
 
 BIGINT_MAX = 2**63 - 1
+INDEX_VALUE_PER_UNIT = (100, 10_000_000)  # VND per unit of volume, as ops/smoke.sql (1)
 
 
-def _value_vnd(av: Decimal | None, ref: int | Decimal | None, sym: str, day: date, raw: Path) -> int | None:
+def _value_vnd(av: Decimal | None, ref: int | Decimal | None, sym: str, day: date, raw: Path,
+               vol: int = 0) -> int | None:
     """`accumulatedValue` -> integer VND. The unit is mixed (payloads.py): million VND or raw VND.
 
     Stocks: pick the reading whose ratio to `ref = v x c` is closest to 1 (log distance). Indices (`ref` None,
-    or no volume): `av >= 1e9` is VND, else million. Outside BIGINT or negative -> None + warning (bar kept).
+    or no volume): `av >= 1e9` is VND, else million, then `value / vol` must sit in INDEX_VALUE_PER_UNIT (live
+    VNINDEX rows came 1e10 off) and value 0 or vol 0 is dropped. Outside BIGINT or negative -> None + warning
+    (bar kept).
     """
     if av is None:
         return None
@@ -59,6 +63,11 @@ def _value_vnd(av: Decimal | None, ref: int | Decimal | None, sym: str, day: dat
     value = to_vnd(vnd, "vnd")
     if not 0 <= value <= BIGINT_MAX:
         log.warning("vci value dropped: %s %s: %s outside BIGINT (raw: %s)", sym, day, value, raw)
+        return None
+    lo, hi = INDEX_VALUE_PER_UNIT
+    if ref is None and (value == 0 or vol == 0 or not lo <= value / vol <= hi):
+        log.warning("vci index value dropped: %s %s: value %s volume %s (ratio outside %s..%s) (raw: %s)",
+                    sym, day, value, vol, lo, hi, raw)
         return None
     return value
 
@@ -94,7 +103,7 @@ def parse_index_bars(payload: bytes, raw_path: Path = Path("<unarchived>")) -> l
     """Pure: V2 payload for index codes (VNINDEX...) -> levels at 2 decimals, half-up (platform.md §1.2)."""
     q = Decimal("0.01")
     return [IndexBar(sym, day, *(x.quantize(q, ROUND_HALF_UP) for x in (o, h, lo, c)), v,
-                     _value_vnd(av, None, sym, day, raw_path))
+                     _value_vnd(av, None, sym, day, raw_path, v))
             for sym, day, o, h, lo, c, v, av in _rows(payload, raw_path)]
 
 

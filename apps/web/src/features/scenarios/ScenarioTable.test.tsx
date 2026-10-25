@@ -51,6 +51,22 @@ describe("ScenarioTable", () => {
     expect(cell).toHaveClass("down");
   });
 
+  it("gain and zero rows: sign and colour come from the number", () => {
+    const g = structuredClone(a);
+    g.result.returns.pl_vnd.value = "1290559";
+    g.result.returns.pl_pct.value = "2.58";
+    const z = structuredClone(a);
+    z.result.returns.pl_vnd.value = "0";
+    z.result.returns.pl_pct.value = "0";
+    render(<ScenarioTable rows={[{ scenario: sc(1, "GAIN"), env: g }, { scenario: sc(2, "ZERO"), env: z }]} />);
+    const [gain, zero] = screen.getAllByRole("row").slice(1);
+    const hit = (row: HTMLElement, t: string) => within(row).getByText((_, el) => el?.tagName === "SPAN" && el.textContent === t);
+    expect(hit(gain, "▲ +1.290.559 ₫")).toHaveClass("up");
+    expect(hit(gain, "▲ +2,58 %")).toHaveClass("up");
+    expect(hit(zero, "= 0 ₫")).toHaveClass("zero");
+    expect(hit(zero, "= 0,00 %")).toHaveClass("zero");
+  });
+
   it("sorts a numeric column desc then asc, failed stays last", async () => {
     render(<ScenarioTable rows={rows()} />);
     const h = screen.getByRole("columnheader", { name: /Invested/ });

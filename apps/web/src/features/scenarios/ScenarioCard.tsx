@@ -99,7 +99,7 @@ export function ScenarioCard({ scenario: s, onEdit }: { scenario: Scenario; onEd
     <article className="sc-card" data-testid="scenario-card">
       <div className="row head">
         <div>
-          <h3>{s.name || defaultName(s.symbol, s.amount_vnd, s.buy_date)}</h3>
+          <h2>{s.name || defaultName(s.symbol, s.amount_vnd, s.buy_date)}</h2>
           <small className="muted">
             {s.symbol} · {s.style === "dca"
               ? t("card.dca", { amount: formatVnd(s.amount_vnd), day: Number(s.buy_date.slice(8)) })
