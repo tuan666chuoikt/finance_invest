@@ -153,6 +153,17 @@ def test_ledger_keeps_the_richest_replay(conn):
     assert conn.execute(q).one() == ("complete", 150_000, 410, "sha256:new")
 
 
+def test_status_rank_is_never_lowered(conn):
+    q = text("SELECT status, rows FROM crawl_sessions")
+    repo.upsert_crawl_session(conn, replace(manifest("complete"), rows=4_949))
+    repo.upsert_crawl_session(conn, replace(manifest("blocked"), rows=10_357))
+    assert conn.execute(q).one() == ("complete", 4_949)
+    repo.upsert_crawl_session(conn, replace(manifest("complete"), rows=5_000))
+    assert conn.execute(q).one() == ("complete", 5_000)
+    repo.upsert_crawl_session(conn, replace(manifest("partial"), rows=100))
+    assert conn.execute(q).one() == ("complete", 5_000)
+
+
 def test_new_day_with_zero_rows_is_inserted(conn):
     repo.upsert_crawl_session(conn, replace(manifest("missed"), rows=0))
     assert conn.execute(text("SELECT status, rows FROM crawl_sessions")).one() == ("missed", 0)

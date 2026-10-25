@@ -119,6 +119,10 @@ def finish_crawl_run(
     )
 
 
+def _status_rank(col):
+    return case({"complete": 3, "partial": 2, "blocked": 2, "missed": 1}, value=col, else_=0)
+
+
 def upsert_crawl_session(conn: Connection, m: Manifest) -> None:
     vals = {
         "status": m.status,
@@ -130,9 +134,11 @@ def upsert_crawl_session(conn: Connection, m: Manifest) -> None:
         "reason": m.reason,
     }
     ins = insert(crawl_sessions).values(feed=m.feed, trading_date=m.trading_date, **vals)
-    # the ledger keeps the richest replay; the manifest file is always written
+    # the ledger keeps the richest replay, never lowers the status rank; the manifest file is always written
     conn.execute(ins.on_conflict_do_update(
-        index_elements=["feed", "trading_date"], set_=vals, where=ins.excluded.rows >= crawl_sessions.c.rows))
+        index_elements=["feed", "trading_date"], set_=vals,
+        where=(ins.excluded.rows >= crawl_sessions.c.rows)
+        & (_status_rank(ins.excluded.status) >= _status_rank(crawl_sessions.c.status))))
 
 
 def insert_anomaly(
