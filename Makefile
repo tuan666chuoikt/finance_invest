@@ -22,7 +22,7 @@ contracts:
 
 # docker compose (ops); mkdir first so the host user, not the Docker daemon (root), creates data/
 DATE ?= $(shell TZ=Asia/Ho_Chi_Minh date +%F)
-.PHONY: up down logs crawl backfill db-shell
+.PHONY: up down logs crawl backfill db-shell test-db smoke
 up:
 	mkdir -p data/raw data/exports
 	docker compose up -d --build
@@ -39,3 +39,12 @@ backfill:
 	docker compose run --rm --build crawler bars --date $(DATE)
 db-shell:
 	docker compose exec db psql -U finvest finvest
+
+# db tests on the host against the compose db (loopback 55432); per-branch db: make test-db FINVEST_TEST_DB=finvest_test_<branch>
+FINVEST_TEST_DB ?= finvest_test
+PGPASS = $(shell sed -n 's/^POSTGRES_PASSWORD=\([^ #]*\).*/\1/p' .env)
+test-db:
+	docker compose exec -T db createdb -U finvest $(FINVEST_TEST_DB) || true
+	FINVEST_DATABASE_URL=postgresql+psycopg://finvest:$(PGPASS)@127.0.0.1:55432/$(FINVEST_TEST_DB) uv run pytest -m db -q
+smoke:
+	docker compose exec -T db psql -U finvest finvest -f - < ops/smoke.sql

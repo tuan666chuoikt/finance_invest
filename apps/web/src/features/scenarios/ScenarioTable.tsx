@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { formatDate, formatPct, formatPp, formatVnd } from "../../lib/format";
 import type { Scenario } from "./api";
 import type { WhatIfEnvelope } from "./result";
+import "./table.css";
 
 /** `env` set = computed; `error` = translated reason; neither = still loading. */
 export interface Row { scenario: Scenario; env?: WhatIfEnvelope; error?: string }
@@ -35,10 +36,8 @@ function cells(r: Row, lang: string): Record<Col, Cell> {
   };
 }
 
-const CSS = `.sc-tablewrap{overflow-x:auto}.sc-tablewrap table{border-collapse:collapse;white-space:nowrap}
-.sc-tablewrap th,.sc-tablewrap td{padding:6px 10px;border-bottom:1px solid GrayText;text-align:left}
-.sc-tablewrap td.num,.sc-tablewrap th.num{text-align:right}
-.sc-tablewrap .sticky{position:sticky;left:0;background:Canvas}`;
+const arrow = (text: string) => (text.startsWith("+") ? "▲" : text.startsWith("−") ? "▼" : "=");
+const cls = (text: string) => (text.startsWith("+") ? "up" : text.startsWith("−") ? "down" : "zero");
 
 export function ScenarioTable({ rows }: { rows: Row[] }) {
   const { t, i18n } = useTranslation();
@@ -55,15 +54,14 @@ export function ScenarioTable({ rows }: { rows: Row[] }) {
 
   const th = (col: Col) => (
     <th key={col} className="num" aria-sort={sort.col === col ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
-      <button type="button" onClick={() => setSort({ col, dir: sort.col === col && sort.dir === "desc" ? "asc" : "desc" })}>
-        {t(`table.${col}`)}{sort.col === col ? (sort.dir === "asc" ? " ▲" : " ▼") : ""}
+      <button type="button" className="th-btn" onClick={() => setSort({ col, dir: sort.col === col && sort.dir === "desc" ? "asc" : "desc" })}>
+        {t(`table.${col}`)}{sort.col === col ? (sort.dir === "asc" ? " ▲" : " ▼") : <span className="sort-hint" aria-hidden="true"> ↕</span>}
       </button>
     </th>
   );
 
   return (
     <div>
-      <style>{CSS}</style>
       <div className="sc-tablewrap" data-testid="scenario-table">
         <table>
           <thead>
@@ -79,6 +77,10 @@ export function ScenarioTable({ rows }: { rows: Row[] }) {
               const s = r.scenario;
               const ok = !!r.env;
               const cell = (col: Col) => <td key={col} className="num">{c[col].text}</td>;
+              const signed = (col: Col) => {
+                const x = c[col].text;
+                return <td key={col} className="num">{c[col].num === null ? x : <span className={cls(x)}>{arrow(x)} {x}</span>}</td>;
+              };
               return (
                 <tr key={s.id}>
                   <th scope="row" className="sticky">{s.name}</th>
@@ -88,15 +90,15 @@ export function ScenarioTable({ rows }: { rows: Row[] }) {
                   <td>{s.sell_date ? formatDate(s.sell_date) : r.env ? formatDate(r.env.result.dates.sell) : t("table.today")}</td>
                   {cell("invested")}
                   {ok ? cell("value") : <td className="num" role={r.error ? "alert" : undefined}>{r.error ? t("card.error", { reason: r.error }) : "…"}</td>}
-                  {COLS.slice(2).map(cell)}
-                  <td>{r.env?.approximate && <span><span aria-hidden="true">⚠ </span>{t("table.approximate")}</span>}</td>
+                  {signed("pl_vnd")}{signed("pl_pct")}{cell("vs_vnindex")}{cell("vs_e1")}
+                  <td>{r.env?.approximate && <span className="flag" role="img" title={t("table.approximate")} aria-label={t("table.approximate")}>⚠</span>}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
-      <p><small>{t("table.footer")}</small></p>
+      <p className="sc-tablefoot">{t("table.footer")}</p>
     </div>
   );
 }

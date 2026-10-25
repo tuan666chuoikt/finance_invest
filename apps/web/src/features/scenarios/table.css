@@ -1,0 +1,16 @@
+.sc-tablewrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); overflow-x: auto; }
+.sc-tablewrap table { border-collapse: separate; border-spacing: 0; white-space: nowrap; width: 100%; }
+.sc-tablewrap th, .sc-tablewrap td { padding: 0 10px; height: 36px; text-align: left; font-size: var(--fs-sm); border-bottom: 1px solid var(--border); }
+.sc-tablewrap thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); color: var(--text-muted); font-size: var(--fs-xs); font-weight: 500; }
+.sc-tablewrap tbody th { font-weight: 400; }
+.sc-tablewrap tbody tr:hover > * { background: var(--surface-2); }
+.sc-tablewrap td.num, .sc-tablewrap th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sc-tablewrap .th-btn { all: inherit; display: block; width: 100%; height: 100%; padding: 0; cursor: pointer; text-align: inherit; }
+.sc-tablewrap .sort-hint { opacity: 0; }
+.sc-tablewrap th:hover .sort-hint, .sc-tablewrap th:focus-within .sort-hint { opacity: .5; }
+.sc-tablewrap .flag { color: var(--warn); }
+.sc-tablefoot { color: var(--text-muted); font-size: var(--fs-xs); }
+@media (max-width: 1023px) {
+  .sc-tablewrap .sticky { position: sticky; left: 0; background: var(--surface); border-right: 1px solid var(--border); }
+  .sc-tablewrap thead .sticky { z-index: 2; background: var(--surface-2); }
+}

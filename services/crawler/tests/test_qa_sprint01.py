@@ -148,15 +148,21 @@ def test_f020_data_dir_default_and_gitignored_and_retention_keep_all():
     assert r.returncode == 0 and len(r.stdout.split()) == 2, r.stderr
 
 
-def test_f030_compose_publishes_only_api_on_loopback():
+def test_f030_compose_publishes_only_loopback():
     cmd = ["docker", "compose", "--profile", "tools", "config", "--format", "json"]
     out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env={"PATH": "/usr/bin:/bin", "POSTGRES_PASSWORD": "x"}, check=False)
     if out.returncode:
         pytest.skip("docker compose unavailable")
     svc = json.loads(out.stdout)["services"]
     ports = {n: s.get("ports", []) for n, s in svc.items()}
-    assert ports["db"] == [] and ports["crawler"] == []
-    assert [(p["host_ip"], p["published"]) for p in ports["api"]] == [("127.0.0.1", "8001")]
+
+    def pub(n):
+        return [(p["host_ip"], p["published"]) for p in ports[n]]
+
+    assert ports["crawler"] == []
+    assert pub("db") == [("127.0.0.1", "55432")]  # loopback-only test/smoke DSN (OPS-rw-smoke-dsn)
+    assert pub("api") == [("127.0.0.1", "8001")]
+    assert all(p["host_ip"] == "127.0.0.1" for v in ports.values() for p in v)
 
 
 def test_f030_make_crawl_takes_date():
