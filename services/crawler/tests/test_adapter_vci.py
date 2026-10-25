@@ -80,7 +80,8 @@ def test_value_is_rounded_half_up_to_one_vnd():
 
 def test_index_bars_keep_two_decimals():
     (b,) = parse_index_bars(bars_payload(
-        symbol="VNINDEX", o=[1700.104], h=[1720.555], l=[1699.99], c=[1710.25], accumulatedValue=[20000.5]))
+        symbol="VNINDEX", o=[1700.104], h=[1720.555], l=[1699.99], c=[1710.25], v=[2_000_000],
+        accumulatedValue=[20000.5]))
     assert (str(b.o), str(b.h), str(b.c), b.value) == ("1700.10", "1720.56", "1710.25", 20000500000)
     assert (b.index_code, b.trading_date) == ("VNINDEX", date(2026, 10, 15))
 
@@ -152,8 +153,21 @@ def test_bar_with_zero_close_is_dropped_not_fatal(caplog):
 @pytest.mark.parametrize(("av", "want"), [(222242000000, 222_242_000_000), (6386472.73, 6_386_472_730_000),
                                           (20000.5, 20_000_500_000)])
 def test_index_value_unit_is_mixed(av, want):
-    (b,) = parse_index_bars(bars_payload(symbol="VN30", accumulatedValue=[av]))
+    (b,) = parse_index_bars(bars_payload(symbol="VN30", v=[10**7], accumulatedValue=[av]))
     assert b.value == want  # raw VND (2012-02-06) vs million VND (2026-10-16)
+
+
+def test_index_value_outside_ratio_band_is_dropped_and_bar_kept(caplog):
+    # 20000.5 million VND = 2e10; / 2 = 1e10 per unit (live VNINDEX bug) -> dropped; / 4e5 = 5e4 -> kept
+    (bad,) = parse_index_bars(bars_payload(symbol="VNINDEX", c=[1710.25], v=[2], accumulatedValue=[20000.5]))
+    assert (bad.value, str(bad.c)) == (None, "1710.25")
+    assert "vci index value dropped" in caplog.text
+    (ok,) = parse_index_bars(bars_payload(symbol="VNINDEX", v=[400_000], accumulatedValue=[20000.5]))
+    assert ok.value == 20_000_500_000
+    (zero,) = parse_index_bars(bars_payload(symbol="VNINDEX", v=[400_000], accumulatedValue=[0]))
+    assert zero.value is None
+    (stock,) = parse_bars(bars_payload(v=[2], c=[10000], accumulatedValue=[20000.5]))
+    assert stock.value == 20001  # stocks path unchanged: ratio 1 to v x c, outside the index band yet kept
 
 
 @pytest.mark.parametrize(("av", "want"), [(474963.63, 474_963_630_000), (474963630000, 474_963_630_000)])
