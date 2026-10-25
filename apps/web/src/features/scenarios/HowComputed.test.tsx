@@ -56,4 +56,14 @@ describe("HowComputed", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(btn).toHaveFocus();
   });
+
+  it("drawer opened from a headline cell does not inherit its weight or alignment", async () => {
+    render(<dl className="sc-card"><dd className="headline"><InfoButton figure={env.result.value.liquidation_vnd} envelope={env} name="liquidation_vnd" /></dd></dl>);
+    await userEvent.click(screen.getByRole("button"));
+    const note = screen.getByText(/giá đã điều chỉnh/);
+    const cs = getComputedStyle(note);
+    expect(cs.fontWeight).toBe("400");
+    expect(cs.textAlign).not.toBe("right");
+    expect(getComputedStyle(note.closest("dialog")!.querySelector("code.formula")!).display).toBe("block");
+  });
 });
