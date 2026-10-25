@@ -1,0 +1,18 @@
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 var(--fs-md) / var(--lh-md) var(--font-sans);
+}
+
+.num,
+td,
+th {
+  font-variant-numeric: tabular-nums;
+}
+
+code,
+pre,
+.mono {
+  font-family: var(--font-mono);
+}
