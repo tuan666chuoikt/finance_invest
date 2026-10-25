@@ -43,8 +43,10 @@ describe("disclaimer on analysis routes (F-032)", () => {
     expect(banner.querySelector("a,button,input,select,textarea,[tabindex]")).toBeNull();
   });
 
-  it.each(ROUTES.filter((r) => r.analysis))("banner sits inside the main landmark: $path", async ({ path }) => {
+  it.each(ROUTES.filter((r) => r.analysis))("banner is a full-width band between the top bar and main: $path", async ({ path }) => {
     at(path);
-    expect((await screen.findByTestId("disclaimer")).closest("main")).not.toBeNull();
+    const banner = await screen.findByTestId("disclaimer");
+    expect(banner.closest("main")).toBeNull();
+    expect(banner.compareDocumentPosition(document.querySelector("main")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

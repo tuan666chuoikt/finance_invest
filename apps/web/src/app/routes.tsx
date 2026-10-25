@@ -1,6 +1,5 @@
 import type { ReactElement } from "react";
-import { Navigate, Outlet, createBrowserRouter, useLocation } from "react-router-dom";
-import { Disclaimer } from "../components/Disclaimer";
+import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
 import { TopBar } from "../components/TopBar";
 import { ScenariosPage } from "../features/scenarios/ScenariosPage";
 import { Placeholder } from "./Placeholder";
@@ -19,12 +18,10 @@ export const ROUTES: AppRoute[] = [
 ];
 
 function Layout() {
-  const { pathname } = useLocation();
   return (
     <>
       <TopBar />
-      <main>
-        {ROUTES.find((r) => r.path === pathname)?.analysis && <Disclaimer />}
+      <main className="page">
         <Outlet />
       </main>
     </>

@@ -27,25 +27,26 @@ export function CardMenu({ scenario, onEdit }: { scenario: Scenario; onEdit: () 
 
   return (
     <span style={{ position: "relative" }}>
-      <button ref={trigger} type="button" aria-haspopup="menu" aria-expanded={open}
+      <button ref={trigger} type="button" className="btn-icon" aria-haspopup="menu" aria-expanded={open}
         aria-label={t("card.menu", { symbol: scenario.symbol })}
         onClick={() => { setOpen(!open); setTimeout(() => items()[0]?.focus()); }}>⋯</button>
       {open && (
-        <div ref={list} role="menu" onKeyDown={onKey}
-          style={{ position: "absolute", right: 0, zIndex: 5, background: "Canvas", border: "1px solid GrayText" }}>
+        <div ref={list} role="menu" onKeyDown={onKey} className="menu">
           <button role="menuitem" type="button" onClick={() => { setOpen(false); onEdit(); }}>{t("card.edit")}</button>
-          <button role="menuitem" type="button" onClick={() => { setOpen(false); setConfirm(true); }}>{t("card.delete")}</button>
+          <button role="menuitem" type="button" className="danger" onClick={() => { setOpen(false); setConfirm(true); }}>{t("card.delete")}</button>
         </div>
       )}
       {confirm && (
-        <dialog open aria-label={t("card.delete_confirm", { name: scenario.name })}
+        <dialog open className="confirm" aria-label={t("card.delete_confirm", { name: scenario.name })}
           onKeyDown={(e) => { if (e.key === "Escape") setConfirm(false); }}>
           <p>{t("card.delete_confirm", { name: scenario.name })}</p>
           {err && <p role="alert">{t(`error.${err}`, { defaultValue: t("error.INTERNAL") })}</p>}
-          <button type="button" autoFocus disabled={del.isPending} onClick={() => del.mutate(scenario.id, { onSuccess: () => setConfirm(false) })}>
+          <footer>
+          <button type="button" className="btn-danger" autoFocus disabled={del.isPending} onClick={() => del.mutate(scenario.id, { onSuccess: () => setConfirm(false) })}>
             {t("card.delete")}
           </button>
-          <button type="button" onClick={() => setConfirm(false)}>{t("card.cancel")}</button>
+          <button type="button" className="btn" onClick={() => setConfirm(false)}>{t("card.cancel")}</button>
+          </footer>
         </dialog>
       )}
     </span>
