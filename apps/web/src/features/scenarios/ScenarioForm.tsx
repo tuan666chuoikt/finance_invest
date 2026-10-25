@@ -85,53 +85,64 @@ export function ScenarioForm({ scenario, onClose }: Props) {
     });
   };
 
-  const msg = (f: string) => errors[f] && <p id={`err-${f}`} role="alert" style={{ color: "var(--color-error, crimson)", margin: "2px 0" }}>{errors[f]}</p>;
+  const msg = (f: string) => errors[f] && <p id={`err-${f}`} role="alert" className="field-error">{errors[f]}</p>;
   const d = (f: string) => (errors[f] ? { "aria-invalid": true, "aria-describedby": `err-${f}` } : {});
 
   return (
     <dialog open aria-label={t(scenario ? "form.title_edit" : "form.title_add")} className="scenario-panel"
       onKeyDown={(e) => { if (e.key === "Escape") close(); }}>
-      {/* full screen below 1024 px, right-hand panel from 1024 px (ux "Mobile") */}
-      <style>{`.scenario-panel{position:fixed;inset:0;margin:0;width:100%;height:100%;max-width:none;overflow:auto;z-index:10}
-@media (min-width:1024px){.scenario-panel{left:auto;width:420px;border-left:1px solid GrayText}}`}</style>
       <form onSubmit={onSubmit} noValidate>
-        <h2>{t(scenario ? "form.title_edit" : "form.title_add")}</h2>
-        {msg("form")}
-        <label>{t("form.name")}
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={symbol && start ? defaultName(symbol, parseVndInput(amount) ?? 0, start) : ""} {...d("name")} />
-        </label>
-        {msg("name")}
-        <div>
-          <label>{t("form.symbol")}
-            <SymbolCombobox value={symbol} onPick={setSymbol} invalid={!!errors.symbol} describedBy="err-symbol" />
-          </label>
+        <header className="panel-head">
+          <h2>{t(scenario ? "form.title_edit" : "form.title_add")}</h2>
+          <button type="button" className="btn-icon" aria-label={t("form.cancel")} onClick={close}>✕</button>
+        </header>
+        <div className="panel-body">
+          {msg("form")}
+          <div className="field">
+            <label htmlFor="sc-name">{t("form.name")}</label>
+            <input id="sc-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={symbol && start ? defaultName(symbol, parseVndInput(amount) ?? 0, start) : ""} {...d("name")} />
+            {msg("name")}
+          </div>
+          <div className="field">
+            <label>{t("form.symbol")}
+              <SymbolCombobox value={symbol} onPick={setSymbol} invalid={!!errors.symbol} describedBy="err-symbol" />
+            </label>
+            {msg("symbol")}
+          </div>
+          <fieldset className="field">
+            <legend>{t("form.style")}</legend>
+            {(["lump_sum", "dca"] as const).map((s) => (
+              <label key={s} className="radio-row"><input type="radio" name="style" checked={style === s} onChange={() => setStyle(s)} />{t(`form.style_${s}`)}</label>
+            ))}
+          </fieldset>
+          <div className="field">
+            <label htmlFor="sc-amount">{t(style === "dca" ? "form.amount_monthly" : "form.amount")}</label>
+            <span className="input-wrap">
+              <input id="sc-amount" className="amount" inputMode="numeric" value={amount} onChange={(e) => setAmount(group(parseVndInput(e.target.value)))} {...d("amount")} />
+              <span className="suffix" aria-hidden="true">₫</span>
+            </span>
+            {msg("amount")}
+          </div>
+          <div className="field">
+            <label htmlFor="sc-start">{t("form.start")}</label>
+            <input id="sc-start" type="date" value={start} min={bars?.first} max={bars?.last} onChange={(e) => { setStart(e.target.value); setTouched(true); }} {...d("start")} />
+            {msg("start")}
+          </div>
+          <div className="field">
+            <label className="inline-check"><input type="checkbox" checked={today} onChange={(e) => setToday(e.target.checked)} />{t("form.today")}</label>
+            {!today && (
+              <>
+                <label htmlFor="sc-end">{t("form.end")}</label>
+                <input id="sc-end" type="date" value={end} min={start || undefined} onChange={(e) => setEnd(e.target.value)} {...d("end")} />
+              </>
+            )}
+            {msg("end")}
+          </div>
         </div>
-        {msg("symbol")}
-        <fieldset>
-          <legend>{t("form.style")}</legend>
-          {(["lump_sum", "dca"] as const).map((s) => (
-            <label key={s}><input type="radio" name="style" checked={style === s} onChange={() => setStyle(s)} />{t(`form.style_${s}`)}</label>
-          ))}
-        </fieldset>
-        <label>{t(style === "dca" ? "form.amount_monthly" : "form.amount")}
-          <input inputMode="numeric" value={amount} onChange={(e) => setAmount(group(parseVndInput(e.target.value)))} {...d("amount")} />
-        </label>
-        {msg("amount")}
-        <label>{t("form.start")}
-          <input type="date" value={start} min={bars?.first} max={bars?.last} onChange={(e) => { setStart(e.target.value); setTouched(true); }} {...d("start")} />
-        </label>
-        {msg("start")}
-        <label><input type="checkbox" checked={today} onChange={(e) => setToday(e.target.checked)} />{t("form.today")}</label>
-        {!today && (
-          <label>{t("form.end")}
-            <input type="date" value={end} min={start || undefined} onChange={(e) => setEnd(e.target.value)} {...d("end")} />
-          </label>
-        )}
-        {msg("end")}
-        <div>
-          <button type="submit" disabled={save.isPending}>{t("form.save")}</button>
-          <button type="button" onClick={close}>{t("form.cancel")}</button>
-        </div>
+        <footer className="panel-foot">
+          <button type="button" className="btn" onClick={close}>{t("form.cancel")}</button>
+          <button type="submit" className="btn btn-primary" disabled={save.isPending}>{t("form.save")}</button>
+        </footer>
       </form>
     </dialog>
   );

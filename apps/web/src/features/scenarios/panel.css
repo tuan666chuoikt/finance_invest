@@ -1,0 +1,43 @@
+/* Add/edit + how-computed drawer (visual-design §6.5-§6.6). Full-screen sheet < 768 px. */
+.scenario-panel { position: fixed; inset: 0; margin: 0; padding: 0; width: 100%; max-width: none; height: 100%; max-height: none; overflow: hidden; z-index: 10; border: 0; background: var(--surface); color: var(--text); }
+.scenario-panel > form, .scenario-panel > .panel-wrap { display: flex; flex-direction: column; height: 100%; }
+/* shortcut: the non-modal form dialog has no ::backdrop, so a huge spread shadow stands in; fine while the drawer is the only overlay */
+.scenario-panel:not(.how) { box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.32); }
+.scenario-panel::backdrop { background: rgba(0, 0, 0, 0.32); }
+@media (min-width: 768px) {
+  .scenario-panel { left: auto; width: 440px; max-width: 100vw; border-left: 1px solid var(--border); box-shadow: var(--shadow-2); animation: panel-in 160ms ease-out; }
+  .scenario-panel:not(.how) { box-shadow: var(--shadow-2), 0 0 0 100vmax rgba(0, 0, 0, 0.32); }
+}
+@keyframes panel-in { from { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .scenario-panel { animation: none; } }
+
+.panel-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border); background: var(--surface); }
+.panel-head h2 { margin: 0; font-size: var(--fs-lg); }
+.panel-body { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-4); }
+.panel-foot { position: sticky; bottom: 0; display: flex; flex-direction: column-reverse; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border); background: var(--surface); }
+.panel-foot .btn, .panel-foot button { width: 100%; }
+@media (min-width: 768px) { .panel-foot { flex-direction: row; justify-content: flex-end; } .panel-foot .btn, .panel-foot button { width: auto; } }
+
+.field { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; border: 0; padding: 0; margin: 0; }
+.field > label, .field > legend { font-size: var(--fs-sm); font-weight: 500; padding: 0; }
+.field-error { margin: 0; font-size: var(--fs-xs); color: var(--color-error); }
+.field-hint { margin: 0; font-size: var(--fs-xs); color: var(--text-muted); }
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-wrap input { width: 100%; }
+.amount { text-align: right; font-variant-numeric: tabular-nums; padding-right: calc(var(--sp-2) + 1.25em); }
+.input-wrap .suffix { position: absolute; right: var(--sp-2); color: var(--text-muted); pointer-events: none; }
+.radio-row { display: flex; align-items: center; gap: var(--sp-2); min-height: 32px; font-size: var(--fs-md); }
+.radio-row input { width: 16px; height: 16px; padding: 0; }
+.inline-check { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); }
+
+.combo-list { position: absolute; top: 100%; left: 0; width: 100%; margin: 0; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-2); border-radius: var(--r-sm); z-index: 1; max-height: 240px; overflow: auto; }
+.combo-list li { padding: var(--sp-1) var(--sp-2); cursor: pointer; }
+.combo-list [aria-selected="true"] { background: var(--surface-2); font-weight: 600; }
+
+.how .formula { margin: 0; padding: var(--sp-3); background: var(--surface-2); border-radius: var(--r-sm); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+.how dl.rows { margin: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+.how dl.rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); }
+.how dl.rows dt { color: var(--text-muted); font-size: var(--fs-sm); }
+.how dl.rows dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.fs-xs { font-size: var(--fs-xs); }
+.note-warn-block { margin: 0; padding: var(--sp-3); background: var(--warn-bg); border-radius: var(--r-sm); }

@@ -73,7 +73,9 @@ describe("ScenarioForm", () => {
     await user.clear(a);
     if (amt) await user.type(a, amt);
     await user.click(screen.getByRole("button", { name: "Save" }));
-    expect((await screen.findAllByRole("alert")).map((x) => x.textContent)).toContain(text);
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts.map((x) => x.textContent)).toContain(text);
+    expect(alerts.every((x) => x.classList.contains("field-error"))).toBe(true);
     expect(posts()).toHaveLength(0);
   });
 
