@@ -24,14 +24,16 @@ const CSS = `
 @media (prefers-color-scheme:dark){.up{color:#4ade80}.down{color:#f87171}.zero{color:#facc15}}`;
 export const GRID_CSS = CSS;
 
-function Bench({ b }: { b: Benchmark }) {
+function Bench({ b, buy }: { b: Benchmark; buy: string }) {
   const { t, i18n } = useTranslation();
   if (!b.available)
     return (
       <li data-testid="bench">
-        {b.first_available
-          ? t("card.bench_na", { name: b.name, date: formatDate(b.first_available) })
-          : t("card.bench_na_nodate", { name: b.name })}
+        {!b.first_available
+          ? t("card.bench_na_nodate", { name: b.name })
+          : b.first_available > buy // ISO dates compare lexicographically
+            ? t("card.bench_na", { name: b.name, date: formatDate(b.first_available) })
+            : t("card.bench_na_gap", { name: b.name })}
       </li>
     );
   const pct = formatPct(b.pl_pct.value);
@@ -80,7 +82,7 @@ function Body({ s, env }: { s: Scenario; env: WhatIfEnvelope }) {
       </dl>
       {env.flags.includes("below_one_lot") && <small>{t(dca ? "card.below_lot_dca" : "card.below_lot_lump")}</small>}
       <Sparkline points={r.equity_curve} symbol={s.symbol} />
-      {r.benchmarks.length > 0 && <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>{r.benchmarks.map((b) => <Bench key={b.name} b={b} />)}</ul>}
+      {r.benchmarks.length > 0 && <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>{r.benchmarks.map((b) => <Bench key={b.name} b={b} buy={r.dates.buy} />)}</ul>}
       {r.missing_sessions.length > 0 && (
         <small>
           {t("card.missing", { count: r.missing_sessions.length })}{" "}
