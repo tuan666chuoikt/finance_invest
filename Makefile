@@ -8,7 +8,7 @@ test-kernel:
 	uv run pytest -m "not db" -q && uv run ruff check . && uv run mypy && uv run lint-imports
 
 test: test-kernel
-	uv run pytest -m db -q
+	uv run pytest -m db -q -rs
 
 web-install:
 	npm --prefix apps/web ci
@@ -40,11 +40,12 @@ backfill:
 db-shell:
 	docker compose exec db psql -U finvest finvest
 
-# db tests on the host against the compose db (loopback 55432); per-branch db: make test-db FINVEST_TEST_DB=finvest_test_<branch>
+# db tests on the host against the compose db (loopback 55432); per-branch db: make test-db FINVEST_TEST_DB=finvest_<branch>_test
 FINVEST_TEST_DB ?= finvest_test
 PGPASS = $(shell sed -n 's/^POSTGRES_PASSWORD=\([^ #]*\).*/\1/p' .env)
 test-db:
+	@case "$(FINVEST_TEST_DB)" in *_test) ;; *) echo "FINVEST_TEST_DB must end in _test (tests drop all tables)"; exit 1;; esac
 	docker compose exec -T db createdb -U finvest $(FINVEST_TEST_DB) || true
-	FINVEST_DATABASE_URL=postgresql+psycopg://finvest:$(PGPASS)@127.0.0.1:55432/$(FINVEST_TEST_DB) uv run pytest -m db -q
+	FINVEST_DATABASE_URL=postgresql+psycopg://finvest:$(PGPASS)@127.0.0.1:55432/$(FINVEST_TEST_DB) uv run pytest -m db -q -rs
 smoke:
 	docker compose exec -T db psql -U finvest finvest -f - < ops/smoke.sql
