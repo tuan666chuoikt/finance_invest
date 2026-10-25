@@ -34,10 +34,14 @@
 .combo-list li { padding: var(--sp-1) var(--sp-2); cursor: pointer; }
 .combo-list [aria-selected="true"] { background: var(--surface-2); font-weight: 600; }
 
+.scenario-panel.how { font-size: var(--fs-sm); font-weight: 400; line-height: var(--lh-md, 1.5); text-align: left; } /* the drawer renders inside dd.headline (xl/600/right) and inherits it */
+.scenario-panel.how p, .scenario-panel.how dd { font-size: var(--fs-sm); font-weight: 400; }
+.scenario-panel.how .panel-head h2 { font-weight: 600; }
+.scenario-panel.how .formula { display: block; margin-top: var(--sp-1); max-width: 100%; }
 .how .formula { margin: 0; padding: var(--sp-3); background: var(--surface-2); border-radius: var(--r-sm); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
 .how dl.rows { margin: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
 .how dl.rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); }
 .how dl.rows dt { color: var(--text-muted); font-size: var(--fs-sm); }
 .how dl.rows dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
 .fs-xs { font-size: var(--fs-xs); }
-.note-warn-block { margin: 0; padding: var(--sp-3); background: var(--warn-bg); border-radius: var(--r-sm); }
+.scenario-panel.how .note-warn-block, .note-warn-block { max-width: 100%; text-align: left; font-size: var(--fs-sm); font-weight: 400; margin: 0; padding: var(--sp-3); background: var(--warn-bg); border-radius: var(--r-sm); }
