@@ -82,7 +82,7 @@ export function CrawlStatus({ job, refused, startError }: { job: Job | null; ref
   const pct = shown && running && p.total ? Math.min(100, Math.round((Number(p.done) / Number(p.total)) * 100)) : null;
   return (
     <div role="status" aria-live="polite" data-testid="crawl-status" className={"status" + (mod ? ` status-${mod}` : "")}>
-      {running ? <span className="cb-spin" aria-hidden="true">⟳</span> : mod === "done" ? <span className="status-icon" aria-hidden="true">✓</span> : mod === "error" ? <span aria-hidden="true">✕</span> : null}
+      {running ? <span className="cb-spin" aria-hidden="true">⟳</span> : mod === "done" ? <span className="status-icon" aria-hidden="true">✓</span> : null}
       <span className="status-text">
         {lines.map((l, i) => (
           <Fragment key={i}>{i > 0 && " · "}{l}</Fragment>

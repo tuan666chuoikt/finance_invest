@@ -139,9 +139,6 @@
 .band .vi {
   font-weight: 500;
 }
-.band span {
-  display: inline-block;
-}
 
 .status {
   position: relative;
