@@ -40,6 +40,8 @@ describe("ScenarioCard", () => {
       expect(card.getByText(s)).toBeInTheDocument();
     expect(card.getByText(/Mua một lần/)).toBeInTheDocument();
     expect(card.getByTestId("approximate-flag")).toHaveTextContent("Gần đúng");
+    expect(card.getByTestId("approximate-flag")).toHaveClass("chip-warn");
+    expect(card.getByText("Giá trị nếu bán").nextElementSibling).toHaveClass("headline");
   });
 
   it("has no approximate flag when approximate is false", async () => {
