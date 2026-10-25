@@ -30,3 +30,7 @@ None.
 
 ## Nits (not blocking)
 1. repositories.py: `.values(value=None)` is dedented relative to the chain; cosmetic.
+
+## Merge
+- Merged by sm.sh: merge 7894e44d5da8ca0bc2a5070c7f5754f37c688af8 into sprint-04 (base 696ee6d). The base gained FE-fix-table and FE-fix-shell
+  (apps/web only, 13 files) after the sync; no overlap with this diff's BE files, so the BE checks above still hold.

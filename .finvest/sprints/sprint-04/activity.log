@@ -42,3 +42,4 @@
 2026-10-25 17:43 | lead    | OPS-fix-testdb-doc       | merged    | 860af49; 0 must-fix; testdb 27 passed, kernel 259 passed, guard rejects finvest_x | 3-pr.OPS-fix-testdb-doc.md
 2026-10-25 17:45 | lead    | FE-fix-table             | merged    | 5dd0944; must-fix 0; tsc 0, vitest 87/87, new test fails on old code | 3-pr.FE-fix-table.md
 2026-10-25 17:45 | lead    | FE-fix-shell             | merged    | 696ee6d; tsc 0, vitest 87/87, 0 must-fix | 3-pr.FE-fix-shell.md
+2026-10-25 17:46 | lead    | BE-fix-index-value       | merged    | 7894e44; kernel 260 passed, db 28 passed, 0 must-fix | 3-pr.BE-fix-index-value.md
