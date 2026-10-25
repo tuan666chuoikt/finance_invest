@@ -1,0 +1,177 @@
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 var(--fs-md) / var(--lh-md) var(--font-sans);
+}
+
+.num,
+td,
+th {
+  font-variant-numeric: tabular-nums;
+}
+
+code,
+pre,
+.mono {
+  font-family: var(--font-mono);
+}
+
+a {
+  color: var(--primary);
+}
+a:hover,
+p a,
+li a {
+  text-decoration: underline;
+}
+
+button,
+.btn {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+  cursor: pointer;
+  transition: background var(--dur), border-color var(--dur);
+}
+button:disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+.btn-danger {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+.btn-icon {
+  width: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.btn-icon.sm {
+  width: 24px;
+  height: 24px;
+}
+
+input,
+select,
+textarea,
+[role="combobox"] {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+textarea {
+  height: auto;
+  padding: var(--sp-1) var(--sp-2);
+}
+[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+input[type="radio"],
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--primary);
+}
+.field-error {
+  font-size: var(--fs-xs);
+  color: var(--color-error);
+}
+.field-error::before {
+  content: "✕ ";
+}
+
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+.seg button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--surface);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
+}
+
+.chip {
+  display: inline-block;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+.chip-warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+th button:focus-visible,
+[role="menuitem"]:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-primary {
+    background: transparent;
+    color: var(--primary);
+  }
+}
+
+@media (max-width: 767px) {
+  button,
+  .btn,
+  input,
+  select,
+  [role="combobox"] {
+    min-height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
