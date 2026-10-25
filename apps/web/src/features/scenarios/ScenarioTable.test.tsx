@@ -45,6 +45,12 @@ describe("ScenarioTable", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Cannot compute");
   });
 
+  it("losing row P/L ₫ shows the down arrow, sign and class", () => {
+    render(<ScenarioTable rows={rows()} />);
+    const cell = within(screen.getAllByRole("row")[2]).getByText(/▼ −/);
+    expect(cell).toHaveClass("down");
+  });
+
   it("sorts a numeric column desc then asc, failed stays last", async () => {
     render(<ScenarioTable rows={rows()} />);
     const h = screen.getByRole("columnheader", { name: /Invested/ });
