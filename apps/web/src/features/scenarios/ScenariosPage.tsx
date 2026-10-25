@@ -12,6 +12,7 @@ import { ScenarioForm } from "./ScenarioForm";
 import { ScenarioTable } from "./ScenarioTable";
 import { useView, ViewToggle } from "./ViewToggle";
 import "./scenarios.css";
+import "./panel.css";
 import { Empty, NoBars, Skeleton } from "./states";
 
 export function ScenariosPage() {
