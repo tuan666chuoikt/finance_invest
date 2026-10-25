@@ -43,10 +43,13 @@ describe("disclaimer on analysis routes (F-032)", () => {
     expect(banner.querySelector("a,button,input,select,textarea,[tabindex]")).toBeNull();
   });
 
-  it.each(ROUTES.filter((r) => r.analysis))("banner is a full-width band between the top bar and main: $path", async ({ path }) => {
+  it.each(ROUTES.filter((r) => r.analysis))("exactly one role=note, inside main, reads with spaces around the dot: $path", async ({ path }) => {
+    await i18n.changeLanguage("vi");
     at(path);
     const banner = await screen.findByTestId("disclaimer");
-    expect(banner.closest("main")).toBeNull();
-    expect(banner.compareDocumentPosition(document.querySelector("main")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByRole("note")).toHaveLength(1);
+    expect(banner.closest("main")).not.toBeNull();
+    expect(banner.textContent?.startsWith("ⓘ ")).toBe(true);
+    expect(banner.textContent).toContain("đầu tư · Educational");
   });
 });

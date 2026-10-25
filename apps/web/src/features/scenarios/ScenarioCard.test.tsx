@@ -26,7 +26,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("ScenarioCard", () => {
   it.each(["FPT 50tr 2025", "FPT DCA thử"])("shows the stored name as a heading: %s", async (name) => {
     await show(env001, { ...lump, name });
-    expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name, level: 2 })).toBeInTheDocument();
   });
 
   it("falls back to the default name when unnamed", async () => {
