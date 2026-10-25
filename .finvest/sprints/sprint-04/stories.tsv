@@ -1,0 +1,5 @@
+F-129	5	Design tokens + base stylesheet (light/dark)	FE-tokens,FE-base
+F-130	3	Shell look: top bar, disclaimer, crawl status	FE-shell
+F-131	5	Scenarios screen look: grid, card, table, panel, states	FE-sc-cards,FE-sc-table,FE-sc-panel
+F-132	2	Visual acceptance check: screenshots + guards	FE-guards,FE-shots
+S04-RW	3	Carry-overs T5b,T5c,T6,sell_date pin,VNINDEX smoke,AI notes	BE-rw-ledger-rank,OPS-rw-smoke-dsn,AI-rw-curve,AI-rw-bench-na

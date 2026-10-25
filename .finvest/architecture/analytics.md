@@ -1,7 +1,7 @@
 # Finvest — Analytics architecture (simulator, backtester, "why it moved", evals)
 
-Owner: `fi-ai-architect`. Status: **v1.1, 2026-10-16** (§1.3.1 S03 source-adjusted mode, §5 golden format; v1 =
-`analytics.prev-1.md`; inception after `system.md`/`data.md` v1). Inputs: `product/prd.md`
+Owner: `fi-ai-architect`. Status: **v1.2, 2026-10-25** (v1.2: §1.3.1 `holding_days` display-only note, S03 review note 3; v1.1 =
+`analytics.prev-2.md`; v1 = `analytics.prev-1.md`; inception after `system.md`/`data.md` v1). Inputs: `product/prd.md`
 (Approved v2, PR-030…039, PR-070…078, PR-090…095, PR-110), `product/backlog.md` (E4, E6, E7), `knowledge/vn-market.md`
 (VN§n, verified 2026-10-15), `architecture/system.md` §2–4, `data.md` §1.3–1.4, §3, `codebase.md` §2–3, ADR-S-001/005/006.
 Decisions: `adr/ADR-A-001…006`. Interface: `contracts/analytics.md`. Package: `services/analytics` → `finvest_analytics`
@@ -78,6 +78,9 @@ dividends, no T+2 bookkeeping needed because the end is a valuation. `approximat
 `flags ∋ approximate` — a kernel test computes a result from a `bars_1d_src`-shaped fixture and asserts both. Everything
 else (§1.2 step 4 lot/fee/tax arithmetic, decision time, flags, Figures) is the final code path; switching to nominal later
 changes the `MarketView` adapter and clears the flag, not the arithmetic.
+`returns.holding_days` is **display-only**: calendar days from the first fill to the valuation day. It feeds `cagr_pct`
+for `lump_sum` only (one cash flow); for `dca` `cagr_pct` is `null` and a future money-weighted return (XIRR, F-047/§1.4)
+takes each contribution date from `contributions[].date`, never `holding_days` (S03 review note 3; S04-RW AI-3).
 
 ### 1.4 Return breakdown (F-047, PR-033) — an identity, tested to 1 VND
 With `A` = amount, `P_N` = fill price, `P_M` = exit price, `Q` = shares bought, `B` = bonus shares received:

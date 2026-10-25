@@ -1,0 +1,4 @@
+2026-10-25 16:55 | sm      | A25                      | note      | sponsor: web has no visual design; sprint-04 opened for UI design + carry-overs | -
+2026-10-25 16:59 | pm      | sprint-04                | decision  | sprint plan: goal visual design (A25); 18/20 pts F-129..F-132 + S04-RW; visual-design.md; UI DoD needs screenshots | sprints/sprint-04/1-sprint-plan.md
+2026-10-25 17:02 | ai-arch | sprint-04                | note      | AI tech plan v1: AI-rw-curve ~25 lines (AI-1+AI-3), AI-rw-bench-na ~40 lines (AI-2, FE-only, no contract change); analytics.md v1.2 | 2-tech-plan.ai.md
+2026-10-25 17:11 | arch    | sprint-04                | decision  | tech plan v1.0 + dag rev1: 12 tasks (fe 9 incl. AI-rw-bench-na + tester FE-shots, be 2, ai 1), plain CSS tokens.css/app.css + 4 area sheets, | 2-tech-plan.md

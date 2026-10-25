@@ -15,6 +15,8 @@ web app; no timer. New **F-034** (5 pts) added to the S03 slice; **F-019** timer
 (manual `crawl --date` kept). FE test bugs U1–U7 (`sprints/sprint-03/4-test.fe.md`) added as **S03 rework** acceptance
 items on F-032/F-055/F-056 (no new ids, no points: the stories were committed and are not done until these pass).
 PO note: PRD PR-020 still says "runs from a timer" — PO to align the PRD with A23.
+2026-10-25 — sponsor request **A25** (no visual design): new **Sprint-04 slice** F-129…F-132 (15 pts) + S04-RW carry-overs
+(3 pts); UX spec `ux/visual-design.md`; DoD for UI stories now requires screenshots checked against it. F-048 n/a wording refined (R4-2).
 
 Conventions
 - `F-###` story → `PR-###` requirement. Points 1/2/3/5/8 (nothing above 8). Status: **Ready** (refined,
@@ -30,6 +32,7 @@ Conventions
 | Release | Epics | Stories | Points | Status |
 |---|---|---|---|---|
 | **S03 slice — Scenario dashboard** (pulled forward; + F-034 by A23) | E1, E3, E4 | 11 | 30 | Ready |
+| **S04 slice — Visual design** (A25) + S04-RW | E3 | 4 (+RW) | 18 | Ready |
 | R1 Data foundation (rest) | E1, E2, E3 | 21 | 76 | Ready |
 | R2 What-if (rest) | E4, E8 | 11 | 38 | Backlog |
 | R3 Price board | E5, E8 | 13 | 45 | Backlog |
@@ -73,6 +76,76 @@ closes (`bars_1d_src`) carries `price_basis = source_adjusted`, `approximate = t
 differ from what was buyable on the day; the "how computed" panel says so.
 Not in the slice (later, unchanged): several symbols per scenario (F-089), fill rules other than close-of-N
 (F-042), corporate-action events (F-043–F-045), ledger/CSV (F-049, F-092), risk metrics (F-090), IRR for DCA.
+
+---
+
+## Sprint-04 slice — Visual design (A25, 2026-10-25)
+
+Goal: the web app looks like a real product — calm, readable, data-dense, light + dark — instead of browser defaults.
+UX: `ux/visual-design.md` (wins over the other specs on appearance). No behaviour change; all existing tests stay green.
+**DoD addition for every UI story (from S04):** the FE tester attaches the screenshots of `ux/visual-design.md` §9
+(375 + 1280 px, light + dark) to `4-test.fe.md` and marks each checklist line pass/fail; the PM review compares them to
+the spec. A UI story without screenshots is NOT DONE.
+
+| Story | Pts | What | Depends on |
+|---|---|---|---|
+| F-129 | 5 | Design tokens + base stylesheet (colours incl. VN board, type, spacing, buttons, inputs, focus, light/dark) | F-031 |
+| F-130 | 3 | Shell look: top bar, disclaimer band, crawl status line, mobile top bar | F-129 |
+| F-131 | 5 | Scenarios screen look: header, cards grid 1/2/3, card, table, form panel, how-computed, states | F-129 |
+| F-132 | 2 | Visual acceptance check: screenshot script + undefined-variable / serif / contrast guards | F-129 |
+| S04-RW | 3 | Carry-overs from sprint-03 retro R3/R4 (technical + AI notes, F-048 wording) | — |
+| **Total** | **18** | | |
+
+**F-129 Design tokens and base stylesheet** · PR-137 (UI), PR-130 (banner look), A25 · 5 pts · Ready · S04 · UX: `ux/visual-design.md` §2–§3, §8
+Decision time: n/a (presentation only).
+- Given any route, Then the computed `font-family` of `body` is the system sans stack (§3.4) and no element renders in a serif font.
+- Given `apps/web/src`, Then every `var(--name)` used (incl. `--chart-line`, `--chart-invested`, `--color-error`) is defined in
+  `styles/tokens.css` for light and, for colour tokens, again under `@media (prefers-color-scheme: dark)`; a check fails the build otherwise.
+- Given a P/L of +610.975 ₫ / −610.975 ₫ / 0 ₫, Then it shows "▲ +610.975 ₫" in `--up`, "▼ −610.975 ₫" in `--down`, "= 0 ₫" in `--ref`
+  (sign + icon + colour, never colour only); `--ceiling` purple and `--floor` cyan tokens exist for the board.
+- Given money/percent figures, Then they use `font-variant-numeric: tabular-nums`.
+- Given Tab through the app, Then every interactive element shows the 2 px `--focus` ring on `:focus-visible`.
+- Given buttons/inputs/segmented controls, Then none show OS default grey styling; primary/secondary/danger/icon styles per §3.6.
+- Given axe in light and dark, Then 0 `color-contrast` violations on /scenarios.
+
+**F-130 Shell look** · PR-137, PR-130, PR-020 · 3 pts · Ready · S04 · UX: `ux/visual-design.md` §4–§5
+- Given 1280 px, Then the top bar is one 52 px sticky row: Finvest · nav (active underlined, `aria-current`) · freshness chip · crawl button · VI | EN.
+- Given 375 px, Then the top bar stays one row (☰ menu, icon-only crawl button with the same accessible name, VI | EN visible) and
+  `document.documentElement.scrollWidth <= 375`.
+- Given an analysis route, Then the disclaimer is a full-width warn band with ⓘ, both lines, VI first.
+- Given a crawl running / done / error (mocked), Then the status line shows spinner + progress bar / ✓ in `--ok` + dismiss /
+  ✕ on `--error-bg` with the cause in mono, as in §5; stale freshness chip is warn with ⚠.
+
+**F-131 Scenarios screen look** · PR-030, PR-072, PR-110 · 5 pts · Ready · S04 · UX: `ux/visual-design.md` §6
+- Given 3 saved scenarios, Then the grid shows 1 column at 375, 2 at 800, 3 at 1280 (content max 1280 px), cards equal height per row.
+- Given a card, Then it has the §6.3 frame and order; "Giá trị nếu bán" is the headline figure (20 px, 600); the approximate flag is a
+  warn chip; benchmark n/a is muted text "n/a — thiếu dữ liệu ETF trong kỳ", never 0; the sparkline uses `--chart-line` + dashed `--chart-invested`.
+- Given the table view, Then numeric columns are right-aligned tabular, the header is sticky inside its scroll container, the sorted
+  column shows ▲/▼ + `aria-sort`, Name is sticky at 375, and only the table container scrolls sideways.
+- Given Add or Edit at 1280, Then the form is a 440 px right drawer with backdrop, sticky header and footer (Lưu primary, Huỷ), errors
+  under fields with ✕ in `--color-error`; at 375 it is full screen with stacked full-width buttons.
+- Given (i) on a figure, Then how-computed opens in the same drawer with the formula in a mono block that wraps at 375.
+- Given empty / no-bars / loading / API error / one-card error / partial data, Then each looks as §6.7 (skeletons sized like cards).
+
+**F-132 Visual acceptance check** · PR-137 · 2 pts · Ready · S04 · UX: `ux/visual-design.md` §9
+- Given the stack running, When the tester runs the screenshot script, Then it writes `sprint-04/screens/<screen>-<375|1280>-<light|dark>.png`
+  for the 7 screens of §9.1 (28 files) using mocked API states where needed.
+- Given the guards of §9.3 (undefined `var(--…)`, serif font, axe contrast both schemes), Then each runs in CI/`npm test` and fails when broken
+  (proved once by removing one token).
+- Given each screenshot, Then `4-test.fe.md` carries the §9.2 checklist with pass/fail per line.
+
+**S04-RW Sprint-03 carry-overs** · retro S03 R3/R4 · 3 pts · Ready · S04 (technical; no new user value, no new id per item)
+- **T5b** Given a ledger row `complete` for a date, When a later run upserts `partial`/`blocked`/`missed`, Then the row stays `complete`
+  (rank `complete > partial = blocked > missed`); 1 db test.
+- **T5c** Given the orphan `bars_1d` row for 2026-10-24 (a Saturday), Then ops deletes it and logs the command in `ops/README`.
+- **T6** Given the tester, Then one documented test DSN lets `fi-be-tester` run the db suite (closes S02 B4 too).
+- **E2E pin** Given `real-stack.mjs`, Then the FPT lump-sum case pins `sell_date`, so its numbers no longer drift with new bars.
+- **Smoke** Given the BE smoke, Then it includes the VNINDEX `value / v` ratio query (detects a unit mix-up in index bars).
+- **AI-1** Given `whatif.py` curve loop, Then it starts at 0 or asserts the first calendar day has a fill (no `states[-1]` on empty).
+- **AI-2 (F-048 wording)** Given E1VFVN30 has a gap **inside** N..M (not only before listing), Then the cell reads
+  "n/a — thiếu dữ liệu ETF trong kỳ / n/a — ETF data missing in period" instead of "since <date>"; the "data from dd/mm/yyyy" text stays only
+  when the ETF's first bar is after N.
+- **AI-3** Given `holding_days`, Then it is documented as display-only and not used as an XIRR input (comment + analytics.md note).
 
 ---
 
@@ -316,7 +389,7 @@ Decision time: n/a (data collection, no analysis). Uses the existing `POST /jobs
 - Given index 1,200.00 on N and 1,260.00 on M and 10,000,000 VND, Then VN-Index value 10,500,000, +5.00 %; a scenario
   at +6.11 % shows "+1,11 điểm % so với VN-Index / +1.11 pp vs VN-Index".
 - Given E1VFVN30 has no bar on N (listed later or not back-filled), Then its cell reads "không có dữ liệu / n/a —
-  data from dd/mm/yyyy"; never a zero.
+  data from dd/mm/yyyy"; never a zero. A gap inside N..M reads "n/a — thiếu dữ liệu ETF trong kỳ / n/a — ETF data missing in period" (S04-RW AI-2).
 
 **F-049 Cash and share ledger** · PR-039, PR-134 · 3 pts · Backlog
 - Given F-040/F-041, Then the ledger lists dated rows: buy −9,350,000; buy fee −14,025; shares +100 (arrive

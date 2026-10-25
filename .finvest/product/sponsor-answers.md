@@ -76,3 +76,9 @@ Mapping: sponsor pulls the what-if scenarios + a multi-scenario dashboard (web U
 > tiếp tục thực đến khi tôi sử dụng được sản phẩm và apply workflow giúp tôi và việc cào dữ liệu bây giờ sẽ có 1 nút bấm, cứ bấm vào sẽ cào, không cào tự động nữa
 
 Mapping: A23-1 finish sprint-03 (fix FE test bugs U1–U7, review, merge to main) until the sponsor can use the app. A23-2 run the build through the sprint workflow. A23-3 scope change: crawling is manual only — a button in the web app starts a crawl; the systemd timer is removed (SM ran `make uninstall-timers` 2026-10-24). Also: crawl failed 2026-10-19..23 with PermissionError (data/raw is root-owned); ticks for those days are lost.
+
+## 2026-10-25 — A25: the web app has no visual design
+> ban khong code frontend a
+(with a screenshot of /scenarios rendered with browser-default styles)
+
+Mapping: A25 — sprint-04 goal: a real visual design for the web app (stylesheet, tokens, layout of top bar, cards, table, form panel, light/dark), plus carry-overs T5b/T5c/T6 and the AI notes. Root cause: no plan/UX task ever covered styling; testers did not check appearance. A24-D1 still open (SM revised recommendation: keep counting tests, exclude i18n).

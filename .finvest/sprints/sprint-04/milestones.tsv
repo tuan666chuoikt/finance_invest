@@ -1,0 +1,4 @@
+M1	Tokens + base stylesheet + guards	2026-10-26 12:00	FE-tokens,FE-base,FE-guards,AI-rw-bench-na
+L1	sm: sponsor presses Cao du lieu after 15:00; confirm 10-26 tick manifest + crawl_runs row (lost for good if missed)	2026-10-26 23:00	-
+M2	Shell + scenarios styled; carry-overs merged	2026-10-27 12:00	FE-shell,FE-sc-cards,FE-sc-table,FE-sc-panel,BE-rw-ledger-rank,OPS-rw-smoke-dsn,AI-rw-curve
+M3	Screenshots 28/28 checked, review, merge	2026-10-27 18:00	FE-shots
