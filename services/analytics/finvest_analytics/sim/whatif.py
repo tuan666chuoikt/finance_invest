@@ -125,7 +125,9 @@ def run_whatif(
     pl = liquidation - invested
     days = (m - n).days
 
-    curve, missing, last_close, i = [], [], rows[0]["price"], -1
+    # i = 0: the calendar starts on the first fill day, so states[0] is day 1's state
+    curve, missing, last_close, i = [], [], rows[0]["price"], 0
+    assert rows and rows[0]["date"] == n, "first calendar day must be the first fill"
     for d in view.calendar(n, m):
         while i + 1 < len(rows) and rows[i + 1]["date"] <= d:
             i += 1
@@ -157,6 +159,8 @@ def run_whatif(
         liquidation=liquidation,
         pl=pl,
         pl_pct=pct(pl, invested),
+        # holding_days is display-only (first fill -> valuation); feeds cagr for lump_sum only.
+        # XIRR must use contributions[].date, never this (analytics.md §1.3.1).
         holding_days=days,
         cagr=None if dca else _cagr(liquidation, invested, days),
         min_amount=min_amount,
