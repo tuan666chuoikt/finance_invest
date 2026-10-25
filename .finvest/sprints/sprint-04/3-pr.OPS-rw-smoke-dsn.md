@@ -32,7 +32,7 @@ Files reviewed: Makefile, docker-compose.yml, .env.example, ops/smoke.sql, ops/R
 - `make test-db` on port 55432 needs `docker compose up -d db` in the main checkout after merge (recreates db container; data/pg kept). Tester step.
 
 ## Round 2 (fi-tech-lead, BE, 2026-10-25) — APPROVE
-Reviewed head H = 76a1298 (cff9e11 fix + clean merge of origin/sprint-04 e5ac19f, pushed). Size: 7 files, +46/-4 (plan ~70): OK.
+Reviewed head H = 44fdee2 (cff9e11 fix + clean merges of origin/sprint-04 e5ac19f, then 4f63258 FE-only after the base moved at merge; kernel re-run green 259 passed), pushed. Size: 7 files, +46/-4 (plan ~70): OK.
 Files reviewed: Makefile, docker-compose.yml, .env.example, ops/smoke.sql, ops/README.md, README.md, services/crawler/tests/test_qa_sprint01.py
 (outside-set edit authorized in round 1, recorded in 3-build).
 
@@ -55,3 +55,5 @@ and that every published port is on 127.0.0.1. It runs (not skipped): 1 passed. 
   a small data-fix task (repair/re-fetch those 4 rows, logged in ops/README "Manual fixes") or accept "(1) lists only the known legacy rows".
 - Tester step before `make test-db`: `docker compose up -d db` in the main checkout to apply the 55432 mapping (recreates the db
   container only; data/pg kept; brief api reconnect).
+
+Merge: 84dedfa (no-ff of 44fdee2 into sprint-04 at base 4f63258).

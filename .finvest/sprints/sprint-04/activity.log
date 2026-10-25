@@ -25,3 +25,8 @@
 2026-10-25 17:20 | dev     | FE-shell                 | pr-open   | tsc ok, vitest 81/81 | 3-build.FE-shell.md
 2026-10-25 17:21 | dev     | FE-sc-panel              | blocked   | setup.ts textContent line also edited by unmerged task/sprint-04/FE-shell; no code written | -
 2026-10-25 17:21 | lead    | FE-shell                 | merged    | 4f63258; tsc 0, vitest 84/84, 277+/64- vs ~210 | .finvest/sprints/sprint-04/3-pr.FE-shell.md
+2026-10-25 17:22 | lead    | OPS-rw-smoke-dsn         | merged    | 84dedfa; kernel 259 passed, db 27 passed; smoke (2)=0, (1)=4 legacy VNINDEX rows -> pm | .finvest/sprints/sprint-04/3-pr.OPS-rw-smoke-dsn.md
+2026-10-25 17:23 | dev     | FE-sc-table              | pr-open   | tsc 0, vitest 85/85, +36/-11 | 3-build.FE-sc-table.md
+2026-10-25 17:23 | dev     | FE-sc-panel              | pr-open   | tsc ok, vitest 84/84, diff 128+/64- | 3-build.FE-sc-panel.md
+2026-10-25 17:24 | lead    | FE-sc-table              | merged    | 0b0ad4d; tsc 0, vitest 85/85, 0 must-fix | 3-pr.FE-sc-table.md
+2026-10-25 17:25 | lead    | FE-sc-panel              | merged    | 82824eb; tsc 0, vitest 85/85, 0 must-fix | 3-pr.FE-sc-panel.md
