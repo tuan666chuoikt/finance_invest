@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { Job } from "../app/useCrawlJob";
@@ -13,7 +13,7 @@ function duration(t: TFunction, s: number) {
   return [m && t("crawl.minute", { n: m }), (s % 60 || !m) && t("crawl.second", { n: s % 60 })].filter(Boolean).join(" ");
 }
 
-function text(t: TFunction, job: Job, now: number): string | null {
+function text(t: TFunction, job: Job, now: number): ReactNode {
   const p: Rec = job.progress ?? {}, s: Rec = job.summary ?? {}, e: Rec = job.error ?? {};
   if (job.status === "running") {
     const bits = [];
@@ -46,8 +46,16 @@ function text(t: TFunction, job: Job, now: number): string | null {
   const where = [e.path && t("crawl.error.path", { path: e.path }), e.source && t("crawl.error.source", { source: e.source }),
     e.http_status && t("crawl.error.http", { code: e.http_status })].filter(Boolean);
   const tk = (s.ticks ?? null) as Rec | null;
-  if (tk?.symbols_fetched != null && p.total) where.push(t("crawl.error.saved", { done: tk.symbols_fetched, total: p.total }));
-  return [t("crawl.error", { message: e.message ?? "", code: e.code ?? "?" }), ...where].join(" · ");
+  const saved = tk?.symbols_fetched != null && p.total ? t("crawl.error.saved", { done: tk.symbols_fetched, total: p.total }) : null;
+  return (
+    <>
+      {t("crawl.error", { message: e.message ?? "", code: e.code ?? "?" })}
+      {where.map((w, i) => (
+        <Fragment key={i}> · <code>{w}</code></Fragment>
+      ))}
+      {saved && ` · ${saved}`}
+    </>
+  );
 }
 
 export function CrawlStatus({ job, refused, startError }: { job: Job | null; refused: string | null; startError?: { code: string; message: string } | null }) {
@@ -69,14 +77,23 @@ export function CrawlStatus({ job, refused, startError }: { job: Job | null; ref
   const cause = startError && (startError.code === "UNREACHABLE" ? t("crawl.unreachable") : startError.message);
   const lines = [startError && t("crawl.start_failed", { cause }), refused !== null && t("crawl.refused", { at: refused ? hhmm(refused) : "?" }), shown && text(t, job, now)].filter(Boolean);
   if (!lines.length) return null;
+  const mod = shown ? (job.status === "failed" ? "error" : job.status) : startError ? "error" : "";
+  const p: Rec = job?.progress ?? {};
+  const pct = shown && running && p.total ? Math.min(100, Math.round((Number(p.done) / Number(p.total)) * 100)) : null;
   return (
-    <div role="status" aria-live="polite" data-testid="crawl-status" style={{ flexBasis: "100%" }}>
-      {lines.join(" · ")}
+    <div role="status" aria-live="polite" data-testid="crawl-status" className={"status" + (mod ? ` status-${mod}` : "")}>
+      {running ? <span className="cb-spin" aria-hidden="true">⟳</span> : mod === "done" ? <span className="status-icon" aria-hidden="true">✓</span> : mod === "error" ? <span aria-hidden="true">✕</span> : null}
+      <span className="status-text">
+        {lines.map((l, i) => (
+          <Fragment key={i}>{i > 0 && " · "}{l}</Fragment>
+        ))}
+      </span>
       {shown && !running && (
-        <button type="button" onClick={() => setDismissed(job!.id)} aria-label={t("crawl.dismiss")}>
+        <button type="button" className="btn-icon" onClick={() => setDismissed(job!.id)} aria-label={t("crawl.dismiss")}>
           ×
         </button>
       )}
+      {pct !== null && <div className="status-bar" aria-hidden="true" style={{ width: `${pct}%` }} />}
     </div>
   );
 }

@@ -4,12 +4,15 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api/client";
 import { ApiErrorState } from "../../components/ApiErrorState";
 import { useBarsStatus } from "../../app/useBarsStatus";
+import { isStale } from "../../components/FreshnessChip";
 import { formatDate } from "../../lib/format";
 import { useScenarios, whatIfQuery, type Scenario } from "./api";
-import { GRID_CSS, ScenarioCard } from "./ScenarioCard";
+import { ScenarioCard } from "./ScenarioCard";
 import { ScenarioForm } from "./ScenarioForm";
 import { ScenarioTable } from "./ScenarioTable";
 import { useView, ViewToggle } from "./ViewToggle";
+import "./scenarios.css";
+import "./panel.css";
 import { Empty, NoBars, Skeleton } from "./states";
 
 export function ScenariosPage() {
@@ -40,7 +43,7 @@ export function ScenariosPage() {
     const code = list.error instanceof ApiError ? list.error.code : "INTERNAL";
     body = code === "UNREACHABLE"
       ? <ApiErrorState onRetry={() => void list.refetch()} />
-      : <div role="alert"><p>{t(`error.${code}`, { defaultValue: t("error.INTERNAL") })}</p><button type="button" onClick={() => void list.refetch()}>{t("state.retry")}</button></div>;
+      : <div role="alert" className="api-error"><p>{t(`error.${code}`, { defaultValue: t("error.INTERNAL") })}</p><button type="button" className="btn" onClick={() => void list.refetch()}>{t("state.retry")}</button></div>;
   } else if (list.isPending) body = <div className="sc-grid"><Skeleton /><Skeleton /><Skeleton /></div>;
   else if (noBars) body = <NoBars />;
   else if (list.data.length === 0) body = <Empty onAdd={() => setForm(null)} />;
@@ -54,15 +57,20 @@ export function ScenariosPage() {
   } else body = <div className="sc-grid">{list.data.map((s) => <ScenarioCard key={s.id} scenario={s} onEdit={() => setForm(s)} />)}</div>;
 
   return (
-    <section data-testid="route-scenarios" style={{ padding: 16 }}>
-      <style>{GRID_CSS}</style>
-      <header style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
-        <h1 style={{ margin: 0 }}>{t("page.title")}</h1>
-        <button type="button" disabled={noBars} onClick={() => setForm(null)}>{t("page.add")}</button>
-        <ViewToggle view={view} onChange={setView} />
-        {bars.data?.last_trading_date && (
-          <span>{t("page.as_of", { date: formatDate(bars.data.last_trading_date), src: bars.data.source.toUpperCase() })}</span>
-        )}
+    <section data-testid="route-scenarios">
+      <header className="sc-head">
+        <div className="title">
+          <h1>{t("page.title")}</h1>
+          {bars.data?.last_trading_date && (
+            <span className={isStale(bars.data.last_trading_date) ? "asof chip chip-warn" : "asof"}>
+              {t("page.as_of", { date: formatDate(bars.data.last_trading_date), src: bars.data.source.toUpperCase() })}
+            </span>
+          )}
+        </div>
+        <div className="actions">
+          <ViewToggle view={view} onChange={setView} />
+          <button type="button" className="btn btn-primary" disabled={noBars} onClick={() => setForm(null)}>{t("page.add")}</button>
+        </div>
       </header>
       {body}
       {form !== undefined && <ScenarioForm scenario={form ?? undefined} onClose={() => setForm(undefined)} />}

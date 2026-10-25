@@ -75,4 +75,5 @@ make crawl DATE=2026-10-23                        # cào tick cả phiên của 
 - Không có lịch tự chạy: cào tay bằng nút trên web (`POST /api/jobs`) hoặc `make crawl`, đừng chạy cả hai cùng lúc.
 - Chạy lại một ngày: gõ lại `make crawl DATE=<ngày>`; ghi idempotent nên không trùng. Thứ bảy/chủ nhật thì in thông báo cuối tuần rồi thoát 0.
 - Khác: `make down`, `make logs`, `make db-shell`. `make down && make up` giữ nguyên dữ liệu.
+- `make test-db`: test db trên host với db của compose (cổng loopback 55432); `make smoke`: kiểm tra nhanh VNINDEX và sổ cào (kỳ vọng 0 dòng).
 - Phát triển không dùng Docker: `uv sync`, `make test-kernel` (offline).

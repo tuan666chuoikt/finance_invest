@@ -131,3 +131,8 @@ def test_how_reports_each_contributions_own_fee_rate():
         want = round_half_up(Decimal(c["qty"] * c["price"]) * Decimal(c["how"]["inputs"]["buy_fee_rate"]))
         assert c["fee_vnd"] == want
     assert r["position"]["shares"]["how"]["inputs"]["buy_fee_rate_i"].split(",")[:2] == ["0.0010", "0.0020"]
+
+
+def test_curve_invested_starts_at_first_contribution():
+    r = run()["result"]
+    assert r["equity_curve"][0]["invested"] == r["contributions"][0]["amount_vnd"]

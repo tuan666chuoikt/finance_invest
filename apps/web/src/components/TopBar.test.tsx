@@ -6,6 +6,7 @@ import i18n from "../i18n";
 import { isStale } from "./FreshnessChip";
 import { TopBar } from "./TopBar";
 
+const RUNNING = { id: 7, kind: "crawl", status: "running", created_at: "2026-10-16T17:59:00+07:00", finished_at: null, progress: { step: 1, steps: 2, done: 3, total: 10 }, summary: null, error: null };
 const OK = { last_trading_date: "2026-10-16", as_of: "2026-10-16T15:42:00+07:00", source: "vci", symbols: 1612 };
 const NONE = { last_trading_date: null, as_of: null, source: "vci", symbols: 0 };
 
@@ -85,7 +86,7 @@ test("language switch: click, nav labels, storage, Alt+L, Alt+L in input", async
 
 test("menu button toggles aria-expanded", async () => {
   setup(OK);
-  const btn = screen.getByText("Menu");
+  const btn = document.querySelector<HTMLElement>(".tb-menu")!;
   expect(btn).toHaveAttribute("aria-expanded", "false");
   await userEvent.setup({ advanceTimers: () => {} }).click(btn);
   expect(btn).toHaveAttribute("aria-expanded", "true");
@@ -94,7 +95,7 @@ test("menu button toggles aria-expanded", async () => {
 test("tab order: nav, chip, crawl button, language switch", async () => {
   setup(OK);
   const user = userEvent.setup({ advanceTimers: () => {} });
-  await user.click(screen.getByText("Menu"));
+  await user.click(document.querySelector<HTMLElement>(".tb-menu")!);
   const order = [screen.getByTestId("freshness-chip"), screen.getByRole("button", { name: /Cào dữ liệu/ }), screen.getByRole("button", { name: "VI" })];
   screen.getByTestId("freshness-chip").focus();
   for (const el of order.slice(1)) {
@@ -103,13 +104,28 @@ test("tab order: nav, chip, crawl button, language switch", async () => {
   }
 });
 
-test("every top-bar button is at least 24x24 px (WCAG 2.5.8)", async () => {
+test("every top-bar button is at least 32x32 px (WCAG 2.5.8)", async () => {
   setup(OK);
   await screen.findByTestId("freshness-chip");
   const buttons = screen.getAllByRole("button");
   expect(buttons.length).toBeGreaterThanOrEqual(3); // Menu, crawl, language
   for (const b of buttons) {
     const cs = getComputedStyle(b);
-    expect([cs.minHeight, cs.minWidth]).toEqual(["24px", "24px"]);
+    expect([cs.minHeight, cs.minWidth]).toEqual(["32px", "32px"]);
   }
+});
+
+test("crawl status line renders after the disclaimer on an analysis route", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+    new Response(JSON.stringify(url.endsWith("/jobs/current") ? RUNNING : OK), { status: 200 }),
+  ));
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={["/scenarios"]}>
+        <TopBar />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  const status = await screen.findByTestId("crawl-status");
+  expect(screen.getByTestId("disclaimer").compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

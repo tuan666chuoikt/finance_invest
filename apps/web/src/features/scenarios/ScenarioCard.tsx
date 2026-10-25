@@ -14,24 +14,16 @@ const cls = (text: string) => (text.startsWith("+") ? "up" : text.startsWith("�
 /** Sign for an integer-VND string; display only. */
 const signedVnd = (v: string) => (v.startsWith("-") || v === "0" ? formatVnd(v) : `+${formatVnd(v)}`);
 
-const CSS = `
-.sc-grid{display:grid;gap:16px;grid-template-columns:1fr}
-@media (min-width:768px){.sc-grid{grid-template-columns:repeat(2,1fr)}}
-@media (min-width:1024px){.sc-grid{grid-template-columns:repeat(3,1fr)}}
-.sc-card{border:1px solid GrayText;border-radius:8px;padding:12px;min-width:0}
-.sc-card dl{margin:0}.sc-card .row{display:flex;justify-content:space-between;gap:8px}
-.up{color:#15803d}.down{color:#b91c1c}.zero{color:#a16207}
-@media (prefers-color-scheme:dark){.up{color:#4ade80}.down{color:#f87171}.zero{color:#facc15}}`;
-export const GRID_CSS = CSS;
-
-function Bench({ b }: { b: Benchmark }) {
+function Bench({ b, buy }: { b: Benchmark; buy: string }) {
   const { t, i18n } = useTranslation();
   if (!b.available)
     return (
-      <li data-testid="bench">
-        {b.first_available
-          ? t("card.bench_na", { name: b.name, date: formatDate(b.first_available) })
-          : t("card.bench_na_nodate", { name: b.name })}
+      <li data-testid="bench" className="muted">
+        {!b.first_available
+          ? t("card.bench_na_nodate", { name: b.name })
+          : b.first_available > buy // ISO dates compare lexicographically
+            ? t("card.bench_na", { name: b.name, date: formatDate(b.first_available) })
+            : t("card.bench_na_gap", { name: b.name })}
       </li>
     );
   const pct = formatPct(b.pl_pct.value);
@@ -51,40 +43,40 @@ function Body({ s, env }: { s: Scenario; env: WhatIfEnvelope }) {
   const dca = s.style === "dca";
   return (
     <>
-      <div>
+      <div className="muted fs-sm">
         {t("card.dates" + (s.sell_date ? "" : "_today"), { from: formatDate(s.buy_date), to: formatDate(s.sell_date ?? r.dates.sell) })}
         {r.dates.shifts.map((x) => (
-          <small key={x.field + x.from} style={{ display: "block" }}>
+          <small key={x.field + x.from} className="note">
             {t(x.field === "buy_date" ? "card.shift_buy" : "card.shift_sell", { to: formatDate(x.to) })}
           </small>
         ))}
       </div>
       {env.approximate && (
-        <div data-testid="approximate-flag"><span aria-hidden="true">⚠ ≈ </span>{t("card.approximate")}</div>
+        <div data-testid="approximate-flag" className="chip chip-warn"><span aria-hidden="true">⚠ ≈ </span>{t("card.approximate")}</div>
       )}
       <dl>
-        <div className="row"><dt>{t("card.invested")}</dt><dd>{formatVnd(r.position.invested_vnd.value)}</dd></div>
-        <div className="row">
+        <div className="row"><dt>{t("card.invested")}</dt><dd className="num">{formatVnd(r.position.invested_vnd.value)}</dd></div>
+        <div className="row headline">
           <dt>{t("card.value")}</dt>
-          <dd>{formatVnd(r.value.liquidation_vnd.value)} <InfoButton figure={r.value.liquidation_vnd} envelope={env} name="liquidation_vnd" /></dd>
+          <dd className="num headline">{formatVnd(r.value.liquidation_vnd.value)} <InfoButton figure={r.value.liquidation_vnd} envelope={env} name="liquidation_vnd" /></dd>
         </div>
         <div className="row">
           <dt>{t("card.pl")}</dt>
-          <dd>
+          <dd className="num">
             <span className={cls(pl)}>{arrow(pl)} {pl}</span>{" "}
             <span className={cls(pct)}>{arrow(pct)} {pct}</span>{" "}
             <InfoButton figure={r.returns.pl_vnd} envelope={env} name="pl_vnd" />
           </dd>
         </div>
-        <div className="row"><dt>{t("card.cash")}</dt><dd>{formatVnd(r.position.cash.value)}</dd></div>
+        <div className="row"><dt>{t("card.cash")}</dt><dd className="num">{formatVnd(r.position.cash.value)}</dd></div>
       </dl>
-      {env.flags.includes("below_one_lot") && <small>{t(dca ? "card.below_lot_dca" : "card.below_lot_lump")}</small>}
-      <Sparkline points={r.equity_curve} symbol={s.symbol} />
-      {r.benchmarks.length > 0 && <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>{r.benchmarks.map((b) => <Bench key={b.name} b={b} />)}</ul>}
+      {env.flags.includes("below_one_lot") && <small className="note">{t(dca ? "card.below_lot_dca" : "card.below_lot_lump")}</small>}
+      <div className="spark"><Sparkline points={r.equity_curve} symbol={s.symbol} /></div>
+      {r.benchmarks.length > 0 && <ul className="bench">{r.benchmarks.map((b) => <Bench key={b.name} b={b} buy={r.dates.buy} />)}</ul>}
       {r.missing_sessions.length > 0 && (
-        <small>
+        <small className="note-warn">
           {t("card.missing", { count: r.missing_sessions.length })}{" "}
-          <details style={{ display: "inline" }}>
+          <details>
             <summary aria-label={t("card.missing_list")}>(i)</summary>
             {r.missing_sessions.map((d) => formatDate(d)).join(", ")}
           </details>
@@ -105,10 +97,10 @@ export function ScenarioCard({ scenario: s, onEdit }: { scenario: Scenario; onEd
     : t(`error.${code}`, { defaultValue: t("error.INTERNAL") });
   return (
     <article className="sc-card" data-testid="scenario-card">
-      <div className="row" style={{ display: "flex", justifyContent: "space-between" }}>
+      <div className="row head">
         <div>
-          <h3 style={{ margin: 0, fontSize: "1em" }}>{s.name || defaultName(s.symbol, s.amount_vnd, s.buy_date)}</h3>
-          <small>
+          <h3>{s.name || defaultName(s.symbol, s.amount_vnd, s.buy_date)}</h3>
+          <small className="muted">
             {s.symbol} · {s.style === "dca"
               ? t("card.dca", { amount: formatVnd(s.amount_vnd), day: Number(s.buy_date.slice(8)) })
               : t("card.lump")}
@@ -117,9 +109,9 @@ export function ScenarioCard({ scenario: s, onEdit }: { scenario: Scenario; onEd
         <CardMenu scenario={s} onEdit={onEdit} />
       </div>
       {q.data ? <Body s={s} env={q.data} /> : (
-        <div role="alert">
+        <div role="alert" className="card-error">
           <p>{t("card.error", { reason })}</p>
-          <button type="button" onClick={onEdit}>{t("card.edit")}</button>
+          <button type="button" className="btn" onClick={onEdit}>{t("card.edit")}</button>
         </div>
       )}
     </article>

@@ -22,23 +22,28 @@ export function FreshnessChip() {
   const { t } = useTranslation();
   const { data, isError } = useBarsStatus();
   let text: string;
+  let short = "";
   let stale = false;
   if (isError) text = t("chip.unavailable");
   else if (!data) text = t("state.loading");
   else if (!data.last_trading_date || !data.as_of) text = t("state.empty");
   else {
-    text = t("chip.as_of", { dt: formatDateTime(data.as_of), src: data.source.toUpperCase() });
+    const dt = formatDateTime(data.as_of);
+    text = t("chip.as_of", { dt, src: data.source.toUpperCase() });
+    short = dt.replace(/\/\d{4}/, ""); // dd/mm hh:mm for narrow screens
     stale = isStale(data.last_trading_date);
     if (stale) text += ` · ${t("chip.stale", { date: formatDate(data.last_trading_date) })}`;
   }
   return (
-    <a
-      href="/data-quality"
-      data-testid="freshness-chip"
-      data-stale={stale}
-      style={stale ? { background: "#fde68a", color: "#78350f", padding: "2px 8px", borderRadius: 4 } : undefined}
-    >
-      {text}
+    <a href="/data-quality" data-testid="freshness-chip" data-stale={stale} className={"chip" + (stale ? " chip-warn" : "")} title={text}>
+      {short ? (
+        <>
+          <span className="chip-long">{text}</span>
+          <span className="chip-short">{(stale ? "⚠ " : "") + short}</span>
+        </>
+      ) : (
+        text
+      )}
     </a>
   );
 }

@@ -105,6 +105,7 @@
   "card.delete_confirm": "Delete scenario {{name}}?",
   "card.bench_na": "{{name}} — n/a: no data before {{date}}",
   "card.bench_na_nodate": "{{name}} — n/a",
+  "card.bench_na_gap": "{{name}} — n/a: data missing in period",
   "card.non_investable": "non-investable",
   "card.missing_one": "{{count}} session missing",
   "card.missing_other": "{{count}} sessions missing",

@@ -40,6 +40,8 @@ describe("ScenarioCard", () => {
       expect(card.getByText(s)).toBeInTheDocument();
     expect(card.getByText(/Mua một lần/)).toBeInTheDocument();
     expect(card.getByTestId("approximate-flag")).toHaveTextContent("Gần đúng");
+    expect(card.getByTestId("approximate-flag")).toHaveClass("chip-warn");
+    expect(card.getByText("Giá trị nếu bán").nextElementSibling).toHaveClass("headline");
   });
 
   it("has no approximate flag when approximate is false", async () => {
@@ -58,14 +60,24 @@ describe("ScenarioCard", () => {
     if (!b[0].available) throw new Error("fixture");
     b[0].pl_pct.value = "5.0000";
     b[0].diff_pp.value = "1.1100";
+    if (b[1].available) throw new Error("fixture");
+    b[1].first_available = "2026-10-13"; // after dates.buy => dated wording
     const card = within(await show(withResult({ benchmarks: b })));
     const [vn, e1] = card.getAllByTestId("bench");
     expect(vn).toHaveTextContent("▲ +5,00 %");
     expect(vn).toHaveTextContent("(+1,11 điểm %)");
     expect(within(vn).getByText("VN-Index")).toHaveAttribute("title", "không đầu tư được");
     expect(e1).toHaveTextContent("n/a");
-    expect(e1).toHaveTextContent("06/10/2014");
+    expect(e1).toHaveTextContent("13/10/2026");
     expect(e1).not.toHaveTextContent("0 %");
+  });
+
+  it("benchmark listed on/before buy but unavailable says data missing in period, no date", async () => {
+    const b = structuredClone(env001.result.benchmarks);
+    const card = within(await show(withResult({ benchmarks: b })));
+    const e1 = card.getAllByTestId("bench")[1];
+    expect(e1).toHaveTextContent(/E1VFVN30 — n\/a: thiếu dữ liệu trong kỳ/);
+    expect(e1.textContent).not.toMatch(/\d{2}\/\d{2}\/\d{4}/);
   });
 
   it("no benchmark lines when the list is empty", async () => {

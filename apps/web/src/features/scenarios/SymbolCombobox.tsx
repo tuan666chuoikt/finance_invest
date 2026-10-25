@@ -60,7 +60,7 @@ export function SymbolCombobox({ value, onPick, invalid, describedBy }: Props) {
           }
         }}
       />
-      <ul id={`${id}-list`} role="listbox" hidden={!show} style={{ position: "absolute", margin: 0, padding: 0, listStyle: "none", background: "Canvas", border: "1px solid GrayText", zIndex: 1, maxHeight: 240, overflow: "auto", width: "100%" }}>
+      <ul id={`${id}-list`} role="listbox" hidden={!show} className="combo-list">
         {show &&
           data.map((r, i) => (
             <li
@@ -68,7 +68,6 @@ export function SymbolCombobox({ value, onPick, invalid, describedBy }: Props) {
               id={`${id}-${i}`}
               role="option"
               aria-selected={i === active}
-              style={{ padding: "4px 8px", background: i === active ? "Highlight" : undefined, color: i === active ? "HighlightText" : undefined }}
               onMouseDown={(e) => { e.preventDefault(); pick(i); }}
             >
               {r.symbol} · {r.exchange}
