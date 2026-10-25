@@ -309,3 +309,16 @@ def test_repair_sessions_from_ticks(conn):
     assert after[:2] == before[:2] and len(after) == 3  # bars_1d row and 10-15 row untouched, no insert
     assert repo.repair_crawl_sessions_from_ticks(conn) == 0
     assert conn.execute(q).all() == after
+
+
+def test_repair_index_1d_value_nulls_out_of_band_rows_only(conn):
+    def ib(d: int, v: int, value: int) -> IndexBar:
+        return IndexBar("VNINDEX", date(2026, 10, d), Decimal("1700"), Decimal("1700"), Decimal("1700"),
+                        Decimal("1700"), v, value)
+
+    good = 20_000_000_000
+    repo.upsert_index_1d(conn, [ib(12, 2, good), ib(13, 400_000, 0), ib(14, 400_000, good)])
+    assert repo.repair_index_1d_value(conn) == 2  # ratio 1e10 and value 0; ratio 5e4 is in band
+    rows = conn.execute(text("SELECT trading_date, v, value FROM index_1d ORDER BY 1")).all()
+    assert [r[2] for r in rows] == [None, None, good] and [r[1] for r in rows] == [2, 400_000, 400_000]
+    assert repo.repair_index_1d_value(conn) == 0
