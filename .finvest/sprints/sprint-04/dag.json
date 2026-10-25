@@ -1,23 +1,263 @@
 {
   "sprint": "sprint-04",
   "plan": "v1.0",
-  "dagRev": 1,
+  "dagRev": 2,
   "tasks": [
-    { "id": "FE-tokens", "side": "fe", "lane": "FE-1", "milestone": "M1", "after": [], "effort": "medium", "leadModel": "sonnet", "priority": 1, "manual": false, "size": 95 },
-    { "id": "FE-base", "side": "fe", "lane": "FE-1", "milestone": "M1", "after": ["FE-tokens"], "effort": "medium", "leadModel": "sonnet", "priority": 2, "manual": false, "size": 170 },
-    { "id": "AI-rw-bench-na", "side": "fe", "lane": "FE-2", "milestone": "M1", "after": [], "effort": "medium", "leadModel": "sonnet", "priority": 1, "manual": false, "size": 40 },
-    { "id": "FE-guards", "side": "fe", "lane": "FE-2", "milestone": "M1", "after": ["FE-base"], "effort": "medium", "leadModel": "sonnet", "priority": 3, "manual": false, "size": 55 },
-    { "id": "FE-shell", "side": "fe", "lane": "FE-2", "milestone": "M2", "after": ["FE-base"], "effort": "medium", "leadModel": "sonnet", "priority": 4, "manual": false, "size": 210 },
-    { "id": "FE-sc-cards", "side": "fe", "lane": "FE-1", "milestone": "M2", "after": ["FE-base", "AI-rw-bench-na"], "effort": "medium", "leadModel": "sonnet", "priority": 3, "manual": false, "size": 230 },
-    { "id": "FE-sc-table", "side": "fe", "lane": "FE-3", "milestone": "M2", "after": ["FE-base"], "effort": "medium", "leadModel": "sonnet", "priority": 5, "manual": false, "size": 110 },
-    { "id": "FE-sc-panel", "side": "fe", "lane": "FE-3", "milestone": "M2", "after": ["FE-base"], "effort": "medium", "leadModel": "sonnet", "priority": 4, "manual": false, "size": 190 },
-    { "id": "FE-shots", "side": "fe", "lane": "FE-1", "milestone": "M3", "after": ["FE-guards", "FE-shell", "FE-sc-cards", "FE-sc-table", "FE-sc-panel"], "effort": "medium", "leadModel": "sonnet", "priority": 6, "manual": true, "size": 220 },
-    { "id": "BE-rw-ledger-rank", "side": "be", "lane": "BE-1", "milestone": "M2", "after": [], "effort": "high", "leadModel": "sonnet", "priority": 1, "manual": false, "size": 25 },
-    { "id": "OPS-rw-smoke-dsn", "side": "be", "lane": "BE-2", "milestone": "M2", "after": [], "effort": "medium", "leadModel": "opus", "priority": 2, "manual": false, "size": 70 },
-    { "id": "AI-rw-curve", "side": "ai", "lane": "AI-1", "milestone": "M2", "after": [], "effort": "medium", "leadModel": "sonnet", "priority": 1, "manual": false, "size": 25 }
+    {
+      "id": "FE-tokens",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 1,
+      "manual": false,
+      "size": 95
+    },
+    {
+      "id": "FE-base",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M1",
+      "after": [
+        "FE-tokens"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 2,
+      "manual": false,
+      "size": 170
+    },
+    {
+      "id": "AI-rw-bench-na",
+      "side": "fe",
+      "lane": "FE-2",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 1,
+      "manual": false,
+      "size": 40
+    },
+    {
+      "id": "FE-guards",
+      "side": "fe",
+      "lane": "FE-2",
+      "milestone": "M1",
+      "after": [
+        "FE-base"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 3,
+      "manual": false,
+      "size": 55
+    },
+    {
+      "id": "FE-shell",
+      "side": "fe",
+      "lane": "FE-2",
+      "milestone": "M2",
+      "after": [
+        "FE-base"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 4,
+      "manual": false,
+      "size": 210
+    },
+    {
+      "id": "FE-sc-cards",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M2",
+      "after": [
+        "FE-base",
+        "AI-rw-bench-na"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 3,
+      "manual": false,
+      "size": 230
+    },
+    {
+      "id": "FE-sc-table",
+      "side": "fe",
+      "lane": "FE-3",
+      "milestone": "M2",
+      "after": [
+        "FE-base"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 5,
+      "manual": false,
+      "size": 110
+    },
+    {
+      "id": "FE-sc-panel",
+      "side": "fe",
+      "lane": "FE-3",
+      "milestone": "M2",
+      "after": [
+        "FE-base"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 4,
+      "manual": false,
+      "size": 190
+    },
+    {
+      "id": "FE-shots",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M3",
+      "after": [
+        "FE-guards",
+        "FE-shell",
+        "FE-sc-cards",
+        "FE-sc-table",
+        "FE-sc-panel"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 6,
+      "manual": true,
+      "size": 220
+    },
+    {
+      "id": "BE-rw-ledger-rank",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "sonnet",
+      "priority": 1,
+      "manual": false,
+      "size": 25
+    },
+    {
+      "id": "OPS-rw-smoke-dsn",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "priority": 2,
+      "manual": false,
+      "size": 70
+    },
+    {
+      "id": "AI-rw-curve",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 1,
+      "manual": false,
+      "size": 25
+    },
+    {
+      "id": "FE-fix-shell",
+      "side": "fe",
+      "lane": "FE-2",
+      "milestone": "M3",
+      "after": [
+        "FE-shell",
+        "FE-sc-cards"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 7,
+      "manual": false,
+      "size": 70
+    },
+    {
+      "id": "FE-fix-table",
+      "side": "fe",
+      "lane": "FE-3",
+      "milestone": "M3",
+      "after": [
+        "FE-sc-table"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 7,
+      "manual": false,
+      "size": 60
+    },
+    {
+      "id": "FE-fix-panel",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M3",
+      "after": [
+        "FE-sc-panel"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 7,
+      "manual": false,
+      "size": 50
+    },
+    {
+      "id": "FE-shots-rw",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M3",
+      "after": [
+        "FE-fix-shell",
+        "FE-fix-table",
+        "FE-fix-panel"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 8,
+      "manual": true,
+      "size": 40
+    },
+    {
+      "id": "BE-fix-index-value",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [
+        "BE-rw-ledger-rank",
+        "OPS-rw-smoke-dsn"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 3,
+      "manual": false,
+      "size": 90
+    },
+    {
+      "id": "OPS-fix-testdb-doc",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [
+        "OPS-rw-smoke-dsn"
+      ],
+      "effort": "medium",
+      "leadModel": "opus",
+      "priority": 3,
+      "manual": false,
+      "size": 12
+    }
   ],
   "_doc": {
     "FE-shots": "manual: the FE tester runs it via /fi-test after every other FE task is merged; the watcher waits for its merge",
-    "AI-rw-bench-na": "block text in 2-tech-plan.ai.md; side fe (edits ScenarioCard.tsx), ordered before FE-sc-cards"
+    "AI-rw-bench-na": "block text in 2-tech-plan.ai.md; side fe (edits ScenarioCard.tsx), ordered before FE-sc-cards",
+    "rework-R1": "dag rev 2: FE-fix-* after the merged sprint-04 FE tasks they patch (FE-shots is manual/unmerged, so not a gate); FE-shots-rw manual re-run; BE-fix-index-value = B1 repair in code (adapter guard + migration 0009); OPS-fix-testdb-doc = B2"
   }
 }

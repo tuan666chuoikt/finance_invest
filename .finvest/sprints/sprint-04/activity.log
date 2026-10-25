@@ -30,3 +30,6 @@
 2026-10-25 17:23 | dev     | FE-sc-panel              | pr-open   | tsc ok, vitest 84/84, diff 128+/64- | 3-build.FE-sc-panel.md
 2026-10-25 17:24 | lead    | FE-sc-table              | merged    | 0b0ad4d; tsc 0, vitest 85/85, 0 must-fix | 3-pr.FE-sc-table.md
 2026-10-25 17:25 | lead    | FE-sc-panel              | merged    | 82824eb; tsc 0, vitest 85/85, 0 must-fix | 3-pr.FE-sc-panel.md
+2026-10-25 17:27 | be-test | sprint-04-RW             | red       | db 27 passed, kernel 259, analytics 42; 2 bugs (B1 med, B2 low) | 4-test.be.md
+2026-10-25 17:35 | fe-test | FE-shots                 | red       | vitest 85/85; real-stack 36/40; screens 134/138; checklist 12 pass 6 fail | 4-test.fe.md
+2026-10-25 17:39 | software-architect | sprint-04-RW1            | note      | dag rev 2: +6 tasks (FE-fix-shell/table/panel, FE-shots-rw manual, BE-fix-index-value, OPS-fix-testdb-doc); B1 = adapter guard + migration 0 | sprints/sprint-04/2-tech-plan.md
