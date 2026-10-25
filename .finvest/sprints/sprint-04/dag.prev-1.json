@@ -1,0 +1,23 @@
+{
+  "sprint": "sprint-04",
+  "plan": "v1.0",
+  "dagRev": 1,
+  "tasks": [
+    { "id": "FE-tokens", "side": "fe", "lane": "FE-1", "milestone": "M1", "after": [], "effort": "medium", "leadModel": "sonnet", "priority": 1, "manual": false, "size": 95 },
+    { "id": "FE-base", "side": "fe", "lane": "FE-1", "milestone": "M1", "after": ["FE-tokens"], "effort": "medium", "leadModel": "sonnet", "priority": 2, "manual": false, "size": 170 },
+    { "id": "AI-rw-bench-na", "side": "fe", "lane": "FE-2", "milestone": "M1", "after": [], "effort": "medium", "leadModel": "sonnet", "priority": 1, "manual": false, "size": 40 },
+    { "id": "FE-guards", "side": "fe", "lane": "FE-2", "milestone": "M1", "after": ["FE-base"], "effort": "medium", "leadModel": "sonnet", "priority": 3, "manual": false, "size": 55 },
+    { "id": "FE-shell", "side": "fe", "lane": "FE-2", "milestone": "M2", "after": ["FE-base"], "effort": "medium", "leadModel": "sonnet", "priority": 4, "manual": false, "size": 210 },
+    { "id": "FE-sc-cards", "side": "fe", "lane": "FE-1", "milestone": "M2", "after": ["FE-base", "AI-rw-bench-na"], "effort": "medium", "leadModel": "sonnet", "priority": 3, "manual": false, "size": 230 },
+    { "id": "FE-sc-table", "side": "fe", "lane": "FE-3", "milestone": "M2", "after": ["FE-base"], "effort": "medium", "leadModel": "sonnet", "priority": 5, "manual": false, "size": 110 },
+    { "id": "FE-sc-panel", "side": "fe", "lane": "FE-3", "milestone": "M2", "after": ["FE-base"], "effort": "medium", "leadModel": "sonnet", "priority": 4, "manual": false, "size": 190 },
+    { "id": "FE-shots", "side": "fe", "lane": "FE-1", "milestone": "M3", "after": ["FE-guards", "FE-shell", "FE-sc-cards", "FE-sc-table", "FE-sc-panel"], "effort": "medium", "leadModel": "sonnet", "priority": 6, "manual": true, "size": 220 },
+    { "id": "BE-rw-ledger-rank", "side": "be", "lane": "BE-1", "milestone": "M2", "after": [], "effort": "high", "leadModel": "sonnet", "priority": 1, "manual": false, "size": 25 },
+    { "id": "OPS-rw-smoke-dsn", "side": "be", "lane": "BE-2", "milestone": "M2", "after": [], "effort": "medium", "leadModel": "opus", "priority": 2, "manual": false, "size": 70 },
+    { "id": "AI-rw-curve", "side": "ai", "lane": "AI-1", "milestone": "M2", "after": [], "effort": "medium", "leadModel": "sonnet", "priority": 1, "manual": false, "size": 25 }
+  ],
+  "_doc": {
+    "FE-shots": "manual: the FE tester runs it via /fi-test after every other FE task is merged; the watcher waits for its merge",
+    "AI-rw-bench-na": "block text in 2-tech-plan.ai.md; side fe (edits ScenarioCard.tsx), ordered before FE-sc-cards"
+  }
+}

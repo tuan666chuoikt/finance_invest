@@ -1,7 +1,7 @@
 .sc-tablewrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); overflow-x: auto; }
 .sc-tablewrap table { border-collapse: separate; border-spacing: 0; white-space: nowrap; width: 100%; }
-.sc-tablewrap th, .sc-tablewrap td { padding: 0 10px; height: 36px; text-align: left; font-size: var(--fs-sm); border-bottom: 1px solid var(--border); }
-.sc-tablewrap thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); color: var(--text-muted); font-size: var(--fs-xs); font-weight: 500; }
+.sc-tablewrap th, .sc-tablewrap td { padding: 0 8px; height: 36px; text-align: left; font-size: var(--fs-sm); border-bottom: 1px solid var(--border); }
+.sc-tablewrap thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); color: var(--text-muted); font-size: var(--fs-xs); font-weight: 500; white-space: normal; }
 .sc-tablewrap tbody th { font-weight: 400; }
 .sc-tablewrap tbody tr:hover > * { background: var(--surface-2); }
 .sc-tablewrap td.num, .sc-tablewrap th.num { text-align: right; font-variant-numeric: tabular-nums; }

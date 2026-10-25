@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import i18n from "../i18n";
 import { isStale } from "./FreshnessChip";
-import { TopBar } from "./TopBar";
+import { Layout } from "../app/routes";
 
 const RUNNING = { id: 7, kind: "crawl", status: "running", created_at: "2026-10-16T17:59:00+07:00", finished_at: null, progress: { step: 1, steps: 2, done: 3, total: 10 }, summary: null, error: null };
 const OK = { last_trading_date: "2026-10-16", as_of: "2026-10-16T15:42:00+07:00", source: "vci", symbols: 1612 };
@@ -17,7 +17,7 @@ function setup(status: object) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter>
-        <TopBar />
+        <Layout />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -115,17 +115,18 @@ test("every top-bar button is at least 32x32 px (WCAG 2.5.8)", async () => {
   }
 });
 
-test("crawl status line renders after the disclaimer on an analysis route", async () => {
+test("crawl status line renders after the disclaimer, inside main", async () => {
   vi.stubGlobal("fetch", vi.fn(async (url: string) =>
     new Response(JSON.stringify(url.endsWith("/jobs/current") ? RUNNING : OK), { status: 200 }),
   ));
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={["/scenarios"]}>
-        <TopBar />
+        <Layout />
       </MemoryRouter>
     </QueryClientProvider>,
   );
   const status = await screen.findByTestId("crawl-status");
   expect(screen.getByTestId("disclaimer").compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(status.closest("main")).not.toBeNull();
 });

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import i18n from "../i18n";
-import { TopBar } from "./TopBar";
+import { Layout } from "../app/routes";
 import { MemoryRouter } from "react-router-dom";
 
 const J = (o: object) => ({ id: 7, kind: "crawl", created_at: "2026-10-26T16:10:03+07:00", finished_at: null, progress: null, summary: null, error: null, status: "running", ...o });
@@ -22,7 +22,7 @@ function setup() {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter>
-        <TopBar />
+        <Layout />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -78,6 +78,7 @@ test("failed shows code and path, button enabled", async () => {
   await flush();
   expect(status()).toHaveTextContent("PermissionError");
   expect(status()).toHaveTextContent("data/raw/ticks/2026-10-26");
+  expect(status().textContent?.match(/✕/g)).toHaveLength(1);
   expect(btn()).toBeEnabled();
 });
 

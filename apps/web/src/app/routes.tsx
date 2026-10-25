@@ -1,8 +1,11 @@
 import type { ReactElement } from "react";
-import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
+import { Navigate, Outlet, createBrowserRouter, useLocation } from "react-router-dom";
+import { CrawlStatus } from "../components/CrawlStatus";
+import { Disclaimer } from "../components/Disclaimer";
 import { TopBar } from "../components/TopBar";
 import { ScenariosPage } from "../features/scenarios/ScenariosPage";
 import { Placeholder } from "./Placeholder";
+import { useCrawlJob } from "./useCrawlJob";
 
 export interface AppRoute {
   path: string;
@@ -17,11 +20,16 @@ export const ROUTES: AppRoute[] = [
   { path: "/rules", element: <Placeholder name="rules" />, nameKey: "nav.rules", analysis: false },
 ];
 
-function Layout() {
+// Crawl state is lifted here so the status line can sit inside <main> while the button stays in the header.
+export function Layout() {
+  const crawl = useCrawlJob();
+  const analysis = ROUTES.find((r) => r.path === useLocation().pathname)?.analysis;
   return (
     <>
-      <TopBar />
+      <TopBar crawl={crawl} />
       <main className="page">
+        {analysis && <Disclaimer />}
+        <CrawlStatus job={crawl.job} refused={crawl.refused} startError={crawl.startError} />
         <Outlet />
       </main>
     </>

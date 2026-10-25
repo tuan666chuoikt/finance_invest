@@ -30,3 +30,16 @@
 2026-10-25 17:23 | dev     | FE-sc-panel              | pr-open   | tsc ok, vitest 84/84, diff 128+/64- | 3-build.FE-sc-panel.md
 2026-10-25 17:24 | lead    | FE-sc-table              | merged    | 0b0ad4d; tsc 0, vitest 85/85, 0 must-fix | 3-pr.FE-sc-table.md
 2026-10-25 17:25 | lead    | FE-sc-panel              | merged    | 82824eb; tsc 0, vitest 85/85, 0 must-fix | 3-pr.FE-sc-panel.md
+2026-10-25 17:27 | be-test | sprint-04-RW             | red       | db 27 passed, kernel 259, analytics 42; 2 bugs (B1 med, B2 low) | 4-test.be.md
+2026-10-25 17:35 | fe-test | FE-shots                 | red       | vitest 85/85; real-stack 36/40; screens 134/138; checklist 12 pass 6 fail | 4-test.fe.md
+2026-10-25 17:39 | software-architect | sprint-04-RW1            | note      | dag rev 2: +6 tasks (FE-fix-shell/table/panel, FE-shots-rw manual, BE-fix-index-value, OPS-fix-testdb-doc); B1 = adapter guard + migration 0 | sprints/sprint-04/2-tech-plan.md
+2026-10-25 17:41 | dev     | OPS-fix-testdb-doc       | pr-open   | make test-db: bad name exits nonzero, good name 27 passed | 3-build.OPS-fix-testdb-doc.md
+2026-10-25 17:41 | dev     | FE-fix-panel             | pr-open   | vitest 86/86, tsc 0, lint 0, +15/-1 | 3-build.FE-fix-panel.md
+2026-10-25 17:42 | dev     | FE-fix-table             | pr-open   | typecheck 0; vitest 86/86 pass; new test fails on old code; +26/-7 lines; 1280 fit unverified (tester) | .finvest/sprints/sprint-04/3-build.FE-fix-table.md
+2026-10-25 17:42 | dev     | FE-fix-shell             | pr-open   | tsc 0, vitest 85/85 green | 3-build.FE-fix-shell.md
+2026-10-25 17:42 | lead    | FE-fix-panel             | merged    | 931ce32; vitest 86/86, tsc 0 | .finvest/sprints/sprint-04/3-pr.FE-fix-panel.md
+2026-10-25 17:43 | dev     | BE-fix-index-value       | pr-open   | 260 kernel + 28 db passed, ruff/mypy/imports clean, +76/-5 lines, live db would null 8 rows | 3-build.BE-fix-index-value.md
+2026-10-25 17:43 | lead    | OPS-fix-testdb-doc       | merged    | 860af49; 0 must-fix; testdb 27 passed, kernel 259 passed, guard rejects finvest_x | 3-pr.OPS-fix-testdb-doc.md
+2026-10-25 17:45 | lead    | FE-fix-table             | merged    | 5dd0944; must-fix 0; tsc 0, vitest 87/87, new test fails on old code | 3-pr.FE-fix-table.md
+2026-10-25 17:45 | lead    | FE-fix-shell             | merged    | 696ee6d; tsc 0, vitest 87/87, 0 must-fix | 3-pr.FE-fix-shell.md
+2026-10-25 17:46 | lead    | BE-fix-index-value       | merged    | 7894e44; kernel 260 passed, db 28 passed, 0 must-fix | 3-pr.BE-fix-index-value.md

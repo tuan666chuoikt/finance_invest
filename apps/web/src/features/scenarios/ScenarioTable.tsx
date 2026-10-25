@@ -12,6 +12,8 @@ type Cell = { text: string; num: number | null };
 const NA: Cell = { text: "n/a", num: null };
 // Number() is for ordering only; displayed text comes from the formatters.
 const vnd = (v: string): Cell => ({ text: formatVnd(v), num: Number(v) });
+// P/L only: explicit "+" like the card's signedVnd (formatVnd signs negatives only).
+const signedVnd = (v: string): Cell => ({ text: Number(v) > 0 ? `+${formatVnd(v)}` : formatVnd(v), num: Number(v) });
 
 function bench(env: WhatIfEnvelope, name: string, lang: string): Cell {
   const b = env.result.benchmarks.find((x) => x.name === name);
@@ -29,15 +31,16 @@ function cells(r: Row, lang: string): Record<Col, Cell> {
   return {
     invested: vnd(x.position.invested_vnd.value),
     value: vnd(x.value.liquidation_vnd.value),
-    pl_vnd: vnd(x.returns.pl_vnd.value),
+    pl_vnd: signedVnd(x.returns.pl_vnd.value),
     pl_pct: { text: formatPct(x.returns.pl_pct.value), num: Number(x.returns.pl_pct.value) },
     vs_vnindex: bench(e, "VN-Index", lang),
     vs_e1: bench(e, "E1VFVN30", lang),
   };
 }
 
-const arrow = (text: string) => (text.startsWith("+") ? "▲" : text.startsWith("−") ? "▼" : "=");
-const cls = (text: string) => (text.startsWith("+") ? "up" : text.startsWith("−") ? "down" : "zero");
+// Sign comes from the number, not the text: a formatter that omits "+" must not turn a gain into "=".
+const arrow = (n: number) => (n > 0 ? "▲" : n < 0 ? "▼" : "=");
+const cls = (n: number) => (n > 0 ? "up" : n < 0 ? "down" : "zero");
 
 export function ScenarioTable({ rows }: { rows: Row[] }) {
   const { t, i18n } = useTranslation();
@@ -78,8 +81,8 @@ export function ScenarioTable({ rows }: { rows: Row[] }) {
               const ok = !!r.env;
               const cell = (col: Col) => <td key={col} className="num">{c[col].text}</td>;
               const signed = (col: Col) => {
-                const x = c[col].text;
-                return <td key={col} className="num">{c[col].num === null ? x : <span className={cls(x)}>{arrow(x)} {x}</span>}</td>;
+                const { text, num } = c[col];
+                return <td key={col} className="num">{num === null ? text : <span className={cls(num)}>{arrow(num)} {text}</span>}</td>;
               };
               return (
                 <tr key={s.id}>

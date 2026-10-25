@@ -15,9 +15,11 @@ from sqlalchemy import (
     exists,
     func,
     literal_column,
+    or_,
     select,
     text,
     tuple_,
+    update,
 )
 from sqlalchemy.dialects.postgresql import insert
 
@@ -319,4 +321,16 @@ def repair_crawl_sessions_from_ticks(conn: Connection) -> int:
             WHERE s.feed = 'ticks' AND s.trading_date = t.d AND s.rows < t.n
             """
         )
+    ).rowcount
+
+
+def repair_index_1d_value(conn: Connection) -> int:
+    """NULL `index_1d.value` where it is 0, the volume is 0 or value/volume is outside 100..1e7 VND per unit
+    (the adapter's INDEX_VALUE_PER_UNIT band); o/h/l/c/v stay. Returns rows updated; idempotent."""
+    return conn.execute(
+        update(index_1d)
+        .where(index_1d.c.value.is_not(None),
+               or_(index_1d.c.v == 0, index_1d.c.value == 0,
+                   index_1d.c.value / index_1d.c.v < 100, index_1d.c.value / index_1d.c.v > 10_000_000))
+    .values(value=None)
     ).rowcount

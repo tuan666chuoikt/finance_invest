@@ -312,3 +312,124 @@ L1 (live crawl) is an sm/sponsor clock milestone, not a dag task.
 3. Drawer breakpoint 1024 → 768 and status line position are appearance changes mandated by visual-design.md; the PM review sees them in
    the 800 px shot.
 4. Contrast of `--ref`/`--floor` in dark: values are the spec's; axe in FE-shots is the proof, a failure is `backlog` (spec), not `build`.
+
+## Rework R1 (dag rev 2) — test bugs from `4-test.fe.md` (BUG-1..6) and `4-test.be.md` (B1, B2)
+
+Decision B1 (VNINDEX `index_1d` legacy rows 2004-07-02/07-22/09-06 value ~1e14, 2007-08-16 value 0): **repair in code, no
+re-fetch.** The upsert is "latest wins", so a re-fetch would only rewrite the same source payload (the values are the source's
+`accumulatedValue` in a unit the `_value_vnd` heuristic cannot see). Instead: (a) the VCI adapter nulls an index `value` whose
+value/volume ratio is outside 100..1e7 (the band `ops/smoke.sql` check (1) already uses), (b) an alembic data migration applies the
+same rule once to the existing rows (idempotent UPDATE, pattern 0008). `value` is already nullable (`tables.py`) and the benchmark
+(`services/analytics/.../sim/benchmark.py`) reads only `c` with its existing `c > 0` missing-session rule, so **no benchmark rule
+changes** and no ai-architect consult is needed; the 2007-08-16 row keeps o/h/l/c/v (if its `c` is 0 the existing rule already
+returns n/a for that date). `o/h/l/c/v` of the four rows are never edited.
+
+Root causes seen (so the blocks stay small): BUG-1 = `.band span { display: inline-block }` eats the spaces inside the "ⓘ " and
+" · " spans; BUG-2 = `ScenarioTable` builds the P/L ₫ cell with the unsigned `formatVnd`, and `arrow/cls` test the text for a leading
+"+", so every positive P/L falls to "="; BUG-3 = `<aside role=note>` and the status `div` are rendered between `<header>` and
+`<main>`, outside every landmark, and the card title is an `h3` under the page `h1`; BUG-6 = icon span + a text that already
+starts with "✕".
+
+#### FE-fix-shell — BUG-1, BUG-3, BUG-6: disclaimer spacing, landmarks + heading order, doubled ✕
+- Story: F-130/F-132 ; Side: fe ; Effort: medium ; Size: ~70 lines ; Lead: sonnet
+- Files: `apps/web/src/styles/shell.css`, `apps/web/src/components/Disclaimer.tsx`, `apps/web/src/components/CrawlStatus.tsx`,
+  `apps/web/src/components/TopBar.tsx`, `apps/web/src/components/TopBar.test.tsx`, `apps/web/src/app/routes.tsx`,
+  `apps/web/src/features/scenarios/ScenarioCard.tsx`, `apps/web/src/features/scenarios/scenarios.css`,
+  `apps/web/src/features/scenarios/ScenarioCard.test.tsx`
+- Change:
+  - BUG-1: drop `.band span { display: inline-block }` (or keep it and put the spacing in CSS: `.band > span + span { margin-left: .35em }`);
+    rendered text must read "ⓘ Mô phỏng … đầu tư · Educational …" (one space each side of "·", one after ⓘ).
+  - BUG-3 (landmark): render `<Disclaimer/>` and `<CrawlStatus/>` **inside `<main className="page">`** before the `<Outlet/>`
+    (`routes.tsx` `Layout`), `TopBar` goes back to returning only the `<header>`; the "status after disclaimer" document-order test in
+    `TopBar.test.tsx` moves to the Layout test or asserts on the rendered route. Keep `role=note` + `aria-label` on the aside.
+  - BUG-3 (heading-order): card title `h3` → `h2` (`ScenarioCard.tsx`); `scenarios.css` `.sc-card h3` → `.sc-card h2`; tests that query
+    `heading, { level: 3 }` → level 2.
+  - BUG-6: the error line renders the ✕ exactly once — drop the icon span for `mod === "error"` **or** strip the "✕ " prefix from the
+    text, whichever the i18n string carries; the `status-error` colour rule stays.
+- Contract: product/ux/visual-design.md §4–§5; product/ux/app-shell.md (texts unchanged).
+- Acceptance: vitest green; new assertions: (1) `Disclaimer` `textContent` contains "đầu tư · Educational" and starts with "ⓘ ";
+  (2) the failed-crawl status `textContent` contains exactly one "✕"; (3) `disclaimer.test.tsx` still finds exactly one `role=note` on
+  every analysis route and it is inside `main`; (4) card title is a level-2 heading. Tester (FE-shots-rw): axe `region` and
+  `heading-order` 0 on /scenarios.
+- Out of scope: any other scenarios file, the table, the panel.
+
+#### FE-fix-table — BUG-2 (sign/colour of P/L ₫ — money display), BUG-4 (1280 overflow)
+- Story: F-131 ; Side: fe ; Effort: high ; Size: ~60 lines ; Lead: opus
+- Files: `apps/web/src/features/scenarios/ScenarioTable.tsx`, `apps/web/src/features/scenarios/ScenarioTable.test.tsx`,
+  `apps/web/src/features/scenarios/table.css`
+- Change:
+  - BUG-2: the `pl_vnd` cell text comes from a signed formatter (copy the card's `signedVnd` one-liner locally, as FE-sc-table did for
+    `arrow/cls`; do not import from `ScenarioCard.tsx`), and `arrow`/`cls` take the **numeric** value (`cell.num`), not the text:
+    `num > 0 → "▲"/up`, `num < 0 → "▼"/down`, else `"="/zero`. Same for `pl_pct` and the two benchmark diff cells (they already carry
+    a sign, behaviour unchanged). Sorting still uses `num`.
+  - BUG-4: at 1280 the table must fit `.sc-tablewrap` with 8 columns: `th` header text may wrap (`white-space: normal` on `thead th`,
+    keep `nowrap` on `td.num`), cell padding `0 8px`, and the benchmark headers use the short label already in i18n if one exists;
+    no column may be hidden.
+- Contract: product/ux/visual-design.md §3.2 (sign + colour rule: cards and table identical), §6.4.
+- Acceptance: a test that **fails on the current code**: a row with `pl_vnd.value = "1290559"` and `pl_pct.value = "2.58"` renders the
+  ₫ cell as `▲ +1.290.559 ₫` with class `up` and the % cell `▲ +2,58 %` `up`; a zero row renders `= 0 ₫` `zero`; the existing losing-row
+  test (`▼ −`, `down`) stays green. Worked example: invested 50.000.000 ₫, liquidation 51.290.559 ₫ → P/L +1.290.559 ₫, +2,58 %.
+  Tester (FE-shots-rw): at 1280 `wrap.scrollWidth <= wrap.clientWidth` with the 4 saved scenarios; §9.2 lines 4 and 7 PASS.
+- Out of scope: column set, benchmark wording, sticky rule, cards.
+
+#### FE-fix-panel — BUG-5: how-computed drawer typography off-spec (§6.6)
+- Story: F-131 ; Side: fe ; Effort: medium ; Size: ~50 lines ; Lead: sonnet
+- Files: `apps/web/src/features/scenarios/HowComputed.tsx`, `apps/web/src/features/scenarios/HowComputed.test.tsx`,
+  `apps/web/src/features/scenarios/panel.css`
+- Change: find which rule wins over `.how .formula`, `.how dl.rows dd` and `.note-warn-block` in the real app (suspects: a card rule
+  such as `.rows dd`/`.headline` from `scenarios.css` or a global `dialog`/`dd` rule from `app.css` with higher specificity or later
+  order — the drawer is rendered inside the card tree); fix inside `panel.css`/`HowComputed.tsx` only: scope the drawer's rules under
+  `.scenario-panel.how` with enough specificity, `p` and `dd` in `.how` at `--fs-sm`/weight 400, `.formula` as a block (`display:
+  block`, so the `<code>` inside the `<p>` wraps as a block), `.note-warn-block` left-aligned `--fs-sm` weight 400 with `max-width: 100%`.
+  Do not edit `scenarios.css` (FE-fix-shell owns it) — if the winning rule is there, scope-override it from `panel.css`.
+- Contract: product/ux/visual-design.md §6.6.
+- Acceptance: vitest green; one jsdom test asserts the computed `font-weight` of the approximate note is `400` and `text-align`
+  is not `right` with the stylesheets from `setup.ts` applied (the `?raw` sheets, order as in the app). Tester (FE-shots-rw): §9.2
+  line 13 PASS, formula block wraps without sideways scroll at 375 and 1280.
+- Out of scope: the add/edit form, the combobox.
+
+#### FE-shots-rw — re-run of FE-shots after the three fixes
+- Story: F-132 ; Side: fe ; Effort: medium ; Size: ~40 lines ; Lead: sonnet ; **manual: true (fi-fe-tester, /fi-test fe)**
+- Files: `apps/web/e2e/screens.mjs`, `apps/web/e2e/real-stack.mjs`, `.finvest/sprints/sprint-04/shots/*`, `.finvest/sprints/sprint-04/4-test.fe.md`
+- Change: same procedure as FE-shots; axe now asserts **all rules** 0 on /scenarios (both schemes, both widths), plus the two
+  table checks above. Carry the e2e scripts from `test/sprint-04/fe` onto `sprint-04` if not yet merged there.
+- Acceptance: §9.2 18/18 PASS, screens.mjs and real-stack.mjs 0 FAIL, `4-test.fe.md` verdict PASS.
+- Out of scope: pixel diffs.
+
+#### BE-fix-index-value — B1: null an index `value` whose value/volume ratio is out of band, at ingest and once for existing rows
+- Story: S04-RW ; Side: be ; Effort: high ; Size: ~90 lines ; Lead: opus
+- Files: `services/crawler/finvest_crawler/adapters/vci/source.py` (`_value_vnd`), `services/crawler/tests/test_adapter_vci.py`,
+  `packages/market_data/finvest_market_data/infrastructure/repositories.py` (new `repair_index_1d_value(conn) -> int`),
+  `packages/market_data/tests/test_repositories_db.py`, `apps/api/migrations/versions/0009_repair_index_1d_value.py` (new)
+- Change:
+  - Adapter: for index bars (`ref is None`), after the unit pick, if `v > 0 and not 100 <= value / v <= 1e7` or `value == 0` → return
+    `None` with `log.warning("vci index value dropped: ... ratio ...")`; the bar (o/h/l/c/v) is kept. Stocks path unchanged. Add the band
+    as one module constant `INDEX_VALUE_PER_UNIT = (100, 10_000_000)` with a one-line comment citing `ops/smoke.sql` check (1).
+  - `repair_index_1d_value(conn)`: `UPDATE index_1d SET value = NULL WHERE value IS NOT NULL AND (v = 0 OR value / v NOT BETWEEN 100
+    AND 1e7)` via SQLAlchemy core on the `index_1d` table; returns `rowcount`. All index codes, not only VNINDEX.
+  - Migration 0009 (revises 0008): `upgrade` calls the repair and prints the count; `downgrade` is a no-op (data repair), like 0008.
+    `docker compose up` runs `alembic upgrade head`, so the live db is repaired on the next `make up`; log the row count in `3-build`.
+- Contract: architecture/data.md §1.2 (index `value` = accumulated value in VND; may be null); contracts/platform.md §1.2 unchanged;
+  no API change (`value` was already nullable).
+- Acceptance: (1) unit test: a VNINDEX payload row with `accumulatedValue` giving ratio 1e10 → `IndexBar.value is None`, `c` kept; a row
+  with ratio 5e4 → value kept; a stock row untouched. (2) db test (`-m db`): insert 3 VNINDEX rows — value/v = 1e10, value 0, value/v =
+  5e4 — run the repair → returns 2, the two bad rows have `value NULL`, the good row unchanged; run again → returns 0 (idempotent).
+  (3) `make smoke` check (1) prints 0 rows on the live db after `alembic upgrade head` (tester). Benchmark tests (`services/analytics`,
+  42) unchanged and green.
+- Out of scope: editing o/h/l/c/v, re-fetching from VCI, any benchmark rule, the smoke SQL.
+
+#### OPS-fix-testdb-doc — B2: `make test-db` per-branch name must end in `_test`; silent skip made loud
+- Story: S04-RW ; Side: be ; Effort: medium ; Size: ~12 lines ; Lead: opus
+- Files: `Makefile`, `ops/README.md`
+- Change: comment and README say `FINVEST_TEST_DB=finvest_<branch>_test`; the `test-db` target refuses a name that does not end in
+  `_test` (`case "$(FINVEST_TEST_DB)" in *_test) ;; *) echo "FINVEST_TEST_DB must end in _test (tests drop all tables)"; exit 1;; esac`)
+  and runs pytest with `-rs` so a skip is printed, never a silent green. Note in README: worktrees have no `.env`, run from the main
+  checkout.
+- Contract: ops/README.md.
+- Acceptance: `make test-db FINVEST_TEST_DB=finvest_x` exits 1 with the message; `make test-db FINVEST_TEST_DB=finvest_x_test` runs
+  the 27 db tests (not skipped); `rg -n 'finvest_test_<branch>' Makefile ops/README.md` finds nothing.
+- Out of scope: CI, the smoke SQL.
+
+Order: the three FE fixes run in parallel (disjoint file sets: shell/card files, table files, panel files; `setup.ts` untouched);
+`FE-shots-rw` after all three. `BE-fix-index-value` and `OPS-fix-testdb-doc` run in parallel (disjoint). Nothing waits on sprint-04
+merges other than those already in.
