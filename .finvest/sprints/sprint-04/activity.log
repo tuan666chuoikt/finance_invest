@@ -2,3 +2,14 @@
 2026-10-25 16:59 | pm      | sprint-04                | decision  | sprint plan: goal visual design (A25); 18/20 pts F-129..F-132 + S04-RW; visual-design.md; UI DoD needs screenshots | sprints/sprint-04/1-sprint-plan.md
 2026-10-25 17:02 | ai-arch | sprint-04                | note      | AI tech plan v1: AI-rw-curve ~25 lines (AI-1+AI-3), AI-rw-bench-na ~40 lines (AI-2, FE-only, no contract change); analytics.md v1.2 | 2-tech-plan.ai.md
 2026-10-25 17:11 | arch    | sprint-04                | decision  | tech plan v1.0 + dag rev1: 12 tasks (fe 9 incl. AI-rw-bench-na + tester FE-shots, be 2, ai 1), plain CSS tokens.css/app.css + 4 area sheets, | 2-tech-plan.md
+2026-10-25 17:11 | sm      | BUILD                    | started   | sprint-04 11 tasks (+FE-shots manual) | -
+2026-10-25 17:12 | ai      | AI-rw-curve              | pr-open   | pytest 42 passed, ruff clean | 3-build.AI-rw-curve.md
+2026-10-25 17:13 | dev     | FE-tokens                | pr-open   | typecheck 0, 76 tests pass, 70 token lines | 3-build.FE-tokens.md
+2026-10-25 17:13 | dev     | OPS-rw-smoke-dsn         | pr-open   | 37 lines; T5c DELETE 1; smoke (2)=0 rows, (1)=4 legacy rows; test-db unrun until db recreated | 3-build.OPS-rw-smoke-dsn.md
+2026-10-25 17:13 | dev     | AI-rw-bench-na           | pr-open   | vitest 47/47, tsc ok, +20/-6 | 3-build.AI-rw-bench-na.md
+2026-10-25 17:14 | dev     | BE-rw-ledger-rank        | pr-open   | db 27 passed (new test red on old code), kernel 257 passed, +19/-2 lines | 3-build.BE-rw-ledger-rank.md
+2026-10-25 17:14 | lead    | FE-tokens                | merged    | 7ed8cb8; typecheck 0, vitest 76/76, 0 must-fix | .finvest/sprints/sprint-04/3-pr.FE-tokens.md
+2026-10-25 17:14 | lead    | AI-rw-curve              | merged    | 80c8247; kernel 259 passed, ruff/mypy/imports clean, 0 must-fix | .finvest/sprints/sprint-04/3-pr.AI-rw-curve.md
+2026-10-25 17:15 | lead    | AI-rw-bench-na           | merged    | ee8cc98; web vitest 77 pass, tsc 0; 0 must-fix | 3-pr.AI-rw-bench-na.md
+2026-10-25 17:15 | dev     | FE-base                  | pr-open   | vitest 79/79, tsc 0 | 3-build.FE-base.md
+2026-10-25 17:16 | lead    | FE-base                  | merged    | dd69694; tsc 0, vitest 79/79, 0 must-fix | .finvest/sprints/sprint-04/3-pr.FE-base.md
