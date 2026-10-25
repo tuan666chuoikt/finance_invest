@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 export function ApiErrorState({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
   return (
-    <div role="alert" style={{ width: "100%", padding: 16 }}>
+    <div role="alert" className="api-error">
       <p>{t("error.UNREACHABLE")}</p>
-      <button type="button" onClick={onRetry}>
+      <button type="button" className="btn" onClick={onRetry}>
         {t("state.retry")}
       </button>
     </div>
