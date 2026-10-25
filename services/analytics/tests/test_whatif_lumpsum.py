@@ -128,3 +128,10 @@ def test_history_hidden_by_as_of_is_no_data():
     with pytest.raises(AnalyticsError) as e:
         run_whatif(WhatIfRequest(**{**REQ, "buy_date": "2026-10-02"}), view)
     assert (e.value.code, e.value.details) == ("NO_DATA", {"symbol": "FPT", "first_available": "2026-10-01"})
+
+
+def test_curve_starts_on_buy_day_at_first_fill_value():
+    r = run()["result"]
+    c0 = r["equity_curve"][0]
+    assert c0["date"] == r["dates"]["buy"]
+    assert c0["market_value"] == 635_975 + 100 * 93_500 == 9_985_975
