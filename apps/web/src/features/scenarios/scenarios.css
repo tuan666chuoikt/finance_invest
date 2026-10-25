@@ -1,0 +1,58 @@
+/* Scenarios screen (visual-design.md §6.1-§6.3, §6.7). Tokens only. */
+.up { color: var(--up); }
+.down { color: var(--down); }
+.zero { color: var(--ref); }
+.muted { color: var(--text-muted); }
+.fs-sm { font-size: var(--fs-sm); }
+
+.sc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-5) 0 var(--sp-4); }
+.sc-head h1 { margin: 0; font-size: var(--fs-xl); line-height: var(--lh-xl); }
+.sc-head .asof { font-size: var(--fs-xs); color: var(--text-muted); }
+.sc-head .asof.chip-warn { color: var(--warn); }
+.sc-head .title { display: flex; flex-direction: column; gap: var(--sp-1); }
+.sc-head .actions { display: flex; align-items: center; gap: var(--sp-3); }
+@media (max-width: 767px) {
+  .sc-head .title, .sc-head .actions { flex: 1 1 100%; }
+  .sc-head .actions { justify-content: space-between; }
+}
+
+.sc-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(1, minmax(0, 1fr)); align-items: stretch; }
+@media (min-width: 768px) { .sc-grid { gap: var(--sp-4); grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .sc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.sc-card { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; padding: var(--sp-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-1); }
+.sc-card h3 { margin: 0; font-size: inherit; font-weight: 600; }
+.sc-card dl { margin: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+.sc-card .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); }
+.sc-card .head { align-items: flex-start; }
+.sc-card dt { color: var(--text-muted); font-size: var(--fs-sm); }
+.sc-card dd { margin: 0; text-align: right; }
+.sc-card dd .btn-icon { color: var(--text-muted); }
+.sc-card dd.headline { font-size: var(--fs-xl); line-height: var(--lh-xl); font-weight: 600; }
+.sc-card .note { font-size: var(--fs-xs); color: var(--text-muted); display: block; }
+.sc-card .note-warn { font-size: var(--fs-xs); color: var(--warn); }
+.sc-card .note-warn details { display: inline; }
+.sc-card .chip-warn { align-self: flex-start; white-space: normal; }
+.spark { height: 48px; margin-top: var(--sp-2); }
+.bench { list-style: none; margin: 0; padding: var(--sp-2) 0 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--sp-1); font-size: var(--fs-sm); }
+.bench .muted { font-size: var(--fs-sm); }
+.card-error, .api-error { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3); background: var(--error-bg); border-radius: var(--r-sm); }
+.card-error p, .api-error p { margin: 0; }
+.card-error p::before, .api-error p::before { content: "✕ "; color: var(--color-error); }
+.api-error { max-width: 560px; margin: var(--sp-5) auto; width: 100%; box-sizing: border-box; align-items: center; text-align: center; }
+
+.menu { position: absolute; right: 0; z-index: 5; min-width: 140px; padding: var(--sp-1); background: var(--surface); box-shadow: var(--shadow-2); border-radius: var(--r-md); }
+.menu [role="menuitem"] { display: block; width: 100%; min-height: 32px; padding: 0 var(--sp-3); text-align: left; border: 0; background: transparent; color: var(--text); border-radius: var(--r-sm); cursor: pointer; }
+.menu [role="menuitem"]:hover { background: var(--surface-2); }
+.menu .danger { color: var(--color-error); }
+dialog.confirm { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-2); padding: var(--sp-4); }
+dialog.confirm footer { display: flex; justify-content: flex-end; gap: var(--sp-2); }
+
+.sc-center { max-width: 480px; margin: var(--sp-5) auto; width: 100%; box-sizing: border-box; align-items: flex-start; }
+.sc-center p { margin: 0; }
+.sc-center code { padding: var(--sp-2) var(--sp-3); background: var(--surface-2); border-radius: var(--r-sm); font-size: var(--fs-sm); }
+.sc-center .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.skeleton { min-height: 220px; }
+.skeleton .sk { height: 16px; background: var(--surface-2); border-radius: var(--r-sm); animation: pulse 1.2s ease-in-out infinite; }
+.skeleton .sk:nth-child(2) { width: 60%; }
+@keyframes pulse { 50% { opacity: 0.4; } }

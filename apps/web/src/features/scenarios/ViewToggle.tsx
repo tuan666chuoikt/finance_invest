@@ -14,7 +14,7 @@ export function useView(): [View, (v: View) => void] {
 export function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => void }) {
   const { t } = useTranslation();
   return (
-    <div role="group" aria-label={t("page.view")}>
+    <div role="group" className="seg" aria-label={t("page.view")}>
       {(["cards", "table"] as const).map((v) => (
         <button key={v} type="button" aria-pressed={view === v} onClick={() => onChange(v)}>{t(`page.view_${v}`)}</button>
       ))}
