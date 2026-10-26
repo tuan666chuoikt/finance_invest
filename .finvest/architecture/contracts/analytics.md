@@ -1,6 +1,6 @@
 # Finvest — Analytics contracts (Python interface + REST, R2/R4/R5)
 
-Owner: `fi-ai-architect`. Status: **v1.2, 2026-10-24** (v1.2: §2.4 `benchmarks[].first_available` nullable, mirrors platform.md v1.8;
+Owner: `fi-ai-architect`. Status: **v1.3, 2026-10-26** (v1.3: §2.3 `shifts[].field` adds `contribution`, as built in S05; v1.2: §2.4 `benchmarks[].first_available` nullable, mirrors platform.md v1.8;
 v1.1 = `analytics.prev-2.md`, v1 = `analytics.prev-1.md`). §1–§2 normative for R2 (what-if); §3–§4 shape preview, normative at
 R4/R5 planning. Conventions from `contracts/platform.md` §1 apply (integer VND, decimal strings for ratios, ISO times in
 Asia/Ho_Chi_Minh, error envelope, `as_of`, `data_snapshot`, `rules_version`). Semantics: `architecture/analytics.md`.
@@ -103,6 +103,8 @@ usual (analytics.md §1.3.1). The end is a **valuation**, not a trade: no T+2 re
   "missing_sessions": ["2026-03-04"],
   "equity_curve": [{"date": "2026-10-19", "market_value": 9985975, "invested": 10000000}, …] }
 ```
+- `dates.shifts[]`: `field ∈ buy_date | sell_date | contribution` (`contribution` = a DCA instalment moved from its
+  requested day, `reason ∈ non_trading | no_bar | after_end`; `after_end` = instalment dropped, `to` null when no trading day follows; F-057).
 - `contributions`: one row per fill day (lump sum = 1 row). `qty = floor(cash / (price × lot × (1 + fee_rate))) × lot`,
   `fee_vnd = round_half_up(qty × price × fee_rate)`, `cash_after = cash − qty × price − fee_vnd` (carried into the next
   contribution for `dca`). `qty = 0` ⇒ `flags += [below_one_lot]`, `details.min_amount = lot × price × (1 + fee_rate)`

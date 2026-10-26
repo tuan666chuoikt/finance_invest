@@ -94,3 +94,8 @@
 2026-10-26 15:49 | dev     | OPS-fix-guards           | changes   | E501 fixed, make test-kernel exit 0 (342 passed) | 3-build.OPS-fix-guards.md
 2026-10-26 15:49 | lead    | BE-fix-ca-budget         | merged    | 2f5c6b7; ruff 0, crawler 176 passed, lint-imports ok | sprints/sprint-05/3-pr.BE-fix-ca-budget.md
 2026-10-26 15:50 | lead    | OPS-fix-guards           | merged    | 2df45e4; kernel 342 passed, ruff/mypy clean | .finvest/sprints/sprint-05/3-pr.OPS-fix-guards.md
+2026-10-26 16:03 | be-test | sprint-05-retest2        | green     | 62 db + 342 kernel passed; B-05-1..7 fixed; B-05-8 open | 4-test.be.md
+fe-test FE-shots r2 green "vitest 94, widths 88, screens 138, real 40" /home/stein/Desktop/Learning/finance_invest/.finvest/sprints/sprint-05/4-test.fe.md
+2026-10-26 16:11 | pm      | sprint-05                | review    | 7/7 DONE (F-016 conditional C1 live recon 30/30; C0 tech+AI review pending); retro 5 actions; app-shell hint ~1 giờ | 5-review.product.md, 6-retro.md
+2026-10-26 16:12 | software-architect | sprint-05                | review    | PASS, 27 tasks; B-05-8 carried (live backfill by SM), B-05-9 carried to sprint-06 | 5-review.tech.md
+2026-10-26 16:13 | ai-arch | sprint-05                | approved  | AI review PASS: R1-R9 ok, 1346 factors/0 rows >1 VND; recon 26/30 (B-05-8 data), listing_change skip S06, approximate flag kept; contracts/a | .finvest/sprints/sprint-05/5-review.ai.md

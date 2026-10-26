@@ -478,22 +478,22 @@
   {
    "n": "seed E2E FPT một lần",
    "pass": true,
-   "i": "{\"name\":\"E2E FPT một lần\",\"symbol\":\"FPT\",\"style\":\"lump_sum\",\"amount_vnd\":50000000,\"buy_date\":\"2025-03-03\",\"sell_date\":\"2026-10-16\",\"id\":107,\"created_a"
+   "i": "{\"name\":\"E2E FPT một lần\",\"symbol\":\"FPT\",\"style\":\"lump_sum\",\"amount_vnd\":50000000,\"buy_date\":\"2025-03-03\",\"sell_date\":\"2026-10-16\",\"id\":124,\"created_a"
   },
   {
    "n": "seed E2E HPG định kỳ",
    "pass": true,
-   "i": "{\"name\":\"E2E HPG định kỳ\",\"symbol\":\"HPG\",\"style\":\"dca\",\"amount_vnd\":2000000,\"buy_date\":\"2025-03-03\",\"sell_date\":null,\"id\":108,\"created_at\":\"2026-10-26"
+   "i": "{\"name\":\"E2E HPG định kỳ\",\"symbol\":\"HPG\",\"style\":\"dca\",\"amount_vnd\":2000000,\"buy_date\":\"2025-03-03\",\"sell_date\":null,\"id\":125,\"created_at\":\"2026-10-26"
   },
   {
    "n": "seed E2E VNM nhỏ hơn 1 lô",
    "pass": true,
-   "i": "{\"name\":\"E2E VNM nhỏ hơn 1 lô\",\"symbol\":\"FPT\",\"style\":\"lump_sum\",\"amount_vnd\":10000000,\"buy_date\":\"2025-03-03\",\"sell_date\":null,\"id\":109,\"created_at\":"
+   "i": "{\"name\":\"E2E VNM nhỏ hơn 1 lô\",\"symbol\":\"FPT\",\"style\":\"lump_sum\",\"amount_vnd\":10000000,\"buy_date\":\"2025-03-03\",\"sell_date\":null,\"id\":126,\"created_at\":"
   },
   {
    "n": "seed E2E ACB lãi",
    "pass": true,
-   "i": "{\"name\":\"E2E ACB lãi\",\"symbol\":\"ACB\",\"style\":\"lump_sum\",\"amount_vnd\":50000000,\"buy_date\":\"2026-01-05\",\"sell_date\":null,\"id\":110,\"created_at\":\"2026-10-"
+   "i": "{\"name\":\"E2E ACB lãi\",\"symbol\":\"ACB\",\"style\":\"lump_sum\",\"amount_vnd\":50000000,\"buy_date\":\"2026-01-05\",\"sell_date\":null,\"id\":127,\"created_at\":\"2026-10-"
   },
   {
    "n": "cards-375-light: scrollWidth<=375",
