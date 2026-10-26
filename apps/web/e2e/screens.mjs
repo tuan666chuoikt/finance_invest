@@ -14,9 +14,9 @@ const ok = (n, c, i = "") => { res.push({ n, pass: !!c, i: String(i).slice(0, 30
 const J = (o) => ({ status: 200, contentType: "application/json", body: JSON.stringify(o) });
 const job = (status, extra = {}) => ({ id: 99, kind: "crawl", status, created_at: new Date(Date.now() - 95000).toISOString(), finished_at: status === "running" ? null : new Date().toISOString(), progress: null, summary: null, error: null, ...extra });
 const JOBS = {
-  running: job("running", { progress: { step: 1, steps: 2, done: 812, total: 1542, trading_date: "2026-10-23", label: "ticks" } }),
-  failed: job("failed", { error: { message: "Nguồn trả về lỗi", code: "SOURCE_DOWN", source: "vci", http_status: 503, path: "/api/chart" }, progress: { total: 1542 }, summary: { ticks: { symbols_fetched: 812 } } }),
-  done: job("done", { summary: { ticks: { symbols_fetched: 1542, rows: 4949321, symbols_skipped: 0 }, bars_1d: { sessions_added: 1 }, duration_s: 95 } }),
+  running: job("running", { progress: { step: 3, steps: 3, done: 18, total: 40, label: "corporate_actions" } }),
+  failed: job("failed", { error: { message: "nguồn vci_iq đang chặn tạm, thử lại sau ~1 giờ", code: "SourceBlocked", source: "vci_iq", http_status: 0 }, progress: { step: 3, steps: 3, done: 18, total: 40 }, summary: { ticks: { symbols_fetched: 30, rows: 812344, symbols_skipped: 0 }, bars_1d: { sessions_added: 6, symbols_skipped: 0, symbols_deferred: 0 }, corporate_actions: { status: "blocked", symbols_checked: 18, events_upserted: 3, changes: 1, symbols_deferred: 22 } } }),
+  done: job("done", { summary: { ticks: { symbols_fetched: 30, rows: 812344, symbols_skipped: 2 }, bars_1d: { sessions_added: 6, symbols_skipped: 0, symbols_deferred: 5 }, corporate_actions: { status: "partial", symbols_checked: 40, events_upserted: 3, changes: 1, symbols_deferred: 7 }, duration_s: 221 } }),
 };
 
 const b = await chromium.launch();

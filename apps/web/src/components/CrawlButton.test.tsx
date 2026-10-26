@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import i18n from "../i18n";
+import { CrawlStatus } from "./CrawlStatus";
 import { Layout } from "../app/routes";
 import { MemoryRouter } from "react-router-dom";
 
@@ -129,4 +130,47 @@ test("two clicks in the same tick send one POST", async () => {
   act(() => { fireEvent.click(btn()); fireEvent.click(btn()); });
   await flush();
   expect(calls("POST", "/jobs")).toBe(1);
+});
+
+const doneJob = (summary: object) => J({ status: "done", finished_at: "2026-10-26T16:14:00+07:00", summary }) as JobProp;
+const base = { ticks: { symbols_fetched: 30, rows: 812344, symbols_skipped: 2, partial_until: null }, no_session_today: false, duration_s: 221 };
+// A done job is shown only after a running one was seen, so mount running first.
+type JobProp = React.ComponentProps<typeof CrawlStatus>["job"];
+function shown(job: JobProp) {
+  const { rerender } = render(<CrawlStatus job={J({}) as JobProp} refused={null} />);
+  rerender(<CrawlStatus job={job} refused={null} />);
+  return screen.getByRole("status");
+}
+
+test("running step 3 text, vi and en", async () => {
+  current = () => json(J({ progress: { step: 3, steps: 3, label: "corporate_actions", done: 18, total: 40 } }));
+  setup();
+  await flush();
+  expect(status()).toHaveTextContent("Bước 3/3 — sự kiện quyền: 18/40 mã");
+  await act(() => i18n.changeLanguage("en"));
+  expect(status()).toHaveTextContent("Step 3/3 — rights events: 18/40 symbols");
+});
+
+test("done line: events and deferred parts in spec order; absent when 0 / null", () => {
+  const bars = { sessions_added: 6, symbols_skipped: 0, symbols_deferred: 5 };
+  const full = { ...base, bars_1d: bars, corporate_actions: { status: "partial", events_upserted: 3, changes: 1, symbols_deferred: 7 } };
+  expect(shown(doneJob(full)).textContent).toContain("30 mã, 812.344 lệnh khớp · +6 phiên giá ngày · +3 sự kiện quyền (1 thay đổi) · 2 mã bỏ qua · 12 mã chờ lượt sau · 3 phút 41 giây");
+  cleanup();
+  const none = shown(doneJob({ ...full, bars_1d: { ...bars, symbols_deferred: 0 }, corporate_actions: { ...full.corporate_actions, symbols_deferred: 0 } })).textContent;
+  expect(none).toContain("sự kiện quyền");
+  expect(none).not.toContain("chờ lượt");
+  cleanup();
+  const nul = shown(doneJob({ ...base, bars_1d: bars, corporate_actions: null })).textContent;
+  expect(nul).not.toContain("sự kiện quyền");
+  expect(nul).toContain("5 mã chờ lượt sau");
+});
+
+test("failed step 3 keeps steps 1-2 parts and names VCI IQ", () => {
+  const el = shown((J as (o: object) => unknown)({ status: "failed", error: { code: "SourceBlocked", message: "bị chặn", source: "vci_iq" }, summary: { ...base, bars_1d: { sessions_added: 6 }, corporate_actions: { events_upserted: 1, changes: 0 } } }) as JobProp);
+  expect(el).toHaveTextContent("30 mã, 812.344 lệnh khớp · +6 phiên giá ngày · +1 sự kiện quyền (0 thay đổi) · ✕ Lỗi: bị chặn (SourceBlocked) · nguồn VCI IQ");
+});
+
+test("crawl i18n keys: vi and en match", () => {
+  const keys = (l: string) => Object.keys(i18n.getResourceBundle(l, "translation")).filter((k) => k.startsWith("crawl.")).sort();
+  expect(keys("en")).toEqual(keys("vi"));
 });
