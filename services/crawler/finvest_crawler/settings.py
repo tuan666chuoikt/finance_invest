@@ -17,4 +17,5 @@ class Settings(BaseSettings):
     source_snapshot: str = "ssi"
     user_agent: str = "finvest-personal/0.1 (+learning tool, single user)"
     retention_days: int | None = None  # None = keep everything (F-020)
-    rate_per_s: dict[str, float] = {"kbs": 2, "vci": 2, "ssi": 1}
+    rate_per_s: dict[str, float] = {"kbs": 2, "vci": 2, "ssi": 1, "vci_iq": 1}
+    ca_budget: int = 40  # V5 requests per press (data.md 1.2 V5); raise after a press log shows >= 60 ok
