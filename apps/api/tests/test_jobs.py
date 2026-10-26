@@ -51,12 +51,12 @@ def fakes(monkeypatch):
         f.calls.append(("ca", d))
         on_progress(2, 39)
         return SimpleNamespace(status=f.ca_status, source="vci_iq", symbols_checked=2, events_upserted=7,
-                               changes=1, symbols_deferred=28, changed_symbols=["FPT"])
+                               changes=1, symbols_deferred=28, changed_symbols=["FPT"], run_id=1)
 
     monkeypatch.setattr(runner, "run_ticks", ticks)
     monkeypatch.setattr(runner, "run_bars_1d", bars)
     monkeypatch.setattr(runner, "run_corporate_actions", ca)
-    monkeypatch.setattr(runner, "_recompute", lambda e, r, t: f.calls.append(("recompute", 0)))
+    monkeypatch.setattr(runner, "recompute_press", lambda e, c, r: f.calls.append(("recompute", 0)))
     monkeypatch.setattr(runner, "_now", lambda: f.now)
     yield f
     f.gate.set()

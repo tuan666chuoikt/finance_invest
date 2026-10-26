@@ -8,7 +8,7 @@ from datetime import time as dtime
 import httpx
 from finvest_crawler.feeds.bars_1d import COUNT, GAP_MAX, run_bars_1d
 from finvest_crawler.feeds.corporate_actions import run_corporate_actions
-from finvest_crawler.feeds.recompute import append_reason, recompute, recompute_set
+from finvest_crawler.feeds.recompute import recompute_press
 from finvest_crawler.feeds.ticks import run_ticks
 from finvest_crawler.fetch import SourceBlocked
 from finvest_crawler.settings import Settings
@@ -67,14 +67,6 @@ def _blocked_msg(source: str) -> str:
     return f"nguồn {source} đang chặn tạm, thử lại sau ~1 giờ"
 
 
-def _recompute(engine: Engine, ca, since: datetime) -> None:  # noqa: ANN001
-    """Factors + reconstructed rows for the names this press touched; 0 source requests."""
-    with engine.connect() as c:
-        names, _ = recompute_set(c, ca.changed_symbols, since)
-        recompute(c, names)
-        append_reason(c, ca.run_id, f"recompute: {len(names)} symbols")
-
-
 def _error(e: BaseException) -> dict:
     if isinstance(e, _Blocked):
         return {"code": "SourceBlocked", "message": str(e), "source": e.source}
@@ -98,7 +90,7 @@ class _Blocked(Exception):
 
 
 def _run(engine: Engine, settings: Settings, job_id: int) -> None:
-    t0, since = time.monotonic(), datetime.now(UTC)  # `since`: bars_1d_src rows from here are this press
+    t0 = time.monotonic()
     summary: dict = {"ticks": None, "bars_1d": None, "corporate_actions": None, "no_session_today": False}
     prog: dict = {"step": 1, "steps": 3, "label": "ticks", "trading_date": None, "done": 0, "total": 0}
     last = [float("-inf")]
@@ -147,7 +139,7 @@ def _run(engine: Engine, settings: Settings, job_id: int) -> None:
         summary["corporate_actions"] = {
             "status": ca.status, "symbols_checked": ca.symbols_checked, "events_upserted": ca.events_upserted,
             "changes": ca.changes, "symbols_deferred": ca.symbols_deferred}
-        _recompute(engine, ca, since)  # also after a blocked step 3: events read so far are in
+        recompute_press(engine, ca.changed_symbols, ca.run_id)  # also after a blocked step 3 (events so far)
         if ca.status == "blocked":
             raise _Blocked(ca)
     except Exception as e:  # any failure is reported on the row, never lost in the thread

@@ -1,9 +1,9 @@
 """Per-press recompute on a real db (needs FINVEST_DATABASE_URL, db name *_test; excluded from the kernel).
-Hand numbers are tech plan sprint-05 G7, G9, G12."""
+Hand numbers are tech plan sprint-05 G7, G9, G12, G13, G13b."""
 
 import gzip
 import os
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -13,7 +13,7 @@ from alembic import command
 from alembic.config import Config
 from finvest_crawler.adapters.vci.events import parse_events
 from finvest_crawler.adapters.vci.source import parse_bars
-from finvest_crawler.feeds.recompute import recompute, recompute_set
+from finvest_crawler.feeds.recompute import recompute, recompute_press
 from finvest_market_data.domain.models import Bar, CorporateAction
 from finvest_market_data.infrastructure import repositories as repo
 from sqlalchemy import text
@@ -58,8 +58,8 @@ def bar(d: date, c: int, sym="AAA") -> Bar:
     return Bar(sym, datetime.combine(d, time(), VN).astimezone(UTC), c, c, c, c, 1000, None, "vci")
 
 
-def src(conn, closes: dict[date, int], sym="AAA") -> None:
-    repo.upsert_bars_1d_src(conn, [bar(d, c, sym) for d, c in closes.items()], F1)
+def src(conn, closes: dict[date, int], sym="AAA", at=F1) -> None:
+    repo.upsert_bars_1d_src(conn, [bar(d, c, sym) for d, c in closes.items()], at)
 
 
 def event(ex: date, eid="e1", sym="AAA", **kw) -> CorporateAction:
@@ -133,12 +133,57 @@ def test_unusable_event_is_an_anomaly_and_the_symbol_continues(conn):
     assert conn.execute(text("SELECT count(*) FROM data_anomalies")).scalar_one() == 1
 
 
-def test_recompute_set_skips_unchecked_names_and_counts_them(conn):
+def _versions(conn, v0_days, v1_days):
+    """Golden G13/G13b on the db: true nominal 50,000 days 1-10 of 2026-10, cash 1,000 ex day 11 (f = 0.98),
+    49,000 from day 11. V0 = the early full pull (days 1-10, before the ex-date), V1 = a later short pull."""
+    day = lambda n: date(2026, 10, n)  # noqa: E731
+    src(conn, {day(n): 50_000 for n in v0_days}, at=F1 - timedelta(days=5))
+    src(conn, {day(n): 49_000 for n in v1_days}, at=F1)
+    repo.upsert_corporate_actions(conn, [event(day(11))], F1)
+    recompute(conn, ["AAA"])
+    return {r.trading_date.day: r.c for r in stored(conn)[1]}, stored(conn)[0]
+
+
+def test_g13_a_short_newer_version_does_not_skew_the_rows_of_the_older_one(conn):
+    got, f = _versions(conn, range(1, 11), range(8, 13))
+    assert [x[1] for x in f] == ["0.980000000000"]  # hand: P = 49,000 + 1,000 = 50,000; 49,000 / 50,000
+    # days 1-7 stay V0 (last_v = 10 < 11, G_v = 1): 50,000; one global last gives 50,000 / 0.98 = 51,020
+    assert got == {**{n: 50_000 for n in range(1, 11)}, 11: 49_000, 12: 49_000}
+
+
+def test_g13b_the_press_gap_row_before_the_ex_date_stays_nominal(conn):
+    got, f = _versions(conn, range(1, 11), range(12, 17))  # day 11 never fetched: day 10 is a V0 row
+    assert [x[1] for x in f] == ["0.980000000000"]  # hand: P = nominal(10) = 50,000, no inversion
+    assert got == {**{n: 50_000 for n in range(1, 11)}, **{n: 49_000 for n in range(12, 17)}}
+
+
+def _symbols(conn, checked):
     for s in ("AAA", "BBB", "CCC"):
         conn.execute(text("INSERT INTO symbols (symbol, exchange, type, name_vi, name_en, source, fetched_at)"
                           " VALUES (:s, 'HOSE', 'STOCK', '', '', 'vci', now())"), {"s": s})
-    conn.execute(text("UPDATE symbols SET ca_checked_at = now() WHERE symbol IN ('AAA', 'CCC')"))
+    conn.execute(text("UPDATE symbols SET ca_checked_at = now() WHERE symbol = ANY(:c)"), {"c": checked})
+
+
+def test_recompute_set_is_a_watermark_not_a_time_window(conn):
+    _symbols(conn, ["AAA", "CCC"])
     src(conn, {D: 49_500}, "BBB")  # step 2 wrote BBB, but V5 never read it
+    src(conn, {D: 49_500}, "CCC", at=F1 - timedelta(days=9))  # long before any press window, never recomputed
+    assert repo.recompute_set(conn, ["AAA"]) == (["AAA", "CCC"], 1)
+    recompute(conn, ["CCC"])
+    assert repo.recompute_set(conn, []) == ([], 1)  # CCC is current; BBB (unchecked) stays counted
+    src(conn, {D: 49_600}, "CCC", at=F1 + timedelta(days=1))  # a replayed or later archive
+    assert repo.recompute_set(conn, []) == (["CCC"], 1)
+
+
+def test_the_press_notes_the_recompute_on_the_run_row(eng, conn):
+    _symbols(conn, ["AAA", "CCC"])
+    src(conn, {D: 49_500}, "BBB")
     src(conn, {D: 49_500}, "CCC")
-    assert recompute_set(conn, ["AAA"], F1) == (["AAA", "CCC"], 1)
-    assert recompute_set(conn, [], F1.replace(day=16)) == ([], 0)  # nothing written since
+    ids = [repo.insert_crawl_run(conn, "corporate_actions", D, F1) for _ in range(2)]
+    conn.execute(text("UPDATE crawl_runs SET reason = 'x' WHERE id = :i"), {"i": ids[1]})
+    conn.commit()
+    for i in ids:  # CCC is stale on the first press, in `changed` on the second
+        recompute_press(eng, ["AAA", "CCC"], i)
+    q = text("SELECT reason FROM crawl_runs WHERE id = :i")
+    reasons = [conn.execute(q, {"i": i}).scalar_one() for i in ids]
+    assert reasons == ["recompute: 2 symbols, 1 skipped", "x; recompute: 2 symbols, 1 skipped"]

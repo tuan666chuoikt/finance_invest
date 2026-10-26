@@ -12,45 +12,13 @@ from finvest_analytics.adjust.series import cumulative, events_by_ex_date, recon
 from finvest_analytics.domain.models import AdjBar, CorporateAction, Factor
 from finvest_market_data.domain.models import Bar
 from finvest_market_data.infrastructure import repositories as repo
-from finvest_market_data.infrastructure.tables import (
-    bars_1d_src,
-    corporate_actions,
-    crawl_runs,
-    data_anomalies,
-    symbols,
-)
 from finvest_rules import RULES_VERSION, CaEvent, InvalidCorporateAction
-from sqlalchemy import Connection, func, select, update
-from sqlalchemy.dialects.postgresql import distinct_on
+from sqlalchemy import Connection, Engine
 
 SOURCE = "vci"  # the adjusted history that reconstruction inverts (data.md V2)
 VN = ZoneInfo("Asia/Ho_Chi_Minh")
 Anomaly = tuple[date, str, str]  # (ex_date, rule, value)
 Result = tuple[list[Factor], list[Bar], list[Anomaly]]
-
-
-def recompute_set(conn: Connection, changed: Sequence[str], since: datetime) -> tuple[list[str], int]:
-    """(names to recompute, names skipped): CA rows changed this press + names step 2 wrote to bars_1d_src
-    since `since`, only `ca_checked_at IS NOT NULL` (else reconstructed = adjusted, silently wrong)."""
-    wrote = conn.execute(select(bars_1d_src.c.symbol).where(
-        bars_1d_src.c.source == SOURCE, bars_1d_src.c.fetched_at >= since).distinct()).scalars()
-    names = set(changed) | set(wrote)
-    ok = set(conn.execute(select(symbols.c.symbol).where(
-        symbols.c.symbol.in_(names), symbols.c.ca_checked_at.is_not(None))).scalars())
-    return sorted(ok), len(names - ok)
-
-
-def append_reason(conn: Connection, run_id: int, text: str) -> None:
-    conn.execute(update(crawl_runs).where(crawl_runs.c.id == run_id).values(
-        reason=func.concat_ws("; ", crawl_runs.c.reason, text)))
-    conn.commit()
-
-
-def _anomaly(conn: Connection, sym: str, d: date, rule: str, value: str) -> None:
-    t = data_anomalies  # one open row per finding: a re-run of the press adds nothing
-    if not conn.execute(select(t.c.id).where(t.c.symbol == sym, t.c.trading_date == d, t.c.rule == rule,
-                                             t.c.value == value, t.c.resolved_at.is_(None)).limit(1)).first():
-        repo.insert_anomaly(conn, sym, d, rule, value)
 
 
 def _reconstruct(src: list[AdjBar], events: dict[date, list[CaEvent]], observed: dict[date, int]):
@@ -71,30 +39,25 @@ def _reconstruct(src: list[AdjBar], events: dict[date, list[CaEvent]], observed:
 
 
 def _one(conn: Connection, sym: str, acts: list, rules_version: str) -> Result:
-    rows = conn.execute(
-        select(bars_1d_src.c.trading_date, bars_1d_src.c.adj_o, bars_1d_src.c.adj_h, bars_1d_src.c.adj_l,
-               bars_1d_src.c.adj_c, bars_1d_src.c.v, bars_1d_src.c.value, bars_1d_src.c.fetched_at)
-        .where(bars_1d_src.c.symbol == sym, bars_1d_src.c.source == SOURCE)
-        .ext(distinct_on(bars_1d_src.c.trading_date))
-        .order_by(bars_1d_src.c.trading_date, bars_1d_src.c.fetched_at.desc())).all()
+    rows = repo.newest_src_bars(conn, sym, SOURCE)
     if not rows:  # nothing to invert; leave what is stored
         return [], [], []
-    src = [AdjBar(sym, r.trading_date, Decimal(r.adj_c)) for r in rows]
+    src = [AdjBar(sym, r.trading_date, Decimal(r.adj_c), r.last) for r in rows]
     observed = {d: c for d, c, kind, _ in repo.nominal_bars(conn, sym) if kind == "observed"}
     events = events_by_ex_date([CorporateAction(sym, a.ex_date, CaEvent(
         a.type, a.ratio_a, a.ratio_b, a.cash_per_share, a.issue_price), datetime.now(UTC)) for a in acts])
-    first, last = src[0].trading_date, src[-1].trading_date
+    first = src[0].trading_date
     anomalies: list[Anomaly] = [(d, "adj_factor_no_pre_close", "no_bar_before_ex_date")
                                 for d in sorted(events) if d <= first]  # R1: never guessed
     nominal, factors, bad = _reconstruct(src, events, observed)
     anomalies += [(d, "adj_factor_invalid_input", reason) for d, reason in bad]
-    ids = dict(conn.execute(select(corporate_actions.c.ex_date, func.min(corporate_actions.c.id)).where(
-        corporate_actions.c.symbol == sym).group_by(corporate_actions.c.ex_date)).all())
+    ids = repo.corporate_action_ids(conn, sym)
     by_date = {r.trading_date: r for r in rows}
     newest = max(r.fetched_at for r in rows)
     out = []
     for n in nominal:  # same factor for every price of the bar, so the OHLC reconstructs like the close
-        r, g = by_date[n.trading_date], cumulative(factors, n.trading_date, last)
+        r = by_date[n.trading_date]
+        g = cumulative(factors, n.trading_date, r.last)  # its own version's last (R6a)
         o, h, lo = (max(1, round_vnd(Decimal(x) / g)) for x in (r.adj_o, r.adj_h, r.adj_l))
         out.append(Bar(sym, datetime(n.trading_date.year, n.trading_date.month, n.trading_date.day,
                                      tzinfo=VN).astimezone(UTC), o, h, lo, n.c, r.v, r.value, SOURCE))
@@ -103,7 +66,7 @@ def _one(conn: Connection, sym: str, acts: list, rules_version: str) -> Result:
     # the repo guard keeps observed rows
     repo.upsert_bars_1d(conn, out, nominal_kind="reconstructed", fetched_at=newest)
     for d, rule, value in anomalies:
-        _anomaly(conn, sym, d, rule, value)
+        repo.insert_anomaly_once(conn, sym, d, rule, value)
     return factors, out, anomalies
 
 
@@ -117,3 +80,11 @@ def recompute(
         out[sym] = _one(conn, sym, cas[sym], rules_version)
         conn.commit()
     return out
+
+
+def recompute_press(engine: Engine, changed: Sequence[str], run_id: int) -> None:
+    """The press's step 4: recompute the stale names and note it on the `corporate_actions` run row."""
+    with engine.connect() as conn:
+        names, skipped = repo.recompute_set(conn, changed, SOURCE)
+        recompute(conn, names)
+        repo.append_run_reason(conn, run_id, f"recompute: {len(names)} symbols, {skipped} skipped")
