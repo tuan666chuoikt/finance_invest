@@ -90,6 +90,7 @@ def press(tmp_path, repo, *, ex="2026-11-05T00:00:00", status=200, body=None, **
 
 
 def test_budget_defers_the_rest(tmp_path):
+    assert Settings(_env_file=None).ca_budget == 28
     repo = FakeRepo()
     r, seen = press(tmp_path, repo, budget=2)
     assert (r.status, r.symbols_checked, r.symbols_deferred, r.requests) == ("partial", 1, 2, 1)

@@ -442,8 +442,10 @@ def upsert_corporate_actions(
 
 
 def ca_symbols_in_order(conn: Connection, limit: int | None = None) -> list[str]:
-    """Press order: VN30 (current members), then scenario symbols, then the rest by oldest
-    `ca_checked_at` (NULL first). Delisted names are excluded."""
+    """Press order: VN30 (current members), then scenario symbols, then the rest; inside every tier
+    oldest `ca_checked_at` first (NULL first), so presses rotate. Delisted names are excluded.
+    data.md 1.2 V5 v1.8: blocked after 30 ok calls; budget 28 = 30 - 2 margin; a VN30 pass with 3 two-page
+    names costs 33, so it takes two presses >= 1 h apart."""
     # shortcut: api-owned table read by name; move to a view if a third reader appears
     q = text("""
         SELECT symbol FROM (
@@ -452,7 +454,7 @@ def ca_symbols_in_order(conn: Connection, limit: int | None = None) -> list[str]
                                    AND m.index_code = 'VN30' AND m.valid_to IS NULL) THEN 0
                       WHEN s.symbol IN (SELECT DISTINCT symbol FROM scenarios) THEN 1 ELSE 2 END AS tier
           FROM symbols s WHERE NOT s.is_delisted) t
-        ORDER BY tier, CASE WHEN tier = 2 THEN ca_checked_at END NULLS FIRST, symbol
+        ORDER BY tier, ca_checked_at NULLS FIRST, symbol
         LIMIT :n""")
     return [r[0] for r in conn.execute(q, {"n": limit})]
 
