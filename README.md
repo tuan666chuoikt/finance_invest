@@ -76,4 +76,5 @@ make crawl DATE=2026-10-23                        # cào tick cả phiên của 
 - Chạy lại một ngày: gõ lại `make crawl DATE=<ngày>`; ghi idempotent nên không trùng. Thứ bảy/chủ nhật thì in thông báo cuối tuần rồi thoát 0.
 - Khác: `make down`, `make logs`, `make db-shell`. `make down && make up` giữ nguyên dữ liệu.
 - `make test-db`: test db trên host với db của compose (cổng loopback 55432); `make smoke`: kiểm tra nhanh VNINDEX và sổ cào (kỳ vọng 0 dòng).
+- Stack test tách biệt (cho tester): `docker compose -p finvest-test -f docker-compose.yml -f docker-compose.test.yml up -d` (web 127.0.0.1:18080, api 18001, db 15432, dữ liệu `data-test/`). Không bao giờ đụng `finvest-live` / `gw-app@finance_invest`.
 - Phát triển không dùng Docker: `uv sync`, `make test-kernel` (offline).
