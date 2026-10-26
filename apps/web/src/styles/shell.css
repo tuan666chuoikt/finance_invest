@@ -24,6 +24,10 @@
   padding-top: var(--sp-4);
   padding-bottom: var(--sp-4);
 }
+.tb-brand,
+.tb-nav a {
+  white-space: nowrap;
+}
 .tb-brand {
   font-size: var(--fs-lg);
   font-weight: 700;
@@ -111,6 +115,9 @@
   .tb-nav a {
     padding: 0 var(--sp-4);
   }
+}
+/* S05-RW: date-only chip + icon-only crawl button up to 1023 px so the bar stays one line at 768/800 */
+@media (max-width: 1023px) {
   .cb-label,
   .chip-long {
     display: none;

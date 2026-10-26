@@ -98,11 +98,22 @@ describe("ScenarioCard", () => {
         missing_sessions: ["2026-03-04", "2026-03-05", "2026-03-06"],
       },
     }, dca));
-    expect(card.getByText("Ngày mua dời sang 19/10/2026")).toBeInTheDocument();
+    expect(card.getByText(/Ngày mua dời sang ngày giao dịch kế tiếp: 1 lần/)).toBeInTheDocument();
     expect(card.getByText(/Mỗi tháng 2\.000\.000 ₫ \(ngày 15\)/)).toBeInTheDocument();
     expect(card.getByText("▼ −1.000 ₫")).toBeInTheDocument();
     expect(card.getByText(/thiếu 3 phiên/)).toBeInTheDocument();
     expect(card.getByText("04/03/2026, 05/03/2026, 06/03/2026")).toBeInTheDocument();
+  });
+
+  it("DCA with 5 shifts renders one shift line and the dates inside details", async () => {
+    const shifts = ["02", "03", "04", "05", "06"].map((m) => ({ field: "buy_date" as const, from: `2026-${m}-15`, to: `2026-${m}-16`, reason: "non_trading" as const }));
+    const dca: Scenario = { ...lump, style: "dca", amount_vnd: 2_000_000, buy_date: "2026-01-15" };
+    const card = within(await show({ ...env001, result: { ...structuredClone(env001.result), dates: { ...env001.result.dates, shifts } } }, dca));
+    const line = card.getByTestId("dca-shifts");
+    expect(line).toHaveTextContent("Ngày mua dời sang ngày giao dịch kế tiếp: 5 lần");
+    expect(card.getAllByText(/Ngày mua dời sang/)).toHaveLength(1);
+    expect(line.querySelector("details")).toContainElement(card.getByText("Xem"));
+    expect(line.querySelectorAll("details li")).toHaveLength(5);
   });
 
   it("failing computation shows the reason and Edit only on that card", async () => {
