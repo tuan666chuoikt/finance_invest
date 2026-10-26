@@ -9,6 +9,7 @@ from sqlalchemy import (
     Connection,
     Engine,
     Numeric,
+    Row,
     bindparam,
     case,
     create_engine,
@@ -503,12 +504,56 @@ def replace_recon_mismatches(
             for d, o, t, p in rows]))
 
 
-def newest_src_bars(conn: Connection, symbol: str, source: str) -> list[tuple[date, int]]:
-    """(trading_date, adj_c) of the newest `fetched_at` version of each date."""
+def newest_src_bars(conn: Connection, symbol: str, source: str) -> list[Row]:
+    """Per date, the newest `fetched_at` version: (trading_date, adj_o, adj_h, adj_l, adj_c, v, value,
+    fetched_at, last). `last` = max trading_date of the version the row came from, computed before the
+    newest-per-date pick (R6a: a version carries the source's adjustments for ex-dates <= its `last` only)."""
     b = bars_1d_src
-    q = (select(b.c.trading_date, b.c.adj_c).where(b.c.symbol == symbol, b.c.source == source)
+    last = func.max(b.c.trading_date).over(partition_by=b.c.fetched_at).label("last")
+    q = (select(b.c.trading_date, b.c.adj_o, b.c.adj_h, b.c.adj_l, b.c.adj_c, b.c.v, b.c.value,
+                b.c.fetched_at, last)
+         .where(b.c.symbol == symbol, b.c.source == source)
          .ext(distinct_on(b.c.trading_date)).order_by(b.c.trading_date, b.c.fetched_at.desc()))
-    return [(r.trading_date, r.adj_c) for r in conn.execute(q)]
+    return list(conn.execute(q))
+
+
+def recompute_set(conn: Connection, changed: Sequence[str], source: str = "vci") -> tuple[list[str], int]:
+    """(names to recompute, names skipped), platform.md 2.6: `changed` + names whose newest `source`
+    bars_1d_src.fetched_at is newer than their newest reconstructed bars_1d row (none: in), only
+    `ca_checked_at IS NOT NULL` (else reconstructed = adjusted, silently wrong). A watermark, not a time
+    window: a replayed archive, a blocked step or a failed recompute heals on the next press."""
+    b = bars_1d_src
+    done = select(func.max(bars_1d.c.fetched_at)).where(
+        bars_1d.c.symbol == b.c.symbol, bars_1d.c.nominal_kind == "reconstructed").scalar_subquery()
+    stale = select(b.c.symbol).where(b.c.source == source).group_by(b.c.symbol).having(
+        or_(done.is_(None), func.max(b.c.fetched_at) > done))
+    names = set(changed) | set(conn.execute(stale).scalars())
+    ok = set(conn.execute(select(symbols.c.symbol).where(
+        symbols.c.symbol.in_(names), symbols.c.ca_checked_at.is_not(None))).scalars())
+    return sorted(ok), len(names - ok)
+
+
+def corporate_action_ids(conn: Connection, symbol: str) -> dict[date, int]:
+    """ex_date -> id of the first event on that date."""
+    q = select(corporate_actions.c.ex_date, func.min(corporate_actions.c.id)).where(
+        corporate_actions.c.symbol == symbol).group_by(corporate_actions.c.ex_date)
+    return dict(conn.execute(q).all())
+
+
+def insert_anomaly_once(conn: Connection, symbol: str, trading_date: date, rule: str, value: str) -> None:
+    """`insert_anomaly` unless the same finding is still open: a re-run adds nothing."""
+    t = data_anomalies
+    if not conn.execute(select(t.c.id).where(t.c.symbol == symbol, t.c.trading_date == trading_date,
+                                             t.c.rule == rule, t.c.value == value,
+                                             t.c.resolved_at.is_(None)).limit(1)).first():
+        insert_anomaly(conn, symbol, trading_date, rule, value)
+
+
+def append_run_reason(conn: Connection, run_id: int, reason: str) -> None:
+    """Append to a crawl run's `reason`, keeping the prior one ("; " separator)."""
+    conn.execute(update(crawl_runs).where(crawl_runs.c.id == run_id).values(
+        reason=func.concat_ws("; ", crawl_runs.c.reason, reason)))
+    conn.commit()
 
 
 def nominal_bars(conn: Connection, symbol: str) -> list[tuple[date, int, str, int | None]]:

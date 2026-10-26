@@ -60,20 +60,28 @@ class SqlMarketView:
         return sorted(set(out))
 
     def bars_1d(self, symbol: str, start: date, end: date, *, as_of: date) -> list[DailyBar]:
-        t = bars_1d_src
-        q = (select(t.c.trading_date, t.c.adj_o, t.c.adj_h, t.c.adj_l, t.c.adj_c, t.c.v, t.c.fetched_at)
-             .where(t.c.symbol == symbol, t.c.trading_date.between(start, min(end, as_of)))
-             .distinct(t.c.trading_date)  # Postgres DISTINCT ON: newest fetched_at per day
-             .order_by(t.c.trading_date, t.c.fetched_at.desc()))
-        bars = [DailyBar(symbol, *r[:6], _BASIS, r[6]) for r in self._rows(q)]
-        seen, o = {b.trading_date for b in bars}, bars_1d
-        obs = (select(o.c.trading_date, o.c.o, o.c.h, o.c.l, o.c.c, o.c.v, o.c.fetched_at)
-               .where(o.c.symbol == symbol, o.c.nominal_kind == "observed",
-                      o.c.trading_date.between(start, min(end, as_of)))
-               .order_by(o.c.trading_date))
-        rows = [r for r in self._rows(obs) if r[0] not in seen]
+        """Source-adjusted basis (R7 `ours`): `bars_1d` nominal x factors over (d, today].
+
+        shortcut: a symbol with no `reconstructed` row (V5 not reached, platform.md §2.6) falls back to the
+        newest `bars_1d_src` rows, symbol-level never per date; drop when V5 coverage is full (S06).
+        """
+        o, hi = bars_1d, min(end, as_of)
+        rec = select(o.c.symbol).where(o.c.symbol == symbol, o.c.nominal_kind == "reconstructed").limit(1)
+        bars: list[DailyBar] = []
+        if not self._rows(rec):
+            t = bars_1d_src
+            q = (select(t.c.trading_date, t.c.adj_o, t.c.adj_h, t.c.adj_l, t.c.adj_c, t.c.v, t.c.fetched_at)
+                 .where(t.c.symbol == symbol, t.c.trading_date.between(start, hi))
+                 .distinct(t.c.trading_date)  # Postgres DISTINCT ON: newest fetched_at per day
+                 .order_by(t.c.trading_date, t.c.fetched_at.desc()))
+            bars = [DailyBar(symbol, *r[:6], _BASIS, r[6]) for r in self._rows(q)]
+        seen = {b.trading_date for b in bars}
+        q = (select(o.c.trading_date, o.c.o, o.c.h, o.c.l, o.c.c, o.c.v, o.c.fetched_at)
+             .where(o.c.symbol == symbol, o.c.trading_date.between(start, hi))
+             .order_by(o.c.trading_date))
+        rows = [r for r in self._rows(q) if r[0] not in seen]
         if rows:
-            # source-adjusted basis: nominal x factors over (d, today] (R7 `ours`)
+            # nominal x factors over (d, today]
             today = _today()
             fs = self._factors(symbol, today)
             self.corporate_actions(symbol, rows[0][0], today, as_of=today)  # rows applied move the snapshot

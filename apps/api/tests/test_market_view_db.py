@@ -24,12 +24,14 @@ pytestmark = [
                        reason="db name must end in _test (the test drops its tables)"),
 ]
 
+T = [bars_1d, corporate_actions, adj_factors]
+
 
 def test_newest_fetch_wins_and_as_of_hides_later_days():
     eng = create_engine(URL)  # type: ignore[arg-type]
     t = bars_1d_src
-    metadata.drop_all(eng, tables=[t])
-    metadata.create_all(eng, tables=[t])
+    metadata.drop_all(eng, tables=[*T, t])
+    metadata.create_all(eng, tables=[*T, t])
     f1, f2 = datetime(2026, 10, 15, 8, tzinfo=UTC), datetime(2026, 10, 16, 8, tzinfo=UTC)
     d14, d15 = date(2026, 10, 14), date(2026, 10, 15)
     rows = [(d14, f1, 93_000), (d14, f2, 93_500), (d15, f1, 94_000)]
@@ -46,8 +48,8 @@ def test_newest_fetch_wins_and_as_of_hides_later_days():
 
 def test_a_day_only_in_bars_1d_is_served_and_moves_the_snapshot():
     eng = create_engine(URL)  # type: ignore[arg-type]
-    metadata.drop_all(eng, tables=[bars_1d_src, bars_1d])
-    metadata.create_all(eng, tables=[bars_1d_src, bars_1d])
+    metadata.drop_all(eng, tables=[*T, bars_1d_src])
+    metadata.create_all(eng, tables=[*T, bars_1d_src])
     f1, f2 = datetime(2026, 10, 15, 8, tzinfo=UTC), datetime(2026, 10, 16, 9, tzinfo=UTC)
     d14, d15, d16 = date(2026, 10, 14), date(2026, 10, 15), date(2026, 10, 16)
     obs = dict(symbol="FPT", o=1, h=1, l=1, v=1, source="ssi", nominal_kind="observed")
@@ -65,7 +67,6 @@ def test_a_day_only_in_bars_1d_is_served_and_moves_the_snapshot():
     eng.dispose()
 
 
-T = [bars_1d, corporate_actions, adj_factors]
 D1, D = date(2026, 10, 2), date(2026, 10, 5)  # D1 = last session before the ex-date D
 
 
@@ -108,4 +109,34 @@ def test_bars_1d_serves_observed_close_on_the_source_adjusted_basis():
     assert v.snapshot() == datetime(2026, 10, 27, 9, 22, tzinfo=UTC)
     [ca] = v.corporate_actions("FPT", date.min, D, as_of=D)
     assert (ca.ex_date, ca.event.cash_per_share) == (D, 1000)
+    eng.dispose()
+
+
+def test_bars_1d_reads_one_basis_not_mixed_src_versions():
+    """F0 full (nominal 50,000, 1,000 cash ex D) + short F1 after D: 49,000 on every pre-D day."""
+    eng = create_engine(URL)  # type: ignore[arg-type]
+    _seed_ca(eng)
+    days = [date(2026, 9, 28), date(2026, 9, 29), date(2026, 9, 30), date(2026, 10, 1), D1]
+    f0, f1 = datetime(2026, 10, 1, 9, tzinfo=UTC), datetime(2026, 10, 6, 9, tzinfo=UTC)
+
+    def src(sym, d, f, p):
+        return dict(symbol=sym, trading_date=d, source="vci", v=1, fetched_at=f,
+                    adj_o=p, adj_h=p, adj_l=p, adj_c=p)
+
+    def rec(d):  # D1 stays the observed row from _seed_ca
+        return dict(symbol="FPT", trading_date=d, o=50_000, h=50_000, l=50_000, c=50_000, v=1, source="vci",
+                    nominal_kind="reconstructed", fetched_at=f1)
+
+    with eng.begin() as c:
+        c.execute(insert(bars_1d_src), [src("FPT", d, f0, 50_000) for d in days[:4]]
+                  + [src("FPT", D1, f1, 49_000), src("FPT", D, f1, 49_000)])
+        c.execute(insert(bars_1d), [rec(d) for d in days[:4]])
+    v = SqlMarketView(eng)
+    got = v.bars_1d("FPT", days[0], D, as_of=D)
+    assert [(b.trading_date, b.c) for b in got] == [(d, 49_000) for d in days]  # no step at the F1 edge
+    assert v.snapshot() == datetime(2026, 10, 27, 9, 22, tzinfo=UTC)  # G11: the CA row applied
+    # a symbol with no reconstructed row keeps the newest-version src rows
+    with eng.begin() as c:
+        c.execute(insert(bars_1d_src), [src("VNM", days[0], f0, 70_000), src("VNM", days[0], f1, 68_000)])
+    assert [b.c for b in SqlMarketView(eng).bars_1d("VNM", days[0], D, as_of=D)] == [68_000]
     eng.dispose()

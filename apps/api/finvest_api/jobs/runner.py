@@ -8,6 +8,8 @@ from datetime import time as dtime
 import httpx
 from finvest_crawler.feeds.bars_1d import COUNT, GAP_MAX, run_bars_1d
 from finvest_crawler.feeds.corporate_actions import run_corporate_actions
+from finvest_crawler.feeds.recompute import recompute_press
+from finvest_crawler.feeds.recon import run_recon
 from finvest_crawler.feeds.ticks import run_ticks
 from finvest_crawler.fetch import SourceBlocked
 from finvest_crawler.settings import Settings
@@ -90,7 +92,8 @@ class _Blocked(Exception):
 
 def _run(engine: Engine, settings: Settings, job_id: int) -> None:
     t0 = time.monotonic()
-    summary: dict = {"ticks": None, "bars_1d": None, "corporate_actions": None, "no_session_today": False}
+    summary: dict = {"ticks": None, "bars_1d": None, "corporate_actions": None, "recon": None,
+                     "no_session_today": False}
     prog: dict = {"step": 1, "steps": 3, "label": "ticks", "trading_date": None, "done": 0, "total": 0}
     last = [float("-inf")]
 
@@ -135,10 +138,12 @@ def _run(engine: Engine, settings: Settings, job_id: int) -> None:
             raise _Blocked(m)
         step(3, "corporate_actions", today)  # also after a `partial` step 2 (platform.md 2.6 v1.14)
         ca = run_corporate_actions(settings, today, on_progress=on_progress)
-        changed_symbols = ca.changed_symbols  # noqa: F841  # input of the factor recompute (BE-ca-recompute)
         summary["corporate_actions"] = {
             "status": ca.status, "symbols_checked": ca.symbols_checked, "events_upserted": ca.events_upserted,
             "changes": ca.changes, "symbols_deferred": ca.symbols_deferred}
+        recompute_press(engine, ca.changed_symbols, ca.run_id)  # also after a blocked step 3 (events so far)
+        rc = run_recon(settings, today)  # 0 source calls; same default set as `crawl recon`
+        summary["recon"] = {"symbols": rc.expected, "checked": rc.checked, "mismatches": rc.mismatches}
         if ca.status == "blocked":
             raise _Blocked(ca)
     except Exception as e:  # any failure is reported on the row, never lost in the thread

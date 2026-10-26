@@ -1,4 +1,4 @@
-"""Golden runner for tests/golden/adjust/*.json (G1-G9, G11, G12) + no-look-ahead and determinism guards.
+"""Golden runner for tests/golden/adjust/*.json (G1-G9, G11-G13b) + no-look-ahead and determinism guards.
 
 Case keys: hand[], op (adjusted | reconstruct), events[{ex_date, type, ratio_a, ratio_b, cash_per_share,
 issue_price, fetched_at}]; adjusted: symbol, bars_fetched_at, nominal{date: close}, as_of; reconstruct:
@@ -12,6 +12,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from finvest_analytics.adjust.recon import reconcile
 from finvest_analytics.adjust.series import (
     cumulative,
     events_by_ex_date,
@@ -21,6 +22,8 @@ from finvest_analytics.adjust.series import (
 from finvest_analytics.domain.models import AdjBar, CorporateAction, DailyBar, Factor, NominalBar
 from finvest_analytics.fixtures import FixtureView
 from finvest_rules import CaEvent
+from hypothesis import given
+from hypothesis import strategies as st
 
 CASES = sorted((Path(__file__).parent / "golden" / "adjust").glob("*.json"))
 D = date.fromisoformat
@@ -44,10 +47,16 @@ def run(spec: dict) -> dict:
     """Execute a case and return everything it computed as strings (stable, JSON-serialisable)."""
     acts = actions(spec)
     if spec["op"] == "reconstruct":
-        src = [AdjBar("FPT", D(d), Decimal(a)) for d, a in spec["src"].items()]
+        src_last = spec.get("src_last", {})  # per-row version `last` (R6a), optional
+        src = [
+            AdjBar("FPT", D(d), Decimal(a), D(src_last[d]) if d in src_last else None)
+            for d, a in spec["src"].items()
+        ]
         observed = {D(d): c for d, c in spec["observed"].items()}
         nominal, factors = reconstruct(src, events_by_ex_date(acts), observed)
+        rec = reconcile(nominal, factors, src)  # no observed rows -> self-consistency, each day exact
         return {
+            "recon_exact": f"{rec.exact_days}/{rec.checked}",
             "nominal": {str(b.trading_date): b.c for b in nominal},
             "kinds": sorted({b.nominal_kind for b in nominal}),
             "factors": {str(f.ex_date): str(f.f) for f in factors},
@@ -121,9 +130,45 @@ def test_cumulative_uses_stored_rows_and_open_lower_bound():
 
 def test_snapshot_ignores_unapplied_future_ca_row():
     fetched = datetime.fromisoformat("2026-10-26T16:14:00+07:00")
-    late = CorporateAction("FPT", D("2026-10-05"), CaEvent("cash_dividend", None, None, 1000, None),
-                           datetime.fromisoformat("2026-10-27T16:22:00+07:00"))
+    late = CorporateAction(
+        "FPT",
+        D("2026-10-05"),
+        CaEvent("cash_dividend", None, None, 1000, None),
+        datetime.fromisoformat("2026-10-27T16:22:00+07:00"),
+    )
     bars = [DailyBar("FPT", D("2026-10-02"), 50000, 50000, 50000, 50000, 1, "nominal", fetched)]
     view = FixtureView({"FPT": bars}, {}, fetched, "nominal", {"FPT": [late]})
     view.adjusted_close("FPT", date.min, date.max, as_of=D("2026-10-02"))
     assert view.snapshot() == fetched
+
+
+RECON_CASES = [c for c in CASES if json.loads(c.read_text())["op"] == "reconstruct"]
+
+
+@given(st.integers(0, 3), st.sampled_from(RECON_CASES))
+def test_property_two_versions_reconstruct_same_nominal(overlap, case):
+    """Split a golden `src` in two (R6a): V0 = rows before the first ex-date (last_v = its last day, so
+    nominal itself), V1 = the rest plus `overlap` earlier days, each adjusted by the factors up to its own
+    last_v. The newest row per date is read, as the crawler does: same nominal."""
+    spec = json.loads(case.read_text())
+    if spec["observed"] or "src_last" in spec:
+        return
+    acts = actions(spec)
+    dates = sorted(D(d) for d in spec["src"])
+    first_ex = min(a.ex_date for a in acts)
+    pre = [d for d in dates if d < first_ex]
+    if not pre or first_ex not in dates:  # nothing before it, or an event the source never saw
+        return
+    base = run(spec)
+    nominal = {D(d): c for d, c in base["nominal"].items()}
+    factors = [Factor("FPT", D(d), Decimal(f)) for d, f in base["factors"].items()]
+    cut = max(0, len(pre) - overlap)
+    v0 = [AdjBar("FPT", d, Decimal(nominal[d]), pre[-1]) for d in pre[:cut]]
+    v1 = [
+        AdjBar(
+            "FPT", d, (nominal[d] * cumulative(factors, d, dates[-1])).quantize(Decimal("0.01")), dates[-1]
+        )
+        for d in dates[cut:]
+    ]
+    got, _ = reconstruct(v0 + v1, events_by_ex_date(acts), {})
+    assert {b.trading_date: b.c for b in got} == nominal

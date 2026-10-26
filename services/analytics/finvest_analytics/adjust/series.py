@@ -68,7 +68,8 @@ def adjusted(nominal_bars: list[NominalBar], factors: list[Factor], as_of: date)
 def reconstruct(
     src_bars: list[AdjBar], events: dict[date, list[CaEvent]], observed: dict[date, int]
 ) -> tuple[list[NominalBar], list[Factor]]:
-    """R6: walk backwards from the newest source version; `observed` maps date -> observed nominal close.
+    """R6/R6a: walk backwards; each row is divided by G over ex-dates <= its own version's `last`
+    (`AdjBar.last`); `observed` maps date -> observed nominal close.
 
     Events dated after the last source bar are not applied (the source could not know them); one dated at
     or before the first bar adjusts nothing. P of an ex-date is the observed close of the day before when
@@ -81,16 +82,22 @@ def reconstruct(
     factors: list[Factor] = []
     for d in sorted((e for e in events if first < e <= last), reverse=True):
         prev = [b for b in src if b.trading_date < d][-1]
+        last_v = prev.last or last
         # P is observed only if the latest source bar before D is; else invert (source has every trading day)
         if prev.trading_date in observed:
             p = observed[prev.trading_date]
+        elif last_v < d:  # R6a: that version predates the ex-date, its row is already nominal for D
+            p = round_vnd(prev.c / cumulative(factors, prev.trading_date, last_v))
         else:
-            p = pre_close_from_adjusted(prev.c / cumulative(factors, d, last), events[d])
+            p = pre_close_from_adjusted(prev.c / cumulative(factors, d, last_v), events[d])
         factors.append(Factor(sym, d, factor(events[d], p)))
     factors.sort(key=lambda x: x.ex_date)
     nominal = [
         NominalBar(
-            sym, b.trading_date, round_vnd(b.c / cumulative(factors, b.trading_date, last)), "reconstructed"
+            sym,
+            b.trading_date,
+            round_vnd(b.c / cumulative(factors, b.trading_date, b.last or last)),
+            "reconstructed",
         )
         for b in src
         if b.trading_date not in observed
