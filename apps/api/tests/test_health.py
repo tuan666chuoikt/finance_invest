@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from finvest_api.deps import get_engine
 from finvest_api.main import app
+from finvest_rules.costs import RULES_VERSION
 
 
 class _Conn:
@@ -38,7 +39,7 @@ def _get(fail):
 def test_health_ok():
     r = _get(False)
     assert r.status_code == 200
-    assert r.json() == {"status": "ok", "db": "ok", "version": "0.1.0", "rules_version": None}
+    assert r.json() == {"status": "ok", "db": "ok", "version": "0.1.0", "rules_version": RULES_VERSION}
 
 
 def test_health_db_down():

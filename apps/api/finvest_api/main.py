@@ -4,6 +4,7 @@ from importlib.metadata import version
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
+from finvest_rules.costs import RULES_VERSION
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
@@ -41,5 +42,4 @@ def health(engine: Engine = Depends(get_engine)):
             status_code=503,
             content={"error": {"code": "DB_UNAVAILABLE", "message": "database unreachable", "details": {}}},
         )
-    # rules_version stays null until F-001
-    return {"status": "ok", "db": "ok", "version": version("finvest-api"), "rules_version": None}
+    return {"status": "ok", "db": "ok", "version": version("finvest-api"), "rules_version": RULES_VERSION}
