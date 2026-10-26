@@ -1,0 +1,7 @@
+F-013	1	Daily bar on each press: acceptance + missed-press case	BE-mig-0010,BE-observed-bar
+F-014	5	Corporate-actions table + diff log, crawl step 3 (V5 spike first)	BE-v5-adapter,BE-ca-repo,BE-ca-step3,FE-crawl-step3
+F-015	5	Adjusted series + reconstructed nominal	AI-ca-factors,AI-adjust-series,BE-ca-recompute
+F-016	3	Reconciliation, VN30 30/30	AI-recon-rules,BE-recon-cli,BE-recon-s2
+F-023	2	data_snapshot definition, reproducibility, /health rules_version	BE-market-view-ca
+F-033	1	No-broker audit test	OPS-guards
+S05-RW	2	Carry-overs: OBS-7 768 top bar, 768/800 shots, header wrap, DCA shift line	FE-e2e-carry,FE-rw,FE-shots

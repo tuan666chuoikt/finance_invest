@@ -1,0 +1,5 @@
+2026-10-26 11:42 | pm      | sprint-plan              | note      | S05 plan: 7 items 19/20 pts; F-013 2->1, F-023 3->2; M0 V5+S2 spike; L1-L3 daily presses; no new sponsor Q | sprints/sprint-05/1-sprint-plan.md
+2026-10-26 11:42 | fi-po   | PRD                      | revised   | v2.2: R1 release criterion press-based (≥5 trading days pressed, manifests complete/explained); v2.1 archived as prd.prev-3.md | -
+2026-10-26 11:48 | ai-arch | sprint-plan              | note      | S05 AI plan v1: 3 tasks ~520 lines (factors/series/recon), 12 golden cases, 9 rules; vn-market.md v1.1 adds combined formula + inversion (S7 | sprints/sprint-05/2-tech-plan.ai.md
+2026-10-26 12:01 | sa      | M0                       | note      | V5/S2 spike by hand: 5 calls, toDate required, valuePerShare/payoutDate found, no block seen -> B=40/press; data.md v1.4, fixture spike/v5-c | sprints/sprint-05/spike/v5-call4.json
+2026-10-26 12:01 | sa      | sprint-plan              | note      | S05 tech plan v1.0: 17 tasks (BE 10 incl OPS, FE 4 incl manual FE-shots, AI 3) ~2,500 lines; platform v1.14 step 3; tester.md R5 + compose i | sprints/sprint-05/2-tech-plan.md

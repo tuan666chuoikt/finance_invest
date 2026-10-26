@@ -1,0 +1,7 @@
+M0	Spike V5 + S2 block behaviour and V5 fields recorded in data.md 1.2	2026-10-27 10:00	-
+L1	sm: sponsor presses Cao du lieu after 15:00; confirm 10-27 tick manifest + SSI board bar + crawl_runs (lost for good if missed)	2026-10-27 23:00	-
+M1	F-013, F-014 (table + step 3), F-033, S05-RW merged	2026-10-28 12:00	BE-mig-0010,BE-observed-bar,BE-v5-adapter,BE-ca-repo,BE-ca-step3,OPS-guards,AI-ca-factors,FE-e2e-carry,FE-crawl-step3,FE-rw
+L2	sm: press after 15:00 with step 3 live; confirm 10-28 manifest, board bar, VN30 corporate_actions rows (lost for good if missed)	2026-10-28 23:00	-
+M2	F-015, F-016, F-023 merged; VN30 recon 30/30	2026-10-29 12:00	AI-adjust-series,AI-recon-rules,BE-ca-recompute,BE-market-view-ca,BE-recon-cli,BE-recon-s2
+L3	sm: press after 15:00; confirm 10-29 manifest + recon run before review (lost for good if missed)	2026-10-29 16:30	-
+M3	Tests + screenshots (incl. 768/800), review, merge	2026-10-29 18:00	FE-shots

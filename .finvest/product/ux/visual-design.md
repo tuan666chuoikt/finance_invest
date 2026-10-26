@@ -1,7 +1,7 @@
 # UX — Visual design (all screens)
 
 Stories: F-129 (tokens + base stylesheet), F-130 (shell layout), F-131 (scenarios screen), F-132 (visual acceptance
-check). Sponsor request A25 (2026-10-25). Owner: `fi-pm`. Behaviour, texts and states stay as in `ux/app-shell.md`
+check). Sponsor request A25 (2026-10-25). S05 additions (2026-10-26): 768–1023 top bar, DCA shift line, header labels, 768/800 shots. Owner: `fi-pm`. Behaviour, texts and states stay as in `ux/app-shell.md`
 and `ux/scenario-dashboard.md`; this file defines only **how things look**. Where a screen spec and this file
 disagree on appearance, this file wins.
 
@@ -114,6 +114,9 @@ Weights: 400 body, 500 labels in tables/headers, 600 titles and headline figures
 - < 768 px: nav collapses into the `tb-menu` button (☰, 40×40) that opens a dropdown sheet under the bar (`--shadow-2`);
   chip shows date only ("15/10 15:42"); crawl button icon-only ⟳ (accessible name unchanged); VI | EN stays visible.
   Nothing wraps to a second bar line; no horizontal scroll at 375 px.
+- **768–1023 px (S05-RW, OBS-7):** nav links stay inline but the brand and links use `white-space: nowrap`; the
+  freshness chip shows date only (as < 768) and the crawl button is icon-only ⟳ with the same accessible name, so the
+  bar stays **one line** at 768 and 800. Any item label wraps inside itself = fail ("⟳ Cào dữ liệu" on 2 lines was OBS-7).
 
 ## 5. Disclaimer band and crawl status line (F-130)
 - Disclaimer: full-width band under the top bar, `--warn-bg` bg, `--text` text (not `--warn`, for long-text
@@ -143,7 +146,9 @@ Weights: 400 body, 500 labels in tables/headers, 600 titles and headline figures
 ### 6.3 Card
 - `--surface`, 1 px `--border`, radius `--r-md`, `--shadow-1` (light), padding `--sp-4`, vertical rhythm `--sp-2`.
 - Line 1: "FPT" 600 + " · Mua một lần" `--text-muted`, ⋯ `.btn-icon` at right. Line 2: dates `--fs-sm` `--text-muted`.
-  Shift notice `--fs-xs` `--text-muted`.
+  Shift notice `--fs-xs` `--text-muted`. **DCA (S05-RW):** at most one shift line: "Ngày mua dời sang ngày giao dịch kế
+  tiếp: 5 lần" / "Buy date moved to the next trading day: 5 times" with a "Xem" toggle that lists the dates; lump sum
+  keeps its single line.
 - Approximate flag: inline chip, `--warn-bg` bg, `--warn` text, `--fs-xs`, radius `--r-sm`, "⚠ ≈ Gần đúng — …"; wraps.
 - Figures as a 2-column label/value list (label left `--text-muted` `--fs-sm`; value right, tabular, `--fs-md`):
   Đã đầu tư · **Giá trị nếu bán** (value `--fs-xl` 600, the card headline) · Lãi/Lỗ (₫ and %, each `▲ +` / `▼ −` / `=` in
@@ -163,6 +168,8 @@ Weights: 400 body, 500 labels in tables/headers, 600 titles and headline figures
 - Sort: header is a button filling the cell; the active column shows ▲/▼ after the label and `aria-sort`; inactive shows a
   faint ↕ on hover/focus.
 - Name column `.sticky` (left 0, `--surface` bg, right border) at < 1024 px. Footer note `--fs-xs` muted under the table.
+- **Header labels ≤ 2 lines at 1280 (S05-RW):** the benchmark columns read "so với VN-Index" / "so với E1VFVN30" with
+  the unit "(điểm %)" moved to a `title` + the footer note ("Cột so với: chênh lệch tính bằng điểm %").
 
 ### 6.5 Add / edit side panel form (`scenario-panel`)
 - ≥ 768 px: right-side drawer, width 440 px (max 100 vw), full height under nothing (covers the top bar), `--surface`,
@@ -208,6 +215,8 @@ Weights: 400 body, 500 labels in tables/headers, 600 titles and headline figures
    one DCA, one with a P/L down); (b) empty state; (c) table view; (d) add form open with one validation error;
    (e) how-computed open; (f) crawl status running and error (mocked); (g) API error state. Files:
    `sprint-NN/screens/<screen>-<375|1280>-<light|dark>.png`, listed in `4-test.fe.md`.
+   **From S05 (retro S04 R2):** also **768×1024 light** and **800×900 light** for screens (a) and (f) →
+   `<screen>-<768|800>-light.png`.
 2. **Checklist per shot**, compared against this file — each line pass/fail in `4-test.fe.md`:
    - no serif font anywhere; no default grey OS button; page bg/surface match §3.1 for the scheme;
    - columns: 1 at 375, 3 at 1280 (2 checked once at 800 px); no horizontal page scroll at 375
@@ -215,6 +224,8 @@ Weights: 400 body, 500 labels in tables/headers, 600 titles and headline figures
    - P/L shows ▲/▼/= + sign + the §3.2 colour; approximate flag is the warn chip; benchmarks n/a is muted text;
    - figures right-aligned/tabular in the table; Name column sticky at 375;
    - top bar is one line at 375 (menu button, icon crawl button, VI | EN visible); disclaimer band visible on /scenarios;
+   - top bar and page header do not wrap at 768 and 800 (one bar line; no label broken over 2 lines); 2 card columns at 800;
+   - table header labels ≤ 2 lines at 1280; a DCA card shows at most one shift line;
    - focus ring visible on Tab to: Add, view toggle, a card (i), a form field (one extra shot at 1280 light with focus).
 3. **Automated guards** (in vitest or a script, they fail the build): every `var(--name)` in `apps/web/src/**/*.{ts,tsx,css}`
    is defined in `tokens.css` (and inside the dark block for colour tokens); `getComputedStyle(body).fontFamily` does not

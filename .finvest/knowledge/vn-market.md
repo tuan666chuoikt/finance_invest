@@ -1,6 +1,6 @@
 # Vietnamese stock market rules (domain truth for every agent)
 
-Owner: `fi-ai-architect`. **Status: v1 verified 2026-10-15** (draft 2026-10-14 from general knowledge; every rule now
+Owner: `fi-ai-architect`. **Status: v1.1, 2026-10-26** (v1 verified 2026-10-15; v1.1 adds §6 combined-event formula + inversion, S7) (draft 2026-10-14 from general knowledge; every rule now
 carries a tag). Tags: **[verified src, date]** = read in a primary or official-derived source on that date;
 **[practice]** = consistent market practice, no single legal text; **[verify]** = still unconfirmed, code must flag it
 (`verified=false` in `packages/market_rules`, shown on the rules page, C7). Rules change (KRX system 05/05/2025,
@@ -12,7 +12,8 @@ new KRX system, PDF dated 15/08/2025, cts.vn → vbse.vn); S2 = "Quy định gia
 HNX + UPCoM); S3 = VSD Decision 109/QĐ-VSD (clearing & settlement regulation, effective 29/08/2022, via lsvn.vn,
 thitruongtaichinhtiente.vn); S4 = Law 109/2025/QH15 on PIT + Decree 253/2026/NĐ-CP (effective 01/07/2026) via
 thuvienphapluat.vn, PwC, Forvis Mazars summaries; S5 = Circular 102/2021/TT-BTC (securities service price caps, effective
-01/01/2022) via thuvienphapluat.vn; S6 = DSC broker comparison 2026 + company ex-right notices (stockbiz.vn).
+01/01/2022) via thuvienphapluat.vn; S6 = DSC broker comparison 2026 + company ex-right notices (stockbiz.vn); S7 = broker/education pages on ex-date reference
+prices (finhay.com.vn, dsc.com.vn, luatduonggia.vn, read 2026-10-26; combined formula, no exchange text).
 Primary texts on hsx.vn / hnx.vn / vsd.vn were not reachable from this machine (404/empty); S1–S2 are broker reprints of
 the exchange rules, so §2–§4 count as **verified (secondary)**; re-check against hsx.vn/hnx.vn at R1.
 
@@ -94,6 +95,17 @@ the exchange rules, so §2–§4 count as **verified (secondary)**; re-check aga
   simulator default `round_down_cancel`, overridable per event.
 - **Rights issue** ratio a:b at price S: adjusted reference = (P × a + S × b) / (a + b); exercising costs cash;
   no adjustment when S ≥ pre-ex average price [verified S1].
+- **Several events on one ex-date** combine in **one** reference formula, ratios summed in the denominator
+  (r = b/a per event): P_adj = (P − c + S·r_rights) / (1 + r_bonus + r_rights); factor = P_adj / P [practice S7:
+  broker/education pages 2026-10-26 — finhay.com.vn "giá cổ phiếu sau khi chia cổ tức", dsc.com.vn "cổ tức là gì",
+  luatduonggia.vn example 39,550 / (1 + 7 % + 13 %) = 32,958; no exchange text found]. Cash + bonus alone equals the
+  product of the two single-event factors; **with a rights issue it does not** (50,000, cash 1,000, rights 10:2 at
+  10,000 → combined 42,500; product 42,466.67). Factors of **different** ex-dates multiply. **Independent check:**
+  the exchange publishes its own result as the ex-date **reference price** on the board (S1 `ref`); ours must match
+  within 1 tick (§3 rounding direction still [verify]).
+- **Reconstructing the pre-ex nominal close** from a source-adjusted close A (data.md §1.4): invert the same formula,
+  P = A/G · (1 + r_bonus + r_rights) − S·r_rights + c, where G = product of factors with later ex-dates (so no circularity);
+  if S ≥ P the rights term is dropped and P recomputed [derived from the formula above; 1 VND rounding per step].
 - **Adjusted price series** (giá điều chỉnh) back-adjust history by these factors. Rule: *charts and
   indicators* may use adjusted prices; *the what-if simulator* replays nominal prices plus the actual
   corporate-action events (cash in, shares in), and the two must agree on total return (F-046, ADR-A-001).
@@ -133,6 +145,7 @@ crawl start; proprietary flow none; corporate actions ≥ 10 years.
 | §5 T+2, before 13:00, sell afternoon T+2 | verified S3 |
 | §6 fractional bonus shares round down | practice S6 (issuer-specific) |
 | §6 CA formulas | principle verified S1; formulas practice |
+| §6 combined same-day formula, pre-ex inversion (2026-10-26) | practice S7; check = board `ref` on ex-date within 1 tick (F-016) |
 Totals: 13 verified (incl. secondary), 2 practice, 5 still [verify] (UPCoM end time, Saturday make-up, rounding
 direction, HNX/UPCoM max order, stock-dividend tax base). One value changed (HNX ETF tick 100 → 1 đ); one addition
 (UPCoM no ATC confirmed; PLO phases).

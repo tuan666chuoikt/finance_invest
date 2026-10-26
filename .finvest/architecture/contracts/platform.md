@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.13, 2026-10-24 review** (§4 wording: `missed` never overwrites `partial`/`complete`, ledger row = richest manifest; v1.12 = `platform.prev-13.md`; v1.12: §2.6 step 2 = indices + S1 snapshot + capped gap fetch, target session, blocked rules and message; §4 live `bars_1d` ledger row, `deferred` skip, ledger repair; v1.11 = `platform.prev-12.md`; v1.11: §2.6 batch cap = `BATCH_MAX`; v1.10: §2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.14, 2026-10-26 S05 plan** (§2.6 step 3 corporate actions, `symbols_deferred`, `/health.rules_version`; v1.13 = `platform.prev-14.md`; v1.13: §4 wording: `missed` never overwrites `partial`/`complete`, ledger row = richest manifest; v1.12 = `platform.prev-13.md`; v1.12: §2.6 step 2 = indices + S1 snapshot + capped gap fetch, target session, blocked rules and message; §4 live `bars_1d` ledger row, `deferred` skip, ledger repair; v1.11 = `platform.prev-12.md`; v1.11: §2.6 batch cap = `BATCH_MAX`; v1.10: §2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -179,6 +179,18 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   3 consecutive skipped units (any reason, `FAIL_RUN`) end the run `blocked`; no request follows; the job is `failed`,
   `error.code = "SourceBlocked"`, `error.message = "nguồn <source> đang chặn tạm, thử lại sau ~1 giờ"`, `http_status` 0 = timed out.
 - Progress: `done/total` are symbols in step 1 and names in step 2 (advanced per batch); the runner updates the row at most every 2 s.
+  **v1.14 (S05, F-013/F-014/F-023):** `progress.steps = 3`; step 3 `label = "corporate_actions"`, `done/total` = symbols read
+  this press. `summary.bars_1d` gains `symbols_deferred` (count of names skipped `deferred` by `GAP_MAX`). New
+  `summary.corporate_actions = {"status": "ok"|"partial"|"blocked", "symbols_checked", "events_upserted", "changes",
+  "symbols_deferred"} | null` (null when step 3 did not start): `changes` = `corporate_action_log` rows written this press,
+  `symbols_deferred` = listed names not read this press (budget B = 40 requests, data.md §1.2 V5; order VN30 → saved-scenario
+  symbols → `symbols.ca_checked_at` NULLS FIRST, oldest first). Step 3 runs after step 2 even when step 2 ended `partial`; a
+  blocked step 3 → job `failed`, `error.code = "SourceBlocked"`, `error.source = "vci_iq"`, `summary` keeps steps 1–2 and the
+  partial step 3 counts. After step 3, for every symbol whose rows changed, factors and reconstructed `bars_1d` rows are
+  recomputed in the same job (F-015; 0 requests; `crawl_runs` feed `corporate_actions` carries `rows` = events, `reason` =
+  "recompute: <n> symbols"). `GET /api/health.rules_version` = `finvest_rules.costs.RULES_VERSION` (string, never null).
+  After the recompute the job runs the local reconciliation (F-016, 0 requests) on VN30 + saved-scenario symbols and sets
+  `summary.recon = {"symbols", "checked", "mismatches"} | null` (null when step 3 did not run).
 - Crash safety: on api start-up every `running` job is set `failed`, `error.code = "interrupted"` (the thread died with the
   container). The crawler's own `crawl_runs`/`crawl_sessions` rows are written as before (§4); the job row is additional.
 - CLI parity: `make crawl DATE=…` / `make backfill` still work and share nothing with the api lock — the sponsor is told

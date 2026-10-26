@@ -18,4 +18,13 @@
 5. **Run once, rerun reds only**, through `q.sh`; e2e under `flock /tmp/fi-e2e.lock`.
 6. **Report** `SPRINT_DIR/4-test.<side>.md`: verdict PASS/FAIL, coverage map, bugs, real numbers.
    Commit your tests on `test/sprint-NN/<side>` and push with `sm.sh push`; the lead merges them.
+   **A run is finished only when `4-test.<side>.md` and `shots/` are in FI_ROOT's SPRINT_DIR** (retro S04 R5): archive the
+   old report there as `4-test.<side>.prev-<n>.md`, copy from your worktree, and name the FI_ROOT path in the log line. The PM
+   reviews from FI_ROOT only; a report that sits in the test worktree counts as not run.
+8. **Compose isolation (S05):** the sponsor's live deployment is compose project **`finvest-live`** on `127.0.0.1:8080/8001`
+   (+ db 55432), started by `gw-app@finance_invest`. Never `docker compose down/stop/restart` it and never stop that unit.
+   Your stack uses **another project name and other host ports** via an override file, e.g.
+   `docker compose -p finvest-test-<side> -f docker-compose.yml -f docker-compose.test.yml up -d` with the override mapping
+   `127.0.0.1:18080:80`, `127.0.0.1:18001:8000`, `127.0.0.1:15432:5432` and its own `./data-test` volume; point `screens.mjs`
+   / `real-stack.mjs` at those ports; `docker compose -p finvest-test-<side> down -v` when done.
 7. **Log** `<fe|be>-test <story-or-batch> green|red "<pass/fail counts>" 4-test.<side>.md`; hand back ≤ 5 lines.

@@ -17,6 +17,10 @@ items on F-032/F-055/F-056 (no new ids, no points: the stories were committed an
 PO note: PRD PR-020 still says "runs from a timer" — PO to align the PRD with A23.
 2026-10-25 — sponsor request **A25** (no visual design): new **Sprint-04 slice** F-129…F-132 (15 pts) + S04-RW carry-overs
 (3 pts); UX spec `ux/visual-design.md`; DoD for UI stories now requires screenshots checked against it. F-048 n/a wording refined (R4-2).
+2026-10-26 — sprint-05 planning: **Sprint-05 slice** (F-013, F-014, F-015, F-016, F-023, F-033 + S05-RW, 19 pts). F-013 2→1 and
+F-023 3→2 (mostly delivered in S03); F-014 needs a V5 block spike first (retro S03 R2) and runs as crawl step 3 (A23);
+F-015 adds reconstructed nominal (A18-A) and a rights example; F-016 list shows on F-021 later (CLI until then).
+
 
 Conventions
 - `F-###` story → `PR-###` requirement. Points 1/2/3/5/8 (nothing above 8). Status: **Ready** (refined,
@@ -33,12 +37,13 @@ Conventions
 |---|---|---|---|---|
 | **S03 slice — Scenario dashboard** (pulled forward; + F-034 by A23) | E1, E3, E4 | 11 | 30 | Ready |
 | **S04 slice — Visual design** (A25) + S04-RW | E3 | 4 (+RW) | 18 | Ready |
-| R1 Data foundation (rest) | E1, E2, E3 | 21 | 76 | Ready |
+| **S05 slice — Prices are right** + S05-RW | E2, E3 | 6 (+RW) | 17 (+2) | Ready |
+| R1 Data foundation (rest) | E1, E2, E3 | 15 | 57 | Ready |
 | R2 What-if (rest) | E4, E8 | 11 | 38 | Backlog |
 | R3 Price board | E5, E8 | 13 | 45 | Backlog |
 | R4 Scenarios | E6, E8 | 14 | 46 | Backlog |
 | R5 Why it moved | E7, E8 | 7 | 24 | Backlog |
-| **v1 (slice + R1–R5)** | | **77** | **259** | |
+| **v1 (S03 + S05 slices + R1–R5)** | | **77** | **257** | |
 | R6 Later | E9 | 9 | ~41 (rough) | Deferred |
 
 Traceability: every one of the 61 PR-### maps to at least one story (table at the end). PR-112 (exercises) has
@@ -149,6 +154,33 @@ Decision time: n/a (presentation only).
 
 ---
 
+## Sprint-05 slice — Prices are right (2026-10-26)
+
+Goal: daily update, corporate actions, nominal + adjusted series, reconciled on VN30 — under A23 (manual press only)
+and retro S03 R2 (spike each new source's block behaviour before planning its throughput). Re-checked 2026-10-26:
+F-013 and F-023 were mostly delivered in S03 (F-034, BE-ssi-snapshot, F-051) and shrink by 1 pt each.
+
+| Story | Pts | What | Depends on |
+|---|---|---|---|
+| F-013 | 1 | Daily bar on each press: acceptance + missed-press case | F-034 |
+| F-014 | 5 | Corporate-actions table + diff log, crawl step 3 (after the V5 spike) | F-034 |
+| F-015 | 5 | Adjusted series + reconstructed nominal | F-014 |
+| F-016 | 3 | Reconciliation, VN30 30/30 | F-015 |
+| F-023 | 2 | data_snapshot definition, reproducibility, /health rules_version | F-014 |
+| F-033 | 1 | No-broker audit test | — |
+| S05-RW | 2 | Carry-overs from sprint-04 review/retro (UI) | — |
+| **Total** | **19** | | |
+
+**S05-RW Carry-overs from sprint-04** · 2 pts · Ready · UX: `ux/visual-design.md` §4, §6.3, §6.4, §9 (S05 lines)
+- **OBS-7** Given 768 and 800 px, Then the top bar is one line (chip date only, icon crawl button) and no label breaks over 2 lines.
+- **Shots (retro S04 R2)** Given the screenshot script, Then it also writes 768×1024 and 800×900 light shots for screens (a) and (f),
+  and the §9.2 checklist has the 768/800 lines.
+- **Header** Given the table at 1280, Then every header label is ≤ 2 lines ("so với E1VFVN30", unit in title + footer).
+- **DCA shift lines** Given a DCA card with 5 shifted buy dates, Then it shows one line "Ngày mua dời sang ngày giao dịch kế tiếp: 5 lần" + "Xem".
+- Tester-artifact rule (retro S04 R5) is a brief change for sa, not a story item.
+
+---
+
 ## R1 — Data foundation
 
 ### E1 Market rules and reference data (L1)
@@ -212,28 +244,61 @@ Decision time: n/a (presentation only).
 - Given the back-fill is interrupted, When re-run, Then it resumes without duplicates.
 - Given back-fill completes, Then coverage % per exchange is computed for G2 (target ≥ 99.5 %).
 
-**F-013 Daily incremental update** · PR-010 · 2 pts · Ready
-- Given a completed trading session, When the after-close job runs, Then that day's bar is added for every listed symbol and index.
-- Given the job runs twice for the same date, Then the result is identical (idempotent).
+**F-013 Daily incremental update** · PR-010 · ~~2~~ **1 pt** · Ready · **S05** · re-checked against A23 (2026-10-26)
+Re-scope: no after-close job (A23); F-034's press + BE-ssi-snapshot (S03) already add the day's bar. What is left is
+the acceptance of that path and the missed-press case. Decision time: n/a (data collection).
+- Given trading day 27/10/2026 and a press after 15:00, Then the 27/10 bar is stored for every listed stock the SSI board
+  (S1, 3 calls) answers — source `ssi`, observed nominal — and for VNINDEX and VN30 (V2); names the board did not answer
+  are V2 gaps within the press budget (`GAP_MAX`), the rest are `deferred`, fetched first on the next press, and the done
+  line says "· N mã chờ lượt sau".
+- Given the same date is pressed twice, Then rows and the manifest checksum are identical (idempotent).
+- Given no press on 27/10 and a press on 28/10, Then the board answers 28/10 only (SourceNoLongerServes for 27/10), 27/10
+  comes from V2 (source-adjusted, so its nominal is `reconstructed` per F-015) and the run lists it — never silently absent.
 
-**F-014 Corporate-actions table with diff log** · PR-011 · 5 pts · Ready
-- Given the source's events, When refreshed daily, Then each row has symbol, type (cash dividend, stock
-  dividend/bonus, rights, split/merge, listing change), ex-date, record date, pay date, ratio/amount/price,
-  source, fetched-at (VN§6).
-- Given a past event's ex-date changes at the source, Then the row is updated and a diff-log entry records old/new value and time.
+**F-014 Corporate-actions table with diff log** · PR-011 · 5 pts · Ready · **S05** · re-checked against A23 and retro S03 R2 · UX: `ux/app-shell.md` §Crawl button (step 3)
+Decision time: an event is knowable from its `publicDate` (V5), not its ex-date; store both so R2 (F-043/F-044) can test look-ahead.
+**Spike first (retro S03 R2):** V5 (`iq.vietcap.com.vn`) block behaviour — block signal, request budget before a block,
+hold/retry window, batch/page limit — and the pay-date / cash-per-share field names, in ≤ 6 polite calls, recorded in
+`data.md` §1.2 V5. The per-press budget below cites that line.
+- Given V5 events for a symbol, When a press runs step 3 ("Bước 3/3 — sự kiện quyền"), Then each row has symbol, type
+  (cash_dividend, stock_dividend/bonus, rights, split/merge, listing_change), ex-date, record date, pay date,
+  ratio / amount per share / issue price, public date, source, source event id, fetched-at (VN§6).
+  Example: FPT "Trả cổ tức bằng tiền 1.000 đồng/cp", exrightDate 2026-11-05 → cash_dividend, amount 1,000 VND;
+  "Thưởng cổ phiếu tỷ lệ 10:1"/`exerciseRatio` 0.1 → stock_dividend a:b = 10:1 (holder of 10 gets 1).
+- Given a stored event whose ex-date changes at the source (2026-11-05 → 2026-11-07), When the next press runs, Then the row
+  is updated and `corporate_action_log` gets one entry (field ex_date, old 2026-11-05, new 2026-11-07, changed_at);
+  a press with no change writes no log entry (idempotent).
+- Given ~1,600 listed symbols and the V5 per-press budget B (from the spike), Then each press checks VN30 members and the
+  symbols of saved scenarios first, then the others oldest-checked first, up to B; the rest are deferred and counted in the
+  done line ("· 12 mã chờ lượt sau"); repeated presses reach every listed symbol (no symbol is skipped for good).
+- Given a field the spike could not map (pay date or cash amount), Then it is parsed from `eventTitleVi`; if that fails the row
+  is stored with the value NULL and listed in `data_anomalies` ("corporate action amount missing") — never guessed.
+- Given V5 blocks (3 × 429/403/418/hold, F-011), Then step 3 stops with "Lỗi: nguồn VCI IQ chặn (HTTP 418 ×3)", the reason is
+  in `crawl_runs`, and steps 1–2 results stay stored.
+- UI: step 3 progress and "+3 sự kiện quyền (1 thay đổi)" in the done line per `ux/app-shell.md`; screenshot DoD (screen f).
 
-**F-015 Adjusted price series** · PR-012 · 5 pts · Ready
+**F-015 Adjusted price series and reconstructed nominal** · PR-012 · 5 pts · Ready · **S05**
 - Decision time: adjusted series are retroactive by design (VN§6) and are for charts/indicators only; the
-  simulator uses nominal prices + events.
+  simulator uses nominal prices + events (F-043/F-044, R2 — so the scenario "approximate" flag stays until then).
 - Given nominal closes D−2 = 51,000, D−1 = 50,000 and a cash dividend 1,000/share ex on D, When adjusted,
   Then factor = (50,000 − 1,000) / 50,000 = 0.98 and adjusted closes are D−1 = 49,000, D−2 = 49,980.
 - Given a bonus issue 10:3 ex on D with D−1 close 93,500, Then factor = 10/13 and adjusted D−1 = 71,923.08.
-- Given both events, Then factors multiply; re-running yields byte-identical output (reproducible).
+- Given a rights issue 10:2 at 10,000 ex on D with D−1 close 50,000, Then adjusted reference = (50,000 × 10 + 10,000 × 2) / 12
+  = 43,333.33 and factor = 0.866667; if the rights price ≥ the pre-ex price, factor = 1 (VN§6).
+- Given both a cash and a bonus event, Then factors multiply; re-running yields byte-identical output (reproducible).
+- Given a date before crawl start with V2 source-adjusted close 49,000 and our cumulative factor 0.98 after it, Then the
+  reconstructed nominal close = 49,000 / 0.98 = 50,000 with `nominal_kind = reconstructed` (A18-A); a date with an S1
+  board bar keeps `nominal_kind = observed` and is never overwritten by a reconstruction.
 
-**F-016 Adjusted-series reconciliation** · PR-012 · 3 pts · Ready
-- Given our adjusted close 49,000 and the source's 48,900, Then mismatch = 0.204 % > 0.1 % and it is listed on the data-quality page.
-- Given 49,000 vs 48,980 (0.041 %), Then it is not listed.
-- Given the VN30 constituents, Then a reconciliation run covers all 30 (R1 release criterion).
+**F-016 Adjusted-series reconciliation** · PR-012 · 3 pts · Ready · **S05**
+Decision time: n/a (data quality). Runs after step 3 of a press (local, 0 source calls) plus a VN30 cross-check on S2
+(30 calls; block behaviour in the same spike as F-014).
+- Given our adjusted close 49,000 and the source's 48,900, Then mismatch = 100 / 48,900 = 0.204 % > 0.1 % and a
+  `recon_mismatches` row (symbol, date, ours, source, %) is written.
+- Given 49,000 vs 48,980 (0.041 %), Then no row.
+- Given the VN30 constituents, Then a reconciliation run covers all 30 (R1 release criterion) and reports "30/30, k mismatches".
+- Given dates before crawl start, Then the check is self-consistency (reconstructed × factor == source-adjusted, to 1 VND).
+- Display: the list appears on the Data-quality page when F-021 lands (S06); until then `crawl recon` (CLI) prints it.
 
 **F-017 Tick crawl after close with manifest** · PR-013, C1 · 8 pts · Ready
 - Given a trading day, When the after-close crawl runs, Then for each symbol it stores time, price, volume,
@@ -273,9 +338,13 @@ boot catch-up; crawling starts only from F-034's button or the manual command be
   duplicate tick (same time, price, volume, sequence), Then each is listed with symbol, date and rule.
 - Given an anomaly is fixed by a re-crawl, Then it disappears from the list on the next check.
 
-**F-023 Data snapshot and rules version on results** · PR-133 · 3 pts · Ready
-- Given any computed result, Then it carries `data_snapshot` (max fetched-at of inputs) and `rules_version`.
-- Given the same snapshot and rules version, When recomputed, Then numbers are identical.
+**F-023 Data snapshot and rules version on results** · PR-133 · ~~3~~ **2 pts** · Ready · **S05**
+Re-scope: S03 already returns `data_snapshot` and `rules_version` on every figure and shows them in "how computed".
+Left: the definition, the reproducibility test and the health field. Decision time: n/a (provenance metadata).
+- Given a result whose inputs were fetched at 26/10/2026 16:14 (bars) and 27/10/2026 16:22 (a corporate action), Then
+  `data_snapshot` = 2026-10-27T16:22+07:00 (max fetched-at of the inputs actually used, not the last bar date).
+- Given the same inputs, snapshot and `rules_version` (now 2026.10.16), When recomputed, Then every number is identical (test).
+- Given `GET /health`, Then `rules_version` is the current RULES_VERSION, not null.
 
 ### E3 Platform and guardrails
 
@@ -321,8 +390,9 @@ Decision time: n/a (data collection, no analysis). Uses the existing `POST /jobs
 - Given the app is installed, Then no timer, cron or boot job crawls by itself (test: no systemd unit / scheduler entry in
   the repo's install targets; `make` has no timer install step).
 
-**F-033 No-broker audit test** · PR-130 · 1 pt · Ready · (split from F-032; S04)
-- Given the dependency tree, Then an audit test finds no broker SDK and no order-placement endpoint.
+**F-033 No-broker audit test** · PR-130 · 1 pt · Ready · (split from F-032) · **S05**
+- Given the Python and npm dependency trees, Then an audit test finds no broker SDK and no order-placement endpoint
+  (a denylist of package names and URL patterns such as `/order`, `placeOrder`) and fails the build if one appears.
 
 ---
 

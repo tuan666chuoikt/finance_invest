@@ -1,6 +1,6 @@
 # Finvest — Product Requirements Document (PRD)
 
-Owner: `fi-po`. Status: **Approved v2, revised v2.1** (A23 manual crawl, 2026-10-24; v2 archived as `prd.prev-2.md`, v1 as `prd.prev-1.md`).
+Owner: `fi-po`. Status: **Approved v2, revised v2.2** (v2.2 2026-10-26: R1 criterion press-based, no timer; v2.1 A23 manual crawl, 2026-10-24; v2.1 archived as `prd.prev-3.md`, v2 as `prd.prev-2.md`, v1 as `prd.prev-1.md`).
 Inputs: `product/brief.md`, `product/sponsor-answers.md` (A1–A4, 2026-10-14 21:57; A5–A12, 2026-10-15 18:15),
 `knowledge/vn-market.md` (cited as VN§n), `docs/00-kha-thi.md`, `docs/04-lo-trinh-hoc.md` (levels L1–L8).
 Anything the sponsor has not confirmed is tagged `[assumed]`. Free data only; anything that costs money is an
@@ -290,13 +290,13 @@ Each requirement: priority · learning outcome (L#) · acceptance the PM turns i
 ### Count
 
 61 requirements: 34 Must, 16 Should, 11 Could; Won't items are listed in §6, not as PR-###.
-(v1→v2: PR-020 M→S, PR-092 S→C, PR-136 S→C, PR-137 added as M; PR-019/092 moved to R6. v2.1: PR-020 timer → manual button, A23.)
+(v1→v2: PR-020 M→S, PR-092 S→C, PR-136 S→C, PR-137 added as M; PR-019/092 moved to R6. v2.1: PR-020 timer → manual button, A23. v2.2: R1 release criterion press-based.)
 
 ## 8. Releases and release criteria
 
 | Release | Content (PR) | Learning | Release criteria |
 |---|---|---|---|
-| **R1 Data foundation** (first; start the tick crawl as early as possible, C1) | 001–004, 010–013, 016, 017, 020, 130–133, 135, 137 | L1 (raw data, adjusted prices) | Tick manifests for ≥ 5 sessions (need not be consecutive) with 0 silent gaps and every missed session listed with a reason; daily OHLCV ≥ 99.5% coverage; adjusted series reconciled for VN30 with mismatches listed; rules page shows verification status; Crawl button started ≥ 5 crawls from the web app; UI switches EN/VI |
+| **R1 Data foundation** (first; start the tick crawl as early as possible, C1) | 001–004, 010–013, 016, 017, 020, 130–133, 135, 137 | L1 (raw data, adjusted prices) | Tick manifests for ≥ 5 sessions (need not be consecutive) with 0 silent gaps and every missed session listed with a reason; daily OHLCV ≥ 99.5% coverage; adjusted series reconciled for VN30 with mismatches listed; rules page shows verification status; Crawl button pressed on ≥ 5 trading days with complete or explained manifests (A23; an unpressed day loses its ticks); UI switches EN/VI |
 | **R2 What-if** | 030–034, 037, 039, 110, 111 | L2 | All golden cases pass (1 VND); what-if vs adjusted-series return within 0.05% on 10 dividend stocks; benchmark shown; "how computed" on every figure; disclaimer on screen |
 | **R3 Price board** | 050, 051, 056, 053, 014, 015, 052, 054, 055 | L1 | Watchlist ≤ 5 s median in session, stale badge verified by cutting the source; all states (empty, loading, error, stale, closed, holiday) have UX specs and tests; colours match VN§3 for ceiling/floor/reference cases |
 | **R4 Scenarios** | 070–073, 075, 078, 035, 036, 074, 134 | L3, L4, L5 | Look-ahead test passes; same engine as R2 (shared tests); every ranking renders with OOS column; a documented walk-forward example on "best of last 7 days" |

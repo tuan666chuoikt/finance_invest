@@ -28,16 +28,16 @@ Stories: F-031 (PR-137), F-032 (PR-130), F-034 (PR-020, A23 — crawl button). O
 | Market closed / holiday | Chip text "Market closed (holiday: Quốc khánh)" from F-003/F-005 |
 | Empty (first run) | Body: "Chưa có dữ liệu. Bấm **Cào dữ liệu** để lấy lần đầu" / "No data yet. Press **Crawl data**" (F-034); the command (F-030) as a secondary line |
 
-## Crawl button (F-034, A23)
+## Crawl button (F-034, A23; step 3 and "chờ lượt sau" added S05 for F-014/F-013)
 Manual only: nothing crawls unless this button (or the CLI) is used. Placement: top bar, left of the language switch.
 One job at a time, enforced by the server (`POST /jobs` → 409), not only by disabling the button.
 
 | State | Button | Status line (under the top bar, `role="status"`, `aria-live="polite"`) |
 |---|---|---|
 | Idle | "⟳ Cào dữ liệu" / "⟳ Crawl data"; tooltip shows the last run, e.g. "Lần cuối: 26/10/2026 16:14 · xong" | none |
-| Running | disabled, spinner + "Đang cào…" / "Crawling…", `aria-busy="true"` | step + progress: "Bước 1/2 — lệnh khớp 26/10: 12/30 mã" then "Bước 2/2 — giá ngày: 3/6 phiên"; elapsed time. Survives reload (state read from the job). |
+| Running | disabled, spinner + "Đang cào…" / "Crawling…", `aria-busy="true"` | step + progress: "Bước 1/3 — lệnh khớp 26/10: 12/30 mã" then "Bước 2/3 — giá ngày: 3/6 phiên" then (S05, F-014) "Bước 3/3 — sự kiện quyền: 18/40 mã"; elapsed time. Survives reload (state read from the job). |
 | Refused (already running) | stays running | "Đang có một lượt cào chạy (bắt đầu 16:10) — chờ xong" / "A crawl is already running (started 16:10)"; no second job |
-| Done | back to idle | "✓ Xong 16:14 · 30 mã, 812.344 lệnh khớp · +6 phiên giá ngày · 2 mã bỏ qua · 3 phút 41 giây" ("Chi tiết" → Data quality page / manifest); no session today → "✓ Xong 09:02 · Hôm nay không có phiên — +1 phiên giá ngày · 18 giây"; session open → adds "(một phần, đến 10:30)". Dismissible; the freshness chip refreshes. |
+| Done | back to idle | "✓ Xong 16:14 · 30 mã, 812.344 lệnh khớp · +6 phiên giá ngày · +3 sự kiện quyền (1 thay đổi) · 2 mã bỏ qua · 3 phút 41 giây"; names left for a later press (block budget) add "· 12 mã chờ lượt sau" / "· 12 names left for the next press" (S05, F-013/F-014) ("Chi tiết" → Data quality page / manifest); no session today → "✓ Xong 09:02 · Hôm nay không có phiên — +1 phiên giá ngày · 18 giây"; session open → adds "(một phần, đến 10:30)". Dismissible; the freshness chip refreshes. |
 | Error | back to idle (press again to retry) | "✕ Lỗi: không có quyền ghi data/raw/ticks/2026-10-26 (PermissionError)" — always the cause + the path or source (HTTP code, "nguồn KBS chặn", "không kết nối được máy chủ"); partial results already written are stated ("đã lưu 12/30 mã"). Not auto-dismissed. |
 
 Non-colour cues: ⟳ / spinner / ✓ / ✕ icons plus text. Keyboard: in the Tab order after the freshness chip; Enter/Space

@@ -21,6 +21,9 @@
    - money/return code: a test with a hand-computed expected value (fees, tax, lot rounding, dividends).
 6. **Write** `SPRINT_DIR/3-build.<TASK>.md`: result, files, what changed, contract honored, checks with
    real numbers (q.sh summary lines), deviations, outside-set edits, notes for the tester.
+   **UI task (retro S04 R3):** attach one 1280×800 light screenshot of the touched screen (`PW_DIR=/tmp/pw BASE=http://127.0.0.1:<your port>
+   OUT=SPRINT_DIR/shots/<TASK> node apps/web/e2e/screens.mjs`, then keep only the touched screen; mocked API is fine; the
+   script is on the sprint branch from S05 — if it is not, say so in the build note instead) — no shot, no PR.
 7. **Push and PR:** `cd <worktree> && $FI_DIR/bin/sm.sh push` then `$FI_DIR/bin/sm.sh pr <TASK>`
    (opens a GitHub PR when `gh` exists; otherwise prints "branch-only", which is fine).
 8. **Log** `dev <TASK> pr-open "<checks summary>" 3-build.<TASK>.md`, then hand back in ≤ 5 lines.

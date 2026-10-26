@@ -17,7 +17,8 @@
    `flock /tmp/fi-e2e.lock`. Classify reds honestly (flake only if it passes alone 3×).
 5. **No green, no merge** (retro S01 R1). If the side kernel (or `-m db` for tasks that touch migrations,
    repositories or SQL) cannot run on the synced head, the verdict is `BLOCKED: checks not runnable`, never
-   APPROVE. Record the q.sh summary line; 'not runnable' is not a pass.
+   APPROVE. Record the q.sh summary line; 'not runnable' is not a pass. A UI task's PR without its 1280 light
+   shot in the build note (dev.md step 6, retro S04 R3) → CHANGES_REQUIRED.
    **Verdict first.** Write/append a round to `SPRINT_DIR/3-pr.<TASK>.md`: `APPROVE` or
    `CHANGES_REQUIRED`, files reviewed, must-fix items (numbered, each with file:line and the test that
    must prove it), nits, check results with real numbers, the reviewed head sha H.
