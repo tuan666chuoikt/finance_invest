@@ -85,7 +85,7 @@ class NominalBar:
     symbol: str
     trading_date: date
     c: int
-    nominal_kind: str  # observed | reconstructed (A18-A)
+    nominal_kind: Literal["observed", "reconstructed"]  # A18-A
 
 
 @dataclass(frozen=True)

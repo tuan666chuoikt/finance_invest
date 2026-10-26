@@ -81,6 +81,7 @@ def reconstruct(
     factors: list[Factor] = []
     for d in sorted((e for e in events if first < e <= last), reverse=True):
         prev = [b for b in src if b.trading_date < d][-1]
+        # P is observed only if the latest source bar before D is; else invert (source has every trading day)
         if prev.trading_date in observed:
             p = observed[prev.trading_date]
         else:

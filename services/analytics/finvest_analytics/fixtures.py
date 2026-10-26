@@ -13,6 +13,7 @@ class FixtureView:
     snapshot_at: datetime
     basis: str = "source_adjusted"
     actions: dict[str, list[CorporateAction]] = field(default_factory=dict)
+    _served: list[datetime] = field(default_factory=list, init=False, repr=False)  # CA fetched_at served
 
     def calendar(self, start: date, end: date) -> list[date]:
         days = (end - start).days + 1
@@ -28,7 +29,9 @@ class FixtureView:
         return [b for b in self.index.get(code, []) if start <= b.trading_date <= min(end, as_of)]
 
     def corporate_actions(self, symbol: str, start: date, end: date, *, as_of: date) -> list[CorporateAction]:
-        return [a for a in self.actions.get(symbol, []) if start <= a.ex_date <= min(end, as_of)]
+        rows = [a for a in self.actions.get(symbol, []) if start <= a.ex_date <= min(end, as_of)]
+        self._served.extend(a.fetched_at for a in rows)
+        return rows
 
     def adjusted_close(self, symbol: str, start: date, end: date, *, as_of: date) -> list[AdjBar]:
         """Fixture bars are nominal observed closes; factors derive from CA rows with ex_date <= as_of."""
@@ -38,10 +41,8 @@ class FixtureView:
         rows = adjusted(nominal, forward_factors(symbol, nominal, events_by_ex_date(applied)), as_of)
         return [r for r in rows if start <= r.trading_date <= end]
 
-    def snapshot(self, as_of: date | None = None) -> datetime:
-        seen = [a.fetched_at for acts in self.actions.values() for a in acts
-                if as_of is None or a.ex_date <= as_of]
-        return max([self.snapshot_at, *seen])
+    def snapshot(self) -> datetime:
+        return max([self.snapshot_at, *self._served])  # served rows only, like SqlMarketView (R9)
 
     def price_basis(self) -> str:
         return self.basis

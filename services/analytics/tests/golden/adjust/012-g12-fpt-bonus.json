@@ -1,7 +1,7 @@
 {
   "hand": [
     "FPT 10 % bonus (10:1) ex 2026-09-21: f = 10/11 = 0.909090909091",
-    "A(2026-09-18) = 65,182.47 (V2 row) -> P = 65,182.47 * 1.1 = 71,700.717 -> 71,701 (+-1 VND); tester compares with a public nominal page"
+    "Synthetic neighbours 09-17/09-21/09-22; only A(2026-09-18) = 65,182.47 is a V2 row -> P = 65,182.47 * 1.1 = 71,700.717 -> 71,701 (+-1 VND); tester compares with a public nominal page"
   ],
   "op": "reconstruct",
   "src": {"2026-09-17": "65182.47", "2026-09-18": "65182.47", "2026-09-21": "65000.00", "2026-09-22": "65100.00"},

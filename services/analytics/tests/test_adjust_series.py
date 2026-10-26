@@ -65,7 +65,7 @@ def run(spec: dict) -> dict:
         "adj": {
             str(b.trading_date): str(b.c) for b in view.adjusted_close("FPT", date.min, date.max, as_of=as_of)
         },
-        "snapshot": view.snapshot(as_of).isoformat(),
+        "snapshot": view.snapshot().isoformat(),
     }
 
 
@@ -117,3 +117,13 @@ def test_cumulative_uses_stored_rows_and_open_lower_bound():
         "0.769230769231"
     )  # ex-date itself excluded
     assert cumulative(fs, date(2026, 10, 4), date(2026, 10, 6)) == Decimal("0.980000000000")
+
+
+def test_snapshot_ignores_unapplied_future_ca_row():
+    fetched = datetime.fromisoformat("2026-10-26T16:14:00+07:00")
+    late = CorporateAction("FPT", D("2026-10-05"), CaEvent("cash_dividend", None, None, 1000, None),
+                           datetime.fromisoformat("2026-10-27T16:22:00+07:00"))
+    bars = [DailyBar("FPT", D("2026-10-02"), 50000, 50000, 50000, 50000, 1, "nominal", fetched)]
+    view = FixtureView({"FPT": bars}, {}, fetched, "nominal", {"FPT": [late]})
+    view.adjusted_close("FPT", date.min, date.max, as_of=D("2026-10-02"))
+    assert view.snapshot() == fetched
