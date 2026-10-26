@@ -6,3 +6,6 @@ Negative check: test_audit_catches_banned_dependency appends `vnstock` to a tmp 
 Compose: `config` with both files shows only published 18001, 15432, 18080; no 8080/8001/55432. Uses `!override` (Compose >= 2.24; here v5.1.1) because list merge would otherwise append base ports.
 Outside-set edits: .gitignore + `data-test/`.
 Notes for tester: the source scan skips tests/, e2e/, test_*, *.test.*, *.spec.*, node_modules, .venv.
+
+## Fix round 1
+Fixed all 3 must-fix: E501 (kernel green), PEP 503 normalisation of both sides (ib-insync now caught; tests for it and for order_hits added), test override uses image finvest-test-app:local on api+crawler and README/header use `up -d --build`. Merged origin/sprint-05.

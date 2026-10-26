@@ -37,3 +37,32 @@ down/up/down/up, G9 93,499 over 93,500, observed over reconstructed, heads == 00
 - `pytest -m db`: 30 passed, 260 deselected
 - kernel `pytest -m "not db"`: 260 passed, 30 deselected
 - ruff: All checks passed; lint-imports: exit 0
+
+## Round 2 — 2026-10-26, fi-tech-lead (BE, opus) — APPROVE
+
+Reviewed head H = c98afab (745e591 fix + sync merge of origin/sprint-05 80d47cb, no conflicts, pushed).
+Size: 4 files, +293/-1 (plan ~200, stop 300) — OK.
+
+Files reviewed: `apps/api/migrations/versions/0010_corporate_actions_bars_1d.py` (fix commit 745e591 touches only this
+file); `tables.py`, `repositories.py`, `test_repositories_db.py` unchanged since round 1 (PASS there).
+
+Must-fix 1 (round 1): DONE. 0010 now has frozen inline `op.create_table` for bars_1d, corporate_actions,
+corporate_action_log, adj_factors, recon_mismatches + `op.add_column("symbols", ca_checked_at)`; compared column by
+column with `tables.py`: names, types (BIGINT prices, NUMERIC(20,12), NUMERIC(8,4), TIMESTAMPTZ), nullability, Identity,
+PKs, `bars_1d_nominal_kind_check`, `corporate_actions_source_event_key` all identical. Downgrade restores observed ssi
+rows first, then drops the column and tables in reverse order. `rg 'infrastructure import tables' apps/api/migrations`:
+no match.
+
+### Must-fix
+- none.
+
+### Nits (optional)
+- none.
+
+### Checks on H (throwaway db finvest_lead_mig0010_r2_test, dropped after)
+- `pytest -m db`: 30 passed, 280 deselected
+- kernel `pytest -m "not db"`: 280 passed, 30 deselected
+- ruff: All checks passed; mypy (project config): no issues in 5 files; lint-imports: exit 0
+- `alembic heads`: 0010 (head)
+
+Merged: f5bb4dd (sm.sh merge, base 80d47cb, head c98afab). Worktree removed.

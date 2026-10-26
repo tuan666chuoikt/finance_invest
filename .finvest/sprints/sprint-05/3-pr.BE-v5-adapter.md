@@ -28,3 +28,11 @@ The 4 silent-card decisions in the build note are consistent with the card and d
 ### Checks on H (offline, `make test-kernel` via q.sh)
 - kernel: exit 0 in 8 s; 268 passed, 28 deselected; ruff All checks passed; mypy no issues in 5 source files; lint-imports exit 0
 - `-m db` not run: no migration, repository or SQL touched.
+
+## Round 2 — 2026-10-26, fi-tech-lead (BE, sonnet) — APPROVE
+
+Reviewed head H = 4cb33a6 (f7ede20 code unchanged since round 1; only sync merges of origin/sprint-05 f5bb4dd, no conflicts). Diff vs sprint-05: 5 files, +258/-0.
+Must-fix 1 (size stop) resolved: `3-consult.BE-v5-adapter.md` exists, architect answer = waive (`3-consult.BE-v5-adapter.answer.sa.md`); plan block re-estimated to ~260, dag.json size 260.
+No new findings; round-1 code review stands. Nits from round 1 carried to BE-ca-step3 (`listing_change` never feeds `adj_factors`).
+Checks on H: `make test-kernel` via q.sh exit 0 in 8 s: 268 passed, 28 deselected; ruff clean; mypy no issues in 5 source files; lint-imports 5 kept, 0 broken. `-m db` not needed (no migration/repository/SQL).
+Merged into sprint-05: 7c8087b.
