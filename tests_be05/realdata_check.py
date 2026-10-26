@@ -27,8 +27,8 @@ for (s, e), f in sorted(fac.items()):
     P = bars[s][max(prior)]
     want = q12(oracle(ev[(s, e)], P)); checked += 1
     if abs(F(str(want)) - f) > F(2, 10**12) :
-        bad += 1; print("MISMATCH", s, e, P, want, f) if bad < 15 else None
-print("factors", len(fac), "checked", checked, "mismatch", bad)
+        bad += 1; rel = abs(F(str(want))-f)/f; mx = max(globals().get("mx", 0), rel); print("MISMATCH", s, e, P, float(rel)) if rel > F(11, 10**5) else None
+print("max rel", float(globals().get("mx",0)));print("factors", len(fac), "checked", checked, "mismatch", bad)
 # recon: nominal x G vs latest source row, per symbol
 src = collections.defaultdict(dict)
 for s, d, c, fa in q("select distinct on (symbol,trading_date) symbol,trading_date,adj_c,fetched_at from bars_1d_src where source='vci' order by symbol,trading_date,fetched_at desc"):
