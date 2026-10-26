@@ -56,3 +56,39 @@ outside-set edits.
 - `make test-kernel` (flock, q.sh): exit 0 — 311 passed, 30 deselected; ruff clean; mypy 5 files clean; lint-imports 5 kept, 0 broken.
 - `tests/test_adjust_series.py`: 18 passed.
 - `-m db` not required (no migration/repository/SQL in this task).
+
+## Round 2 — 2026-10-26 — APPROVE
+
+Reviewed head H = 16bf674 (fix 6354a4f + sync merge of origin/sprint-05 ec4275a, no conflicts, pushed).
+
+### Files reviewed
+Whole diff again (21 files, +469/-5): adjust/series.py, adjust/__init__.py, domain/models.py, domain/ports.py, fixtures.py,
+tests/test_adjust_series.py, golden 001, 006, 012 (changed). File set = plan set; sync merge touched no task file.
+
+### Round 1 must-fix
+1. Size stop: `3-consult.AI-adjust-series.md` now exists (option A, waive + re-estimate to ~470; excess is golden
+   acceptance data, no scope creep, confirmed again). Size rule satisfied. **Open for fi-ai-architect:** answer the
+   consult and re-estimate `Size` in `2-tech-plan.ai.md` / `dag.json` (dag still says the old value); not a merge blocker.
+2. Fixed. `MarketView.snapshot(self) -> datetime` is back in the port (`ports.py:18`) as analytics.md §1.1 states.
+   `FixtureView` records `fetched_at` of the CA rows `corporate_actions` serves (`fixtures.py:31-34`, bounded by
+   `ex_date <= min(end, as_of)`), `adjusted_close` goes through it, `snapshot()` = max(snapshot_at, served) — same
+   served-tracking pattern as `SqlMarketView`. New `test_snapshot_ignores_unapplied_future_ca_row` fails on the round-1
+   code (the `None` path counted the future row's 2026-10-27 fetched_at). Golden 011/011b call `snapshot()` with no arg, green.
+
+### Nits from round 1
+All taken (`Literal` nominal_kind, G12 "synthetic neighbours", comment on the observed-P fallback in `reconstruct`).
+
+### Note for BE-market-view-ca (SA)
+`SqlMarketView` does not yet implement `adjusted_close` / `corporate_actions`; the port now requires them. Its task must
+add both, track served CA `fetched_at` into `_served`, and quantize the cumulative factor to 12 dp half-up (D2).
+
+### Correctness re-checked
+Hand recompute (G6): f1 = 49,000/50,000 = 0.98; f2 = 10/13 = 0.769230769231; G = 0.753846153846;
+51,000 × G = 38,446.153… → 38,446.15 = JSON. Look-ahead guards unchanged and green.
+
+### Checks on H (16bf674)
+- `make test-kernel` (flock, q.sh): exit 0 — 316 passed, 36 deselected; ruff clean; mypy 5 files clean; lint-imports 5 kept, 0 broken.
+- `services/analytics/tests`: 61 passed; `test_adjust_series.py`: 19 passed.
+- `-m db` not required (no migration/repository/SQL).
+
+Merged: 695ca05 into sprint-05 (sm.sh merge, base ec4275a, head 16bf674).

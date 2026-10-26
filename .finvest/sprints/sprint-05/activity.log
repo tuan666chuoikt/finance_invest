@@ -32,3 +32,12 @@
 2026-10-26 12:22 | lead    | AI-adjust-series         | changes   | 2 must-fix (size stop 464>330 no consult; snapshot(as_of) port drift); kernel 311 passed, adjust 18 passed; H 65a1f6b | 3-pr.AI-adjust-series.md
 2026-10-26 12:24 | dev     | AI-adjust-series         | pr-open   | fix round 1: snapshot() restored w/ served-CA tracking, consult written; kernel 312 passed, ruff+mypy clean; head 6354a4f | 3-build.AI-adjust-series.md
 2026-10-26 12:25 | lead    | BE-observed-bar          | merged    | f6a6c673; 0 must-fix; kernel 297 passed, db 31 passed | 3-pr.BE-observed-bar.md
+2026-10-26 12:28 | lead    | BE-ca-repo               | merged    | ec4275a; 0 must-fix; db 36 passed, kernel 297 passed, ruff/mypy/imports clean | 3-pr.BE-ca-repo.md
+2026-10-26 12:31 | lead    | AI-adjust-series         | merged    | 695ca05; 0 must-fix; kernel 316 passed, analytics 61 passed, lint-imports 5/0 | 3-pr.AI-adjust-series.md
+2026-10-26 12:32 | dev     | BE-ca-step3              | pr-open   | 305 passed, ruff/mypy/imports clean, +288/-7 vs plan 220 | 3-build.BE-ca-step3.md
+2026-10-26 12:33 | dev     | AI-recon-rules           | pr-open   | kernel 322 passed, ruff+mypy+imports clean; recon tests 6 passed; 177 lines vs ~130; head cb94171 | 3-build.AI-recon-rules.md
+2026-10-26 12:36 | lead    | BE-ca-step3              | merged    | 5d1976a; 0 must-fix, 4 nits; kernel 324 passed, affected 25 passed, lint-imports 5/0 | .finvest/sprints/sprint-05/3-pr.BE-ca-step3.md
+2026-10-26 12:36 | dev     | BE-market-view-ca        | pr-open   | kernel 316 passed, db 39 passed, ruff/mypy/imports clean, diff +185/-12 | 3-build.BE-market-view-ca.md
+2026-10-26 12:37 | lead    | AI-recon-rules           | changes   | 1 must-fix (diff_pct overflows NUMERIC(8,4) on unit bug: 99900.0000); kernel 330 passed, ruff/mypy/imports clean; H=333b7d4 | 3-pr.AI-recon-rules.md
+2026-10-26 12:39 | dev     | AI-recon-rules           | changes   | fix round 1: diff_pct capped 9999.9999 + test; kernel 331 passed, ruff/mypy clean; head c0ded3e | 3-build.AI-recon-rules.md
+2026-10-26 12:41 | lead    | BE-market-view-ca        | merged    | 9cf1d44; 0 must-fix, 4 nits (whatif.py:143 snapshot -> ai); kernel 324 passed, db 39 passed | 3-pr.BE-market-view-ca.md
