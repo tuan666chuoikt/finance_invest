@@ -81,6 +81,8 @@ describe("ScenarioTable", () => {
   it("fills the flag column for approximate rows and shows the footer in both languages", async () => {
     render(<ScenarioTable rows={rows()} />);
     expect(screen.getAllByText(/⚠/)).toHaveLength(1);
+    expect(screen.getByText("“vs” columns: difference in percentage points")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "vs VN-Index" }).closest("th")).toHaveAttribute("title", "(pp)");
     expect(screen.getByText("Past ranking does not predict the future.")).toBeInTheDocument();
     await i18n.changeLanguage("vi");
     expect(await screen.findByText(/không dự báo tương lai/)).toBeInTheDocument();

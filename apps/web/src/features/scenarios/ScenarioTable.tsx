@@ -56,7 +56,7 @@ export function ScenarioTable({ rows }: { rows: Row[] }) {
   });
 
   const th = (col: Col) => (
-    <th key={col} className="num" aria-sort={sort.col === col ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+    <th key={col} className="num" title={col.startsWith("vs_") ? t("table.vs_unit") : undefined} aria-sort={sort.col === col ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
       <button type="button" className="th-btn" onClick={() => setSort({ col, dir: sort.col === col && sort.dir === "desc" ? "asc" : "desc" })}>
         {t(`table.${col}`)}{sort.col === col ? (sort.dir === "asc" ? " ▲" : " ▼") : <span className="sort-hint" aria-hidden="true"> ↕</span>}
       </button>
@@ -102,6 +102,7 @@ export function ScenarioTable({ rows }: { rows: Row[] }) {
         </table>
       </div>
       <p className="sc-tablefoot">{t("table.footer")}</p>
+      <p className="sc-tablefoot">{t("table.footer_vs")}</p>
     </div>
   );
 }
