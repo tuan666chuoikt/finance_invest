@@ -11,6 +11,7 @@ from finvest_crawler.ratelimit import TokenBucket
 from finvest_market_data.domain.ports import PayloadShapeError
 
 FIX = Path(__file__).parent / "fixtures/vci/events/FPT-2026.json"
+HPG = Path(__file__).parent / "fixtures/vci/events/HPG-2026.json"  # captured press page, unedited (B-05-1)
 RUN = date(2026, 10, 26)
 
 
@@ -38,6 +39,44 @@ def test_fixture_parses_to_four_rows():
         "stock_dividend", 10, 1, date(2026, 9, 21))
     esop = [r for r in rows if r.type == "listing_change"]
     assert len(esop) == 2 and all(r.cash_per_share is None for r in esop)
+
+
+def test_hpg_iss_stock_dividends_are_mapped_and_non_adjusting_issues_are_listing_changes():
+    rows, anomalies, _ = parse_events(HPG.read_bytes())
+    iss = [r for r in rows if r.type != "cash_dividend"]
+    sd = [r for r in iss if r.type == "stock_dividend"]
+    assert len(rows) == 30 and len(sd) == 16 and sum("Cổ tức bằng Cổ phiếu" in r.title for r in sd) == 14
+    assert sum("thưởng" in r.title for r in sd) == 2
+    got = {(r.ex_date, r.ratio_a, r.ratio_b) for r in sd}  # hand: tỉ lệ 10% -> 10:1, 30% -> 10:3, 35% -> 20:7
+    assert {(date(2026, 5, 25), 10, 1), (date(2025, 6, 26), 5, 1), (date(2022, 6, 17), 10, 3),
+            (date(2021, 5, 31), 20, 7), (date(2024, 5, 23), 10, 1), (date(2015, 5, 8), 10, 3)} <= got
+    rights = [r for r in iss if r.type == "rights"]
+    assert [(r.ex_date, r.ratio_a, r.ratio_b, r.issue_price) for r in rights] == [
+        (date(2017, 6, 16), 5, 1, None)]
+    lc = [r for r in iss if r.type == "listing_change"]
+    assert len(lc) == 3 and sorted(r.ex_date is None for r in lc) == [False, False, True]
+    # rights row only: 0 unmapped
+    assert sorted(a[1] for a in anomalies) == ["corporate_action_amount_missing"]
+
+
+def test_iss_title_order_placement_is_not_rights_and_existing_holder_rights_are():
+    rows, anomalies, _ = parse_events(page(
+        ev(id="a", eventCode="ISS", eventTitleVi="Phát hành cổ phiếu - Phát hành riêng lẻ tỉ lệ 5.3%",
+           exerciseRatio=0.053),
+        ev(id="b", eventCode="ISS", eventTitleVi="Phát hành cổ phiếu - Phát hành rộng rãi qua đấu giá"),
+        ev(id="c", eventCode="ISS", eventTitleVi="Quyền mua CP cho Cổ đông hiện hữu tỉ lệ 20.0%",
+           exerciseRatio=0.2),
+        ev(id="d", eventCode="ISS", eventTitleVi="Phát hành để sáp nhập", exrightDate=None),
+        ev(id="e", eventCode="ISS", eventTitleVi="Cổ phiếu thưởng", exerciseRatio=0),
+        ev(id="f", eventCode="ISS", eventTitleVi="Cổ phiếu thưởng tỉ lệ 10%", exrightDate=None,
+           exerciseRatio=0.1)))
+    assert [(r.source_event_id, r.type, r.issue_price) for r in rows] == [
+        ("a", "listing_change", None), ("b", "listing_change", None), ("c", "rights", None),
+        ("d", "listing_change", None), ("e", "stock_dividend", None)]
+    assert rows[3].ex_date is None and rows[4].ratio_a is None  # r = 0: ratio NULL, flagged below
+    # an adjusting type without exrightDate stays unmapped; a listing_change without one is not an anomaly
+    assert anomalies == [("c", "corporate_action_amount_missing"), ("e", "corporate_action_amount_missing"),
+                         ("f", "corporate_action_unmapped")]
 
 
 def test_stock_dividend_by_title_and_neither():

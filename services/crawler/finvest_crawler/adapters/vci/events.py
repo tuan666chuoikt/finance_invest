@@ -17,6 +17,7 @@ FROM_DATE = "20100101"
 MAX_PAGES = 40  # shortcut: runaway guard (50 x 40 events per symbol), raise if a symbol ever needs more
 _PAGE = TypeAdapter(VciEventsPage)
 _PRICE = re.compile(r"giá\s+(\d{1,3}(?:[.,]\d{3})+|\d+)\s*đồng")
+_NON_ADJUSTING = ("cbcnv", "esop", "riêng lẻ", "trái phiếu chuyển đổi", "sáp nhập", "đấu giá")
 Anomaly = tuple[str, str]  # (source_event_id, rule)
 
 
@@ -33,18 +34,21 @@ def _ratio(r) -> tuple[int, int] | tuple[None, None]:
 
 
 def _map(e: VciEvent) -> tuple[str | None, int | None]:
-    """-> (type or None if unmapped, issue_price)."""
+    """-> (type or None if unmapped, issue_price). ISS by title; VN§6 "which share issues adjust the reference
+    price": stock dividend, bonus, rights adjust; ESOP, placement, CB conversion, merger, auction do not
+    (`listing_change`, never in adj_factors). Order matters: generic "phát hành thêm" stays last."""
     title = unicodedata.normalize("NFC", e.eventTitleVi).casefold()
     if e.eventCode == "DIV":
         if e.valuePerShare is not None or "cổ tức bằng cổ phiếu" not in title:
             return "cash_dividend", None  # without valuePerShare: amount missing, flagged by the caller
         return "stock_dividend", None
     if e.eventCode == "ISS":
-        if "thưởng" in title:
+        rights = "quyền mua" in title
+        if not rights and ("cổ tức bằng cổ phiếu" in title or "thưởng" in title):
             return "stock_dividend", None
-        if "cbcnv" in title or "esop" in title:
+        if not rights and any(k in title for k in _NON_ADJUSTING):
             return "listing_change", None
-        if "quyền mua" in title or "phát hành thêm" in title:
+        if rights or "phát hành thêm" in title:
             m = _PRICE.search(title)
             return "rights", int(re.sub(r"[.,]", "", m.group(1))) if m else None
     return None, None
@@ -59,7 +63,7 @@ def parse_events(
     anomalies: list[Anomaly] = []
     for e in page.content:
         kind, price = _map(e)
-        if kind is None or e.exrightDate is None:
+        if kind is None or (e.exrightDate is None and kind != "listing_change"):  # NULL ex_date allowed
             anomalies.append((e.id, "corporate_action_unmapped"))
             continue
         a, b = (None, None) if kind == "cash_dividend" else _ratio(e.exerciseRatio)
@@ -68,7 +72,7 @@ def parse_events(
         if missing or (kind == "rights" and price is None):
             anomalies.append((e.id, "corporate_action_amount_missing"))  # row kept, the value stays NULL
         rows.append(CorporateAction(
-            e.ticker, kind, e.exrightDate.date(), _d(e.recordDate), _d(e.payoutDate),  # type: ignore[arg-type]
+            e.ticker, kind, _d(e.exrightDate), _d(e.recordDate), _d(e.payoutDate),
             a, b, cash, price, "vci_iq", e.id, _d(e.publicDate), e.eventTitleVi))
     return rows, anomalies, page.last
 
