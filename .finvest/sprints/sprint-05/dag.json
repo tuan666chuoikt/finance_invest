@@ -221,7 +221,7 @@
       "leadModel": "sonnet",
       "priority": 7,
       "manual": false,
-      "size": 120
+      "size": 90
     },
     {
       "id": "OPS-guards",
@@ -296,6 +296,7 @@
     "slip": "BE-recon-s2 first, then FE-rw (1-sprint-plan.md Capacity)",
     "M0": "spike done by the architect at planning (data.md 1.2 V5/S2); no task",
     "dagRev5": "ai-architect 2026-10-26: + AI-recon-xsrc (reconcile self_check=) before BE-recon-s2 tests (BE-recon-s2 consult); dagRev4 = dag.prev-3.json",
-    "dagRev3": "ai-architect 2026-10-26: + AI-adjust-version (R6a per-version last) before BE-ca-recompute round 2 / BE-recon-cli"
+    "dagRev3": "ai-architect 2026-10-26: + AI-adjust-version (R6a per-version last) before BE-ca-recompute round 2 / BE-recon-cli",
+    "dagRev6": "sw-architect 2026-10-26: BE-recon-s2 round 2 — size 90 (crawler files only, no slack_vnd), keeps after AI-recon-xsrc; dagRev5 = dag.prev-4.json"
   }
 }

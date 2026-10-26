@@ -1,6 +1,6 @@
 # Sprint 05 — Tech plan (BE / FE / ops; AI blocks of `2-tech-plan.ai.md` merged into dag.json)
 
-Owner: `fi-software-architect`, 2026-10-26, plan v1.2 (v1.1 = `2-tech-plan.prev-3.md`; v1.2 = BE-recon-s2 per the consult: `reconcile(slack_vnd)` for S2's 10 VND resolution, file set += analytics recon.py/test_recon.py, size ~120; v1.0 = `2-tech-plan.prev-2.md`; v1.1 = BE-ca-recompute round 2 per the consult: per-version `last`, watermark recompute set, queries in the repo, size ~340; new BE-mv-basis; v0 = `2-tech-plan.prev-1.md`). Inputs: `1-sprint-plan.md`, `2-tech-plan.ai.md` (3 AI tasks + the
+Owner: `fi-software-architect`, 2026-10-26, plan v1.3 (v1.2 = `2-tech-plan.prev-4.md`; v1.3 = BE-recon-s2 round 2: no slack, aligned with the AI answer — `self_check=(source == "vci")`, after AI-recon-xsrc, crawler file set only, size ~90; v1.1 = `2-tech-plan.prev-3.md`; v1.2 = BE-recon-s2 per the consult: `reconcile(slack_vnd)` (withdrawn in v1.3); v1.0 = `2-tech-plan.prev-2.md`; v1.1 = BE-ca-recompute round 2 per the consult: per-version `last`, watermark recompute set, queries in the repo, size ~340; new BE-mv-basis; v0 = `2-tech-plan.prev-1.md`). Inputs: `1-sprint-plan.md`, `2-tech-plan.ai.md` (3 AI tasks + the
 "SA-owned" list), `product/backlog.md` F-013/F-014/F-015/F-016/F-023/F-033, `architecture/data.md` **v1.4** (§1.2 V5/S2 spike
 lines, §1.4, §3), `contracts/platform.md` **v1.14** (§2.6 step 3), `product/ux/app-shell.md` §Crawl button,
 `product/ux/visual-design.md` §4/§6.3/§6.4/§9, `sprints/sprint-04/6-retro.md` R1–R5, branch `sprint-05` = main `0de35b7`.
@@ -53,9 +53,9 @@ lines, §1.4, §3), `contracts/platform.md` **v1.14** (§2.6 step 3), `product/u
 ## Order and lanes
 
 ```
-BE-1  BE-mig-0010 → BE-observed-bar → BE-ca-recompute (after AI-adjust-series, AI-adjust-version) → BE-recon-cli (after AI-recon-rules) → BE-recon-s2
+BE-1  BE-mig-0010 → BE-observed-bar → BE-ca-recompute (after AI-adjust-series, AI-adjust-version) → BE-recon-cli (after AI-recon-rules) → BE-recon-s2 (after AI-recon-xsrc)
 BE-2  BE-v5-adapter → BE-ca-repo (after BE-mig-0010) → BE-ca-step3 (after BE-observed-bar) → BE-market-view-ca (after AI-adjust-series) → BE-mv-basis (after BE-ca-recompute) → OPS-guards (any time)
-AI-1  AI-ca-factors → AI-adjust-series → AI-recon-rules → AI-adjust-version   (2-tech-plan.ai.md v1.1)
+AI-1  AI-ca-factors → AI-adjust-series → AI-recon-rules → AI-adjust-version → AI-recon-xsrc   (2-tech-plan.ai.md v1.2)
 FE-1  FE-e2e-carry → FE-crawl-step3 → FE-rw → FE-shots (tester, manual)
 ```
 Milestones: M1 = BE-mig-0010, BE-observed-bar, BE-v5-adapter, BE-ca-repo, BE-ca-step3, OPS-guards, AI-ca-factors, FE-e2e-carry,
@@ -249,22 +249,22 @@ M3 = FE-shots. M0 was done by the architect at planning (no dag task). L1–L3 a
   `ref = round_to_tick(f × P)` → no anomaly, with `ref` off by 2 ticks → anomaly row.
 - Out of scope: S2 cross-check (BE-recon-s2), the F-021 page.
 
-#### BE-recon-s2 — F-016: S2 cross-check as a second `theirs` (30 calls) — **first to slip**
-- Story: F-016 ; Side: be ; Effort: medium ; Size: ~120 lines ; Lead: sonnet
-- Files: `services/crawler/finvest_crawler/feeds/recon.py`, `services/crawler/finvest_crawler/cli.py` (`--cross-check ssi`), `services/crawler/tests/test_recon_feed.py`,
-  `services/analytics/finvest_analytics/adjust/recon.py` + `services/analytics/tests/test_recon.py` (**only** the `slack_vnd` keyword below; AI-recon-rules is merged, no overlap)
+#### BE-recon-s2 — F-016: S2 cross-check as a second `theirs` (30 calls) — **first to slip** (v1.3, consult round 2: aligned with the AI answer)
+- Story: F-016 ; Side: be ; Effort: medium ; Size: ~90 lines ; Lead: sonnet ; After: BE-recon-cli, AI-recon-xsrc
+- Files: `services/crawler/finvest_crawler/feeds/recon.py`, `services/crawler/finvest_crawler/cli.py` (`--cross-check ssi`), `services/crawler/tests/test_recon_feed.py`
+  (no analytics files: `reconcile(self_check=)` is AI-recon-xsrc)
 - Change: with `--cross-check ssi`, for each symbol `SsiSource.bars([sym], "1d", run_date, COUNT)` (S2; thousand VND → VND in the adapter already) →
   `upsert_bars_1d_src(source="ssi", fetched_at = archive mtime)` → a second `reconcile` against `newest_src_bars("ssi")`, rows kept apart by a
   `source` column? **No** — `recon_mismatches` PK is `(symbol, trading_date)`: the S2 result is printed and counted in the run row `reason` only
   ("vci: k, ssi: m mismatches"); storing both sources waits for F-021. 1 req/s bucket, `SourceBlocked` → the cross-check stops, local result stands.
-  S2 is thousand VND with 2 decimals = **10 VND resolution** (data.md §1.2 S2), so `reconcile(..., slack_vnd: Decimal = Decimal(0))`:
-  `diff <= slack_vnd` is equal in every branch (reconstructed: `diff > max(1, slack_vnd)`; G = 1: `diff > slack_vnd`; `exact_days` counts
-  `diff <= slack_vnd`); the default 0 keeps every AI-recon-rules test byte-identical; the BE passes `slack_vnd=10` for `ssi` only, V2 stays exact.
-- Contract: data.md §1.2 S2 (spike line, resolution), §1.4 (4) last paragraph (slack rule), §3 `bars_1d_src`.
+  **No VND slack.** `_compare` passes `self_check=(source == "vci")`: the 1-VND self-consistency branch (R7) is a check against the source a
+  reconstructed row was inverted from (V2 only, data.md §1.4); against S2 a reconstructed row takes the ordinary `G_v = 1` exact / 0.1 % branches.
+  A nominal close sits on the tick (VN§3), so S2's 10 VND resolution represents every `G_v = 1` close exactly; a diff there is a real adapter bug.
+- Contract: 2-tech-plan.ai.md R7 v1.2 + AI-recon-xsrc; data.md §1.2 S2 (resolution), §1.4 (4) last paragraph (self-check rule); §3 `bars_1d_src`.
 - Acceptance: with the `ssi/history/FPT-1d.json.gz` fixture the S2 rows land in `bars_1d_src` with `source='ssi'` as **65,180** VND for 2026-09-18;
-  against V2 65,182 that date is 0 mismatches with `slack_vnd=10` and 1 mismatch (`unit_or_adapter`) with the default 0 (one analytics test
-  on `reconcile` for both, G = 1 and reconstructed branch); an 11 VND diff is still a mismatch at slack 10; a 418 run keeps the local summary.
-- Out of scope: storing S2 mismatches, anything on screen.
+  ours 65,182.73 (71,701 × 1/1.1, ex-date 09-21) vs S2 65,180 = 0.0042 % → **0 mismatches** on that date; a hand-broken S2 close (65.28 → 65,280)
+  → 1 `factor_or_event`; `_compare` is called with `self_check=False` for `ssi` and `True` for `vci` (assert on the call); a 418 run keeps the local summary.
+- Out of scope: storing S2 mismatches, anything on screen, any change in `services/analytics`.
 
 #### OPS-guards — F-033: no-broker audit test; test compose override
 - Story: F-033 ; Side: be ; Effort: medium ; Size: ~90 lines ; Lead: opus
