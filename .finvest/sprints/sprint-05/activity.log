@@ -73,3 +73,15 @@
 2026-10-26 15:30 | fe-tester | sprint-05                | red       | vitest 93/93, screens 138/0, widths 80/8 (F-05-1 DCA shift lines), real-stack 40/0 | 4-test.fe.md
 2026-10-26 15:30 | ai-arch | BE-fix-v5-iss            | answered  | Q1 confirmed stock_dividend (ISS title), Q2 listing_change no anomaly for ESOP/placement/CB/merger/auction, Q3 AI-fix-lint block added; VN§ | 3-consult.BE-fix-v5-iss.answer.ai.md
 2026-10-26 15:33 | arch    | sprint-05                | note      | rework R1 dagRev7 plan v1.4: 7 fix tasks (B-05-1 BE-fix-v5-iss opus money; B-05-2 B=28+order; 5,6,3+7; AI-fix-lint; F-05-1 FE); data.md v1.8 | 2-tech-plan.md
+2026-10-26 15:36 | dev     | AI-fix-lint              | pr-open   | kernel exit 0, 337 passed, ruff clean | 3-build.AI-fix-lint.md
+2026-10-26 15:36 | dev     | FE-fix-dca-shifts        | pr-open   | tsc 0, vitest 52/52, +18/-3, no screenshot | 3-build.FE-fix-dca-shifts.md
+2026-10-26 15:37 | lead    | FE-fix-dca-shifts        | changes   | 1 must-fix (no 1280 light shot); tsc 0, vitest 94/94 pass | sprints/sprint-05/3-pr.FE-fix-dca-shifts.md
+2026-10-26 15:37 | lead    | AI-fix-lint              | merged    | 08c1ab0; kernel 337 passed, ruff/mypy ok | 3-pr.AI-fix-lint.md
+2026-10-26 15:38 | dev     | BE-fix-runner-now        | pr-open   | kernel 339 passed, ruff clean | 3-build.BE-fix-runner-now.md
+2026-10-26 15:38 | dev     | FE-fix-dca-shifts        | built     | fix round 1: 1280 light screenshot attached, merged sprint-05, head 3c07f77 | 3-build.FE-fix-dca-shifts.md
+2026-10-26 15:39 | lead    | FE-fix-dca-shifts        | merged    | merged 3a75ed38b596325792c6f062a735054ab6ea8116; tsc 0, vitest 94/94 | 3-pr.FE-fix-dca-shifts.md
+2026-10-26 15:39 | lead    | BE-fix-runner-now        | merged    | 8b81f2c; jobs 22 passed, kernel 55 passed, ruff clean | .finvest/sprints/sprint-05/3-pr.BE-fix-runner-now.md
+2026-10-26 15:39 | lead    | FE-fix-dca-shifts        | note      | correction: earlier 'merged 3a75ed3' line was wrong; real merge sha 70a16d5d1c5a0fb4f20e33e6837d51513c21282f | 3-pr.FE-fix-dca-shifts.md
+2026-10-26 15:39 | dev     | BE-fix-v5-iss            | pr-open   | kernel 339 passed (1 ruff E501 is B-05-4), db crawler+market_data 54 passed, 3 new tests red on old mapper; HPG 14+2 stock_dividend, 3 listi | 3-build.BE-fix-v5-iss.md
+2026-10-26 15:41 | be-dev  | BE-fix-recon-s2          | pr-open   | recon 13 passed, crawler 198 passed, ruff clean | 3-build.BE-fix-recon-s2.md
+2026-10-26 15:44 | lead    | BE-fix-v5-iss            | merged    | 85efde3; 0 must-fix, 2 nits; kernel 341 passed, db 54 passed; HPG 05-22 nominal 26,350 | .finvest/sprints/sprint-05/3-pr.BE-fix-v5-iss.md
