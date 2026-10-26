@@ -83,3 +83,22 @@ class SymbolRecord:
     source: str
     listed_at: date | None = None
     delisted_at: date | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class CorporateAction:
+    """One corporate action (data.md §3). Ratio a:b = holder of a shares gets b new (VN§6); cash: none."""
+
+    symbol: str
+    type: Literal["cash_dividend", "stock_dividend", "rights", "split", "merge", "listing_change"]
+    ex_date: date
+    record_date: date | None
+    pay_date: date | None
+    ratio_a: int | None
+    ratio_b: int | None
+    cash_per_share: int | None  # VND
+    issue_price: int | None  # VND, rights only
+    source: str
+    source_event_id: str
+    public_date: date | None
+    title: str
