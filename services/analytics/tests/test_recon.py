@@ -44,6 +44,12 @@ def test_g_equals_one_one_vnd_diff_is_flagged_though_under_threshold():
     assert (m.note, m.diff_pct) == (UNIT_OR_ADAPTER, Decimal("0.0011"))
 
 
+def test_thousand_vnd_adapter_diff_pct_is_capped_to_fit_numeric_8_4():
+    r = reconcile([nom("2026-10-06", 93500)], [], [src("2026-10-06", "93.5")])
+    (m,) = r.mismatches  # uncapped 99900.0000 would overflow recon_mismatches.diff_pct
+    assert (m.note, m.diff_pct) == (UNIT_OR_ADAPTER, Decimal("9999.9999"))
+
+
 def test_ex_date_after_last_source_bar_is_not_applied():
     fs = [Factor("FPT", D("2026-11-02"), Decimal("0.5"))]
     assert not reconcile([nom("2026-10-06", 93500)], fs, [src("2026-10-06", "93500")]).mismatches

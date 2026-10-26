@@ -11,6 +11,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from ..domain.models import AdjBar, Factor, NominalBar
 from .series import cumulative, round_vnd
 
+_PCT_MAX = Decimal("9999.9999")
 _PCT_PLACES = Decimal("0.0001")  # NUMERIC(8,4)
 _PX_PLACES = Decimal("0.01")
 UNIT_OR_ADAPTER = "unit_or_adapter"  # G = 1 and still different: not a factor problem
@@ -57,6 +58,7 @@ def reconcile(
         ours = (b.c * g).quantize(_PX_PLACES, ROUND_HALF_UP)
         diff = abs(ours - theirs)
         pct = (diff / theirs * 100).quantize(_PCT_PLACES, ROUND_HALF_UP) if theirs > 0 else Decimal(100)
+        pct = min(pct, _PCT_MAX)  # diff_pct is NUMERIC(8,4): a x1000 unit slip would overflow
         checked += 1
         exact += diff == 0
         if b.nominal_kind == "reconstructed":  # pre-crawl: self-consistency, <= 1 VND (R7)
