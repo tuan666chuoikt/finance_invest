@@ -195,9 +195,10 @@ def test_s2_fpt_lands_as_65180_and_ours_65182_73_is_no_mismatch(conn, tmp_path, 
     seed_fpt(conn)
     calls = spy_self_check(monkeypatch)
     r = run_recon(Settings(), TODAY, ["FPT"], conn=conn, cross_check="ssi", fetcher=ssi_fetcher(tmp_path))
-    (row,) = conn.execute(text("SELECT adj_c FROM bars_1d_src WHERE source='ssi' AND trading_date=:d"),
+    (row,) = conn.execute(text("SELECT adj_c FROM bars_1d_src WHERE source='ssi_s2' AND trading_date=:d"),
                           {"d": FPT_DAY}).all()
     assert row.adj_c == 65_180  # S2 65.18 thousand VND
+    assert conn.execute(text("SELECT count(*) FROM bars_1d_src WHERE source='ssi'")).scalar() == 0
     assert (r.mismatches, r.ssi_mismatches, r.ssi_blocked) == (0, 0, False)  # 0.0042 % < 0.1 %
     assert r.ssi_requests == 1 and r.summary.endswith("| vci: 0, ssi: 0 mismatches")
     assert calls == [True, False]  # self-check against V2 only
@@ -222,3 +223,12 @@ def test_s2_blocked_keeps_the_local_summary(conn, tmp_path):
     assert r.ssi_blocked and r.ssi_mismatches == 0 and r.mismatches == 0
     assert r.summary.startswith("1/1, 0 mismatches") and "ssi blocked, cross-check stopped" in r.summary
     assert conn.execute(text("SELECT status FROM crawl_runs")).scalar() == "ok"
+
+
+def test_recon_exits_1_on_a_mismatch_and_0_on_none(conn, monkeypatch):
+    monkeypatch.setenv("FINVEST_DATABASE_URL", URL)  # type: ignore[arg-type]
+    seed(conn, "AAA", {D1: 50_000}, {D1: 48_900}, "0.98")  # 49,000 vs 48,900: one mismatch, none missing
+    assert main(["recon", "--date", TODAY.isoformat(), "--symbols", "AAA"]) == 1
+    conn.execute(text("DELETE FROM bars_1d_src"))
+    seed(conn, "BBB", {D1: 50_000}, {D1: 50_000})
+    assert main(["recon", "--date", TODAY.isoformat(), "--symbols", "BBB"]) == 0
