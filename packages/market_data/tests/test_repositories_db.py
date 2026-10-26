@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from finvest_market_data.domain.manifest import Manifest
 from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
 from finvest_market_data.infrastructure import repositories as repo
@@ -51,7 +52,7 @@ def eng():
 def conn(eng):
     with eng.begin() as c:
         for t in ("ticks", "crawl_runs", "crawl_sessions", "data_anomalies", "symbols", "bars_1d_src",
-                  "index_1d", "symbol_index_membership"):
+                  "bars_1d", "index_1d", "symbol_index_membership"):
             c.execute(text(f"TRUNCATE {t}"))
         yield c
 
@@ -322,3 +323,59 @@ def test_repair_index_1d_value_nulls_out_of_band_rows_only(conn):
     rows = conn.execute(text("SELECT trading_date, v, value FROM index_1d ORDER BY 1")).all()
     assert [r[2] for r in rows] == [None, None, good] and [r[1] for r in rows] == [2, 400_000, 400_000]
     assert repo.repair_index_1d_value(conn) == 0
+
+
+def ssi_src(conn, symbol: str, day: int, c: int, fetched_at: datetime, source: str = "ssi") -> None:
+    conn.execute(
+        text("INSERT INTO bars_1d_src VALUES (:s, :d, :src, :f, :c, :c, :c, :c, 10, 1000)"),
+        {"s": symbol, "d": date(2026, 10, day), "src": source, "f": fetched_at, "c": c},
+    )
+
+
+def test_migration_0010_moves_ssi_rows_and_round_trips(eng):
+    cfg = Config(str(INI))
+    command.downgrade(cfg, "0009")
+    old, new = datetime(2026, 10, 15, 9, tzinfo=UTC), datetime(2026, 10, 15, 10, tzinfo=UTC)
+    with eng.begin() as c:
+        for t in ("bars_1d_src", "symbols"):
+            c.execute(text(f"TRUNCATE {t}"))
+        ssi_src(c, "FPT", 15, 93_000, old)
+        ssi_src(c, "FPT", 15, 93_500, new)  # newest fetched_at wins
+        ssi_src(c, "VNM", 15, 60_000, new)
+        ssi_src(c, "FPT", 15, 65_000, new, source="vci")
+    for _ in range(2):  # down then up again is idempotent
+        command.upgrade(cfg, "head")
+        with eng.connect() as c:
+            got = c.execute(text("SELECT symbol, c, nominal_kind, source, ref FROM bars_1d ORDER BY symbol"))
+            assert got.all() == [
+                ("FPT", 93_500, "observed", "ssi", None), ("VNM", 60_000, "observed", "ssi", None)]
+            assert c.execute(text("SELECT source FROM bars_1d_src")).scalars().all() == ["vci"]
+            col = text("SELECT count(*) FROM information_schema.columns "
+                       "WHERE table_name='symbols' AND column_name='ca_checked_at'")
+            assert c.execute(col).scalar_one() == 1
+        command.downgrade(cfg, "0009")
+        with eng.connect() as c:
+            gone = text("SELECT to_regclass('bars_1d'), to_regclass('adj_factors')")
+            assert c.execute(gone).one() == (None, None)
+            # observed rows are not lost on downgrade (the older duplicate version is not restored)
+            assert c.execute(text("SELECT count(*) FROM bars_1d_src WHERE source='ssi'")).scalar_one() == 2
+    command.upgrade(cfg, "head")
+    assert ScriptDirectory.from_config(cfg).get_heads() == ["0010"]
+
+
+def test_upsert_bars_1d_observed_is_never_replaced_by_a_reconstruction(conn):
+    f = datetime(2026, 10, 16, tzinfo=UTC)
+    obs = replace(bar("FPT", c=93_500), source="ssi")
+    rec = replace(bar("FPT", c=93_499), source="vci")
+    one = {"nominal_kind": "observed", "fetched_at": f}
+    assert repo.upsert_bars_1d(conn, [obs], ref={"FPT": 93_000}, **one) == 1
+    assert repo.upsert_bars_1d(conn, [rec], nominal_kind="reconstructed", fetched_at=f) == 0  # G9
+    q = text("SELECT c, nominal_kind, ref FROM bars_1d WHERE symbol='FPT'")
+    assert conn.execute(q).one() == (93_500, "observed", 93_000)
+    assert repo.upsert_bars_1d(conn, [obs], **one) == 1  # observed re-crawl wins
+    conn.execute(text("TRUNCATE bars_1d"))
+    assert repo.upsert_bars_1d(conn, [rec], nominal_kind="reconstructed", fetched_at=f) == 1
+    assert repo.upsert_bars_1d(conn, [obs], **one) == 1  # observed over reconstructed
+    assert conn.execute(q).one() == (93_500, "observed", None)
+    with pytest.raises(IntegrityError):
+        conn.execute(text("UPDATE bars_1d SET nominal_kind='guess'"))

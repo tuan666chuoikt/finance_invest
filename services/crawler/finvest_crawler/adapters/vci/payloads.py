@@ -17,6 +17,7 @@ V2 `POST .../api/chart/OHLCChart/gap-chart`: a list with one column-oriented obj
 222,242,000,000); null on some old bars. The adapter picks the unit per bar (`source._value_vnd`).
 """
 
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -49,6 +50,35 @@ class VciBars(BaseModel):
     v: list[int]
     t: list[int]
     accumulatedValue: list[Decimal | None]  # mixed: million or raw VND; null on old bars
+
+
+class VciEvent(BaseModel):
+    """V5 event (data.md §1.2 V5); dates are `YYYY-MM-DDT00:00:00` strings."""
+
+    model_config = ConfigDict(extra="allow")
+    id: str
+    ticker: str
+    eventCode: str
+    eventTitleVi: str = ""
+    publicDate: datetime | None = None
+    recordDate: datetime | None = None
+    exrightDate: datetime | None = None
+    payoutDate: datetime | None = None  # cash only
+    valuePerShare: Decimal | None = None  # cash only, VND
+    exerciseRatio: Decimal | None = None
+
+
+class VciEventsData(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    content: list[VciEvent]
+    last: bool
+
+
+class VciEventsPage(BaseModel):
+    """V5 envelope. HTTP 200 with `status 400` ("Invalid datetime") has no `data`: fails here, loudly."""
+
+    model_config = ConfigDict(extra="allow")
+    data: VciEventsData
 
 
 def validate[T](adapter: TypeAdapter[T], payload: bytes, raw_path: Path, source: str = "vci") -> T:
