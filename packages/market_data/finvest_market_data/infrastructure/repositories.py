@@ -506,8 +506,8 @@ def replace_recon_mismatches(
 def newest_src_bars(conn: Connection, symbol: str, source: str) -> list[tuple[date, int]]:
     """(trading_date, adj_c) of the newest `fetched_at` version of each date."""
     b = bars_1d_src
-    q = (select(distinct_on(b.c.trading_date), b.c.adj_c).where(b.c.symbol == symbol, b.c.source == source)
-         .order_by(b.c.trading_date, b.c.fetched_at.desc()))
+    q = (select(b.c.trading_date, b.c.adj_c).where(b.c.symbol == symbol, b.c.source == source)
+         .ext(distinct_on(b.c.trading_date)).order_by(b.c.trading_date, b.c.fetched_at.desc()))
     return [(r.trading_date, r.adj_c) for r in conn.execute(q)]
 
 
