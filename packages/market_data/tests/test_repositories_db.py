@@ -411,7 +411,8 @@ def test_ca_symbols_in_order_and_mark_checked(conn):
                       " updated_at) VALUES ('s', 'SCEN', 'lump_sum', 1, '2026-01-02', now(), now())"))
     repo.mark_ca_checked(conn, ["OLD"], old)
     repo.mark_ca_checked(conn, ["NEW", "VN30M", "SCEN"], new)
-    assert repo.ca_symbols_in_order(conn) == ["VN30N", "VN30M", "SCEN", "NULLS", "OLD", "NEW"]  # NULL first inside every tier
+    # NULL first inside every tier
+    assert repo.ca_symbols_in_order(conn) == ["VN30N", "VN30M", "SCEN", "NULLS", "OLD", "NEW"]
     assert repo.ca_symbols_in_order(conn, limit=2) == ["VN30N", "VN30M"]
 
 
