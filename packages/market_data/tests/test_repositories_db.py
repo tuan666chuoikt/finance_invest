@@ -435,7 +435,9 @@ def test_newest_src_bars_and_nominal_bars(conn):
     repo.upsert_bars_1d_src(conn, [bar("FPT", c=100)], t1)
     repo.upsert_bars_1d_src(conn, [bar("FPT", c=101)], t2)
     repo.upsert_bars_1d_src(conn, [bar("FPT", day=14, c=90)], t1)
-    assert repo.newest_src_bars(conn, "FPT", "vci") == [(date(2026, 10, 14), 90), (D, 101)]
+    got = repo.newest_src_bars(conn, "FPT", "vci")
+    assert [(r.trading_date, r.adj_c, r.fetched_at, r.last) for r in got] == [
+        (date(2026, 10, 14), 90, t1, D), (D, 101, t2, D)]  # `last`: the max date of the row's own version
     repo.upsert_bars_1d(conn, [bar("FPT", c=93_500)], nominal_kind="observed", fetched_at=t1,
                         ref={"FPT": 93_000})
     assert repo.nominal_bars(conn, "FPT") == [(D, 93_500, "observed", 93_000)]
