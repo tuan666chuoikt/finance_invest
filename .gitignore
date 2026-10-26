@@ -14,3 +14,4 @@ dist/
 data/
 *.parquet
 .finvest/sprints/*/activity.checkpoint
+data-test/

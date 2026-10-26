@@ -63,7 +63,8 @@ def parse_snapshot(
             if h < max(o, c) or lo > min(o, c):
                 raise ValueError(f"high {h} / low {lo} do not bracket open {o} close {c}")
             value = None if r.nmTotalTradedValue is None else to_vnd(r.nmTotalTradedValue, "vnd")
-            bars.append(Bar(r.stockSymbol, ts, o, h, lo, c, r.nmTotalTradedQty, value, "ssi"))
+            ref = r.refPrice and to_vnd(r.refPrice, "vnd")  # 0/None -> no reference
+            bars.append(Bar(r.stockSymbol, ts, o, h, lo, c, r.nmTotalTradedQty, value, "ssi", ref or None))
         except (ValueError, TypeError, ArithmeticError) as e:  # None price -> TypeError/InvalidOperation
             raise PayloadShapeError(f"ssi board {exchange} {r.stockSymbol}: {e}", raw_path) from e
     return bars, idle

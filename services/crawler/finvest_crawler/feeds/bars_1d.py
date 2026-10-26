@@ -171,7 +171,12 @@ def _run(  # noqa: ANN001
                     # fetched_at is the archive file's mtime, so a replay hits the same key
                     arch = "board-hose" if kind == "snapshot" else source.archive_name(unit, count)
                     mtime = fetcher.archive.path(FEED, run_date, arch).stat().st_mtime
-                    repo.upsert_bars_1d_src(conn, kept, datetime.fromtimestamp(mtime, UTC))
+                    at = datetime.fromtimestamp(mtime, UTC)
+                    if kind == "snapshot":  # the board bar is the observed nominal bar (data.md 1.4 (1))
+                        repo.upsert_bars_1d(conn, kept, nominal_kind="observed", fetched_at=at,
+                                            ref={b.symbol: b.ref for b in kept if b.ref})
+                    else:
+                        repo.upsert_bars_1d_src(conn, kept, at)
             commit()  # an interrupt loses at most this one unit
             for n in sorted(by_name):
                 keys = sorted(

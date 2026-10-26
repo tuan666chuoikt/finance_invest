@@ -47,6 +47,7 @@ class SsiRow(BaseModel):
     highest: Decimal | None = None
     lowest: Decimal | None = None
     matchedPrice: Decimal | None = None
+    refPrice: Decimal | None = None
     nmTotalTradedQty: int | None = None
     nmTotalTradedValue: Decimal | None = None
 
