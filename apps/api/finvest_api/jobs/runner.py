@@ -10,9 +10,9 @@ from finvest_crawler.feeds.bars_1d import COUNT, GAP_MAX, run_bars_1d
 from finvest_crawler.feeds.ticks import run_ticks
 from finvest_crawler.fetch import SourceBlocked
 from finvest_crawler.settings import Settings
-from finvest_market_data.infrastructure.tables import bars_1d_src, index_1d
+from finvest_market_data.infrastructure.tables import bars_1d, bars_1d_src, index_1d
 from finvest_rules.calendar import day, trading_days
-from sqlalchemy import func, insert, select, update
+from sqlalchemy import func, insert, select, union, update
 from sqlalchemy.engine import Engine
 
 from ..deps import VN
@@ -41,18 +41,24 @@ def _write(engine: Engine, job_id: int, **vals) -> None:
 
 
 def _count(engine: Engine, target: date) -> int:
-    """Sessions since the oldest last bar of bars_1d_src / index_1d, +2, min 5 (platform.md 2.6)."""
+    """Sessions since the oldest last bar of the stock bars (bars_1d_src + bars_1d) / index_1d, +2, min 5
+    (platform.md 2.6)."""
     with engine.connect() as c:
-        maxes = (c.execute(select(func.max(t.c.trading_date))).scalar() for t in (bars_1d_src, index_1d))
+        maxes = (c.execute(select(func.max(q.c.trading_date))).scalar() for q in (_stock_days(), index_1d))
         lasts = [d for d in maxes if d]
     if not lasts:
         return COUNT
     return max(5, len(trading_days(min(lasts) + timedelta(1), target)) + 2)
 
 
+def _stock_days():
+    """Every stock-bar date: the board day lives in bars_1d, the V2 history in bars_1d_src."""
+    return union(select(bars_1d_src.c.trading_date), select(bars_1d.c.trading_date)).subquery()
+
+
 def _sessions(engine: Engine) -> int:
     with engine.connect() as c:
-        return c.execute(select(func.count(func.distinct(bars_1d_src.c.trading_date)))).scalar_one()
+        return c.execute(select(func.count()).select_from(_stock_days())).scalar_one()
 
 
 def _blocked_msg(source: str) -> str:
@@ -122,7 +128,8 @@ def _run(engine: Engine, settings: Settings, job_id: int) -> None:
         m = run_bars_1d(settings, target, today=today, count=_count(engine, target), gap_max=GAP_MAX,
                         on_progress=on_progress)
         summary["bars_1d"] = {"sessions_added": _sessions(engine) - before,
-                              "symbols_fetched": m.symbols_fetched, "symbols_skipped": len(m.symbols_skipped)}
+                              "symbols_fetched": m.symbols_fetched, "symbols_skipped": len(m.symbols_skipped),
+                              "symbols_deferred": sum(r == "deferred" for _, r in m.symbols_skipped)}
         if m.status == "blocked":
             raise _Blocked(m)
     except Exception as e:  # any failure is reported on the row, never lost in the thread

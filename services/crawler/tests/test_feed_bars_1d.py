@@ -3,6 +3,7 @@
 import gzip
 import hashlib
 import json
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -38,6 +39,7 @@ class FakeRepo:
     def __init__(self, names=("FPT", "ZZZ"), fail_on_call=None):
         self.names, self.fail_on_call = names, fail_on_call
         self.bars, self.index, self.runs, self.sessions, self.calls = {}, {}, [], [], 0
+        self.observed = {}
         self.last, self.delisted_flags = {}, []  # last_bar_dates() answer; include_delisted of each call
 
     def last_bar_dates(self, conn):
@@ -66,6 +68,11 @@ class FakeRepo:
             raise RuntimeError("disk full")
         for b in bars:
             self.bars[(b.symbol, b.trading_date, b.source, fetched_at)] = b
+
+    def upsert_bars_1d(self, conn, bars, *, nominal_kind, fetched_at, ref=None):
+        for b in bars:  # the real one upserts on (symbol, trading_date)
+            self.observed[(b.symbol, b.trading_date)] = (b, nominal_kind, (ref or {}).get(b.symbol),
+                                                         fetched_at)
 
     def upsert_index_1d(self, conn, bars):
         for b in bars:
@@ -275,7 +282,8 @@ def test_press_asks_the_board_then_only_the_gaps(tmp_path, snap):
     assert calls == [(["VN30"], 6000), (["VNINDEX"], 6000), (["F"], 8)] and snap.calls == [D]
     assert (m.status, m.symbols_fetched, m.symbols_no_trades, m.requests) == ("complete", 5 + 2, ("D",), 4)
     assert progress[-1] == (8, 8) and m.universe_count == 8
-    assert {(k[0], k[2]) for k in repo.bars} == {("A", "ssi"), ("B", "ssi"), ("C", "ssi"), ("F", "vci")}
+    assert {(k[0], k[2]) for k in repo.bars} == {("F", "vci")}  # the board bars are not V2 versions
+    assert {k[0]: v[1] for k, v in repo.observed.items()} == dict.fromkeys("ABC", "observed")
 
 
 def test_gap_max_defers_the_newest_and_a_dead_board_makes_everything_a_gap(tmp_path):
@@ -325,7 +333,7 @@ def test_snapshot_and_gap_bars_hash_like_the_old_one_by_one_path(tmp_path, snap)
     snap.exc, snap.bars = None, [board_bar(n) for n in "ABC"]
     m, _ = run(tmp_path, repo, only=None, count=8)
     by: dict[str, list[bytes]] = {}
-    for b in repo.bars.values():
+    for b in [*repo.bars.values(), *(v[0] for v in repo.observed.values())]:
         by.setdefault(b.symbol, []).append(line(b.symbol, b, b.source))
     for b in repo.index.values():
         by.setdefault(b.index_code, []).append(line(b.index_code, b, "vci"))
@@ -334,6 +342,19 @@ def test_snapshot_and_gap_bars_hash_like_the_old_one_by_one_path(tmp_path, snap)
         for ln in sorted(by[n]):
             h.update(ln)
     assert m.checksum == "sha256:" + h.hexdigest()
+
+
+def test_board_bar_lands_observed_with_ref_and_a_replay_changes_nothing(tmp_path, snap):
+    snap.exc, snap.bars = None, [replace(board_bar("A"), ref=100), board_bar("B")]  # B: no refPrice
+    runs = []
+    for i in "ab":
+        repo = FakeRepo(("A", "B"))
+        m, _ = run(tmp_path, repo, only=None, count=8, gap_max=0)  # same dir: the 2nd run replays
+        # no fetched_at: the stub board rewrites the archive file on every call
+        runs.append(({k: v[:3] for k, v in repo.observed.items()}, m.checksum))
+    obs = runs[0][0]
+    assert not repo.bars and obs[("A", D)][1:] == ("observed", 100) and obs[("B", D)][2] is None
+    assert runs[0] == runs[1]
 
 
 def test_a_dropped_snapshot_counts_toward_the_fail_run(tmp_path):

@@ -43,6 +43,7 @@ class Bar:
     v: int
     value: int | None
     source: str
+    ref: int | None = None  # exchange reference price of the session (S1 `refPrice`); None from other sources
 
     def __post_init__(self) -> None:
         _require_utc(self.ts)
