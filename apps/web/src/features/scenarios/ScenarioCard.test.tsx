@@ -116,6 +116,18 @@ describe("ScenarioCard", () => {
     expect(line.querySelectorAll("details li")).toHaveLength(5);
   });
 
+  it("DCA real API shape (field contribution, after_end) renders one line, no sell-shift lines", async () => {
+    const shifts = [["2025-04-05", "2025-04-07"], ["2025-05-03", "2025-05-05"], ["2025-06-07", "2025-06-09"], ["2025-07-05", "2025-07-07"]]
+      .map(([from, to]) => ({ field: "contribution", from, to, reason: "non_trading" }))
+      .concat([{ field: "contribution", from: "2026-10-17", to: null as unknown as string, reason: "after_end" }]);
+    const dca: Scenario = { ...lump, style: "dca", amount_vnd: 2_000_000, buy_date: "2025-03-03" };
+    const card = within(await show({ ...env001, result: { ...structuredClone(env001.result), dates: { ...env001.result.dates, shifts } } }, dca));
+    expect(card.getAllByTestId("dca-shifts")).toHaveLength(1);
+    expect(card.getByTestId("dca-shifts")).toHaveTextContent("5 lần");
+    expect(card.getByTestId("dca-shifts").querySelectorAll("details li")[4]).toHaveTextContent("→ bỏ qua");
+    expect(card.queryByText(/Ngày bán dời/)).toBeNull();
+  });
+
   it("failing computation shows the reason and Edit only on that card", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ error: { code: "NO_DATA", message: "x" } }), { status: 422 }))));
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

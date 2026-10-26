@@ -2,7 +2,7 @@
 `finvest_analytics.adjust.recon`; this loads our own tables, writes `recon_mismatches` + R8 anomalies and one
 `crawl_runs` row (feed `recon`). 0 source requests."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
@@ -62,8 +62,9 @@ def _compare(conn: Connection, sym: str, source: str, nominal, factors) -> Recon
 
 
 def _cross_check(conn: Connection, run_date: date, names: list[str], fetcher: Fetcher, r: ReconRun) -> None:
-    """S2 as a second `theirs` (F-016): fetch (archive-first), store as source 'ssi', reconcile. The first
-    blocked answer stops it; the local result stands."""
+    """S2 as a second `theirs` (F-016): fetch (archive-first), store as source 'ssi_s2', reconcile. The first
+    blocked answer stops it; the local result stands. `ssi` in `bars_1d_src` is reserved for the S1 board row
+    that 0010 moves to `bars_1d`."""
     ssi = make_source("ssi", fetcher)
     req0 = fetcher.requests
     try:
@@ -79,9 +80,10 @@ def _cross_check(conn: Connection, run_date: date, names: list[str], fetcher: Fe
                 continue
             # fetched_at is the archive file's mtime, so a replay hits the same key
             mtime = fetcher.archive.path("bars_1d_ssi", run_date, f"{sym}-1d-{COUNT}").stat().st_mtime
-            repo.upsert_bars_1d_src(conn, bars, datetime.fromtimestamp(mtime, UTC))
+            s2 = [replace(b, source="ssi_s2") for b in bars]
+            repo.upsert_bars_1d_src(conn, s2, datetime.fromtimestamp(mtime, UTC))
             conn.commit()
-            res = _compare(conn, sym, "ssi", nominal, repo.adj_factors_for(conn, sym))
+            res = _compare(conn, sym, "ssi_s2", nominal, repo.adj_factors_for(conn, sym))
             r.ssi_mismatches += len(res.mismatches) if res else 0
     except SourceBlocked:
         r.ssi_blocked = True
