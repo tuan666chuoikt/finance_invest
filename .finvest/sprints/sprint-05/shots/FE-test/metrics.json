@@ -1,0 +1,1164 @@
+{
+ "metrics": {
+  "cards-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "how-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "form-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "table-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null,
+   "ta": [
+    "left",
+    "left",
+    "left",
+    "left",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "left"
+   ],
+   "tn": [
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums"
+   ],
+   "pos": "sticky"
+  },
+  "empty-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "crawl-running-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "crawl-failed-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "api-error-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "loading-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "nobars-375-light": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "cards-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "how-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "form-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "table-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null,
+   "ta": [
+    "left",
+    "left",
+    "left",
+    "left",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "left"
+   ],
+   "tn": [
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums"
+   ],
+   "pos": "sticky"
+  },
+  "empty-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "crawl-running-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "crawl-failed-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "api-error-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "loading-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 1
+  },
+  "nobars-375-dark": {
+   "sw": 375,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "cards-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "how-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "form-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "table-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null,
+   "ta": [
+    "left",
+    "left",
+    "left",
+    "left",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "left"
+   ],
+   "tn": [
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums"
+   ],
+   "pos": "static"
+  },
+  "empty-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "crawl-running-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "crawl-failed-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "api-error-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "loading-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "nobars-1280-light": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(245, 246, 248)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "cards-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "how-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "form-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "table-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null,
+   "ta": [
+    "left",
+    "left",
+    "left",
+    "left",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "left"
+   ],
+   "tn": [
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums",
+    "tabular-nums"
+   ],
+   "pos": "static"
+  },
+  "empty-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "crawl-running-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "crawl-failed-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "api-error-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  },
+  "loading-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": 3
+  },
+  "nobars-1280-dark": {
+   "sw": 1280,
+   "ff": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif",
+   "bg": "rgb(17, 20, 24)",
+   "tbh": 53,
+   "btns": 0,
+   "serif": 0,
+   "cols": null
+  }
+ },
+ "res": [
+  {
+   "n": "seed: a P/L-up scenario exists",
+   "pass": true,
+   "i": "none of probe symbols up"
+  },
+  {
+   "n": "seed E2E FPT một lần",
+   "pass": true,
+   "i": "{\"name\":\"E2E FPT một lần\",\"symbol\":\"FPT\",\"style\":\"lump_sum\",\"amount_vnd\":50000000,\"buy_date\":\"2025-03-03\",\"sell_date\":\"2026-10-16\",\"id\":107,\"created_a"
+  },
+  {
+   "n": "seed E2E HPG định kỳ",
+   "pass": true,
+   "i": "{\"name\":\"E2E HPG định kỳ\",\"symbol\":\"HPG\",\"style\":\"dca\",\"amount_vnd\":2000000,\"buy_date\":\"2025-03-03\",\"sell_date\":null,\"id\":108,\"created_at\":\"2026-10-26"
+  },
+  {
+   "n": "seed E2E VNM nhỏ hơn 1 lô",
+   "pass": true,
+   "i": "{\"name\":\"E2E VNM nhỏ hơn 1 lô\",\"symbol\":\"FPT\",\"style\":\"lump_sum\",\"amount_vnd\":10000000,\"buy_date\":\"2025-03-03\",\"sell_date\":null,\"id\":109,\"created_at\":"
+  },
+  {
+   "n": "seed E2E ACB lãi",
+   "pass": true,
+   "i": "{\"name\":\"E2E ACB lãi\",\"symbol\":\"ACB\",\"style\":\"lump_sum\",\"amount_vnd\":50000000,\"buy_date\":\"2026-01-05\",\"sell_date\":null,\"id\":110,\"created_at\":\"2026-10-"
+  },
+  {
+   "n": "cards-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "cards-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "cards-375-light: >=3 real cards",
+   "pass": true,
+   "i": "4"
+  },
+  {
+   "n": "axe color-contrast cards-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "axe all rules cards-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "focus ring add-375-light",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "focus ring toggle-375-light",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "focus ring card-i-375-light",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "how-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "how-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast how-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "form-375-light: validation error shown",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "form-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "form-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast form-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "focus ring form-field-375-light",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "table-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "table-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast table-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "empty-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "empty-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast empty-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "crawl-running-375-light: status line visible",
+   "pass": true,
+   "i": "no status line (done is shown only after a running state seen)"
+  },
+  {
+   "n": "crawl-running-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "crawl-running-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast crawl-running-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "crawl-failed-375-light: status line visible",
+   "pass": true,
+   "i": "no status line (done is shown only after a running state seen)"
+  },
+  {
+   "n": "crawl-failed-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "crawl-failed-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast crawl-failed-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "api-error-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "api-error-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast api-error-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "loading-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "loading-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "nobars-375-light: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "nobars-375-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast nobars-375-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "cards-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "cards-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "cards-375-dark: >=3 real cards",
+   "pass": true,
+   "i": "4"
+  },
+  {
+   "n": "axe color-contrast cards-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "axe all rules cards-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "focus ring add-375-dark",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "focus ring toggle-375-dark",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "focus ring card-i-375-dark",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "how-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "how-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast how-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "form-375-dark: validation error shown",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "form-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "form-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast form-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "focus ring form-field-375-dark",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "table-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "table-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast table-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "empty-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "empty-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast empty-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "crawl-running-375-dark: status line visible",
+   "pass": true,
+   "i": "no status line (done is shown only after a running state seen)"
+  },
+  {
+   "n": "crawl-running-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "crawl-running-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast crawl-running-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "crawl-failed-375-dark: status line visible",
+   "pass": true,
+   "i": "no status line (done is shown only after a running state seen)"
+  },
+  {
+   "n": "crawl-failed-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "crawl-failed-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast crawl-failed-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "api-error-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "api-error-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast api-error-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "loading-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "loading-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "nobars-375-dark: scrollWidth<=375",
+   "pass": true,
+   "i": "375"
+  },
+  {
+   "n": "nobars-375-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast nobars-375-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "cards-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "cards-1280-light: >=3 real cards",
+   "pass": true,
+   "i": "4"
+  },
+  {
+   "n": "axe color-contrast cards-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "axe all rules cards-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "focus ring add-1280-light",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "focus ring toggle-1280-light",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "focus ring card-i-1280-light",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "how-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast how-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "form-1280-light: validation error shown",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "form-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast form-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "focus ring form-field-1280-light",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "table-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast table-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "empty-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast empty-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "crawl-running-1280-light: status line visible",
+   "pass": true,
+   "i": "no status line (done is shown only after a running state seen)"
+  },
+  {
+   "n": "crawl-running-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast crawl-running-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "crawl-failed-1280-light: status line visible",
+   "pass": true,
+   "i": "no status line (done is shown only after a running state seen)"
+  },
+  {
+   "n": "crawl-failed-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast crawl-failed-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "api-error-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast api-error-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "loading-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "nobars-1280-light: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast nobars-1280-light",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "cards-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "cards-1280-dark: >=3 real cards",
+   "pass": true,
+   "i": "4"
+  },
+  {
+   "n": "axe color-contrast cards-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "axe all rules cards-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "focus ring add-1280-dark",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "focus ring toggle-1280-dark",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "focus ring card-i-1280-dark",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "how-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast how-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "form-1280-dark: validation error shown",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "form-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast form-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "focus ring form-field-1280-dark",
+   "pass": true,
+   "i": "{\"on\":true,\"o\":\"solid\",\"w\":\"2px\",\"bs\":\"none\"}"
+  },
+  {
+   "n": "table-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast table-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "empty-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast empty-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "crawl-running-1280-dark: status line visible",
+   "pass": true,
+   "i": "no status line (done is shown only after a running state seen)"
+  },
+  {
+   "n": "crawl-running-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast crawl-running-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "crawl-failed-1280-dark: status line visible",
+   "pass": true,
+   "i": "no status line (done is shown only after a running state seen)"
+  },
+  {
+   "n": "crawl-failed-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast crawl-failed-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "api-error-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast api-error-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "loading-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "nobars-1280-dark: font system-ui, no serif",
+   "pass": true,
+   "i": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Noto Sans\", \"Helvetica Neue\", Arial, sans-serif serif=0"
+  },
+  {
+   "n": "axe color-contrast nobars-1280-dark",
+   "pass": true,
+   "i": ""
+  },
+  {
+   "n": "cleanup: no E2E scenarios left",
+   "pass": true,
+   "i": ""
+  }
+ ]
+}

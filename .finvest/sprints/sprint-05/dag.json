@@ -1,7 +1,7 @@
 {
   "sprint": "sprint-05",
-  "plan": "v1.1",
-  "dagRev": 5,
+  "plan": "v1.4",
+  "dagRev": 7,
   "seats": {
     "fe": 2,
     "be": 2,
@@ -281,13 +281,104 @@
       "lane": "FE-1",
       "milestone": "M3",
       "after": [
-        "FE-rw"
+        "FE-rw",
+        "FE-fix-dca-shifts"
       ],
       "effort": "medium",
       "leadModel": "sonnet",
       "priority": 8,
       "manual": true,
       "size": 60
+    },
+    {
+      "id": "BE-fix-v5-iss",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 1,
+      "manual": false,
+      "size": 110
+    },
+    {
+      "id": "BE-fix-ca-budget",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [
+        "BE-fix-v5-iss"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 2,
+      "manual": false,
+      "size": 30
+    },
+    {
+      "id": "BE-fix-runner-now",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 2,
+      "manual": false,
+      "size": 20
+    },
+    {
+      "id": "BE-fix-recon-s2",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [
+        "BE-fix-runner-now"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 3,
+      "manual": false,
+      "size": 25
+    },
+    {
+      "id": "OPS-fix-guards",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M1",
+      "after": [
+        "BE-fix-recon-s2"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 4,
+      "manual": false,
+      "size": 15
+    },
+    {
+      "id": "AI-fix-lint",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 1,
+      "manual": false,
+      "size": 2
+    },
+    {
+      "id": "FE-fix-dca-shifts",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 1,
+      "manual": false,
+      "size": 30
     }
   ],
   "_doc": {
@@ -297,6 +388,7 @@
     "M0": "spike done by the architect at planning (data.md 1.2 V5/S2); no task",
     "dagRev5": "ai-architect 2026-10-26: + AI-recon-xsrc (reconcile self_check=) before BE-recon-s2 tests (BE-recon-s2 consult); dagRev4 = dag.prev-3.json",
     "dagRev3": "ai-architect 2026-10-26: + AI-adjust-version (R6a per-version last) before BE-ca-recompute round 2 / BE-recon-cli",
-    "dagRev6": "sw-architect 2026-10-26: BE-recon-s2 round 2 — size 90 (crawler files only, no slack_vnd), keeps after AI-recon-xsrc; dagRev5 = dag.prev-4.json"
+    "dagRev6": "sw-architect 2026-10-26: BE-recon-s2 round 2 — size 90 (crawler files only, no slack_vnd), keeps after AI-recon-xsrc; dagRev5 = dag.prev-4.json",
+    "dagRev7": "sw-architect 2026-10-26 rework R1 (2-tech-plan.md 'Rework R1', AI-fix-lint in 2-tech-plan.ai.md): BE-fix-v5-iss = B-05-1 (money, opus); BE-fix-ca-budget = B-05-2 after it (same test file); BE-fix-runner-now = B-05-5; BE-fix-recon-s2 = B-05-6; OPS-fix-guards = B-05-3+7; AI-fix-lint = B-05-4; FE-fix-dca-shifts = F-05-1, FE-shots now after it; BE-2 chain only serialises the seat; dagRev6 = dag.prev-5.json"
   }
 }

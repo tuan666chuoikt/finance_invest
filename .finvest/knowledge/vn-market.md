@@ -1,6 +1,6 @@
 # Vietnamese stock market rules (domain truth for every agent)
 
-Owner: `fi-ai-architect`. **Status: v1.1, 2026-10-26** (v1 verified 2026-10-15; v1.1 adds §6 combined-event formula + inversion, S7) (draft 2026-10-14 from general knowledge; every rule now
+Owner: `fi-ai-architect`. **Status: v1.2, 2026-10-26** (v1 verified 2026-10-15; v1.1 adds §6 combined-event formula + inversion, S7; v1.2 adds §6 which share issues adjust the reference) (draft 2026-10-14 from general knowledge; every rule now
 carries a tag). Tags: **[verified src, date]** = read in a primary or official-derived source on that date;
 **[practice]** = consistent market practice, no single legal text; **[verify]** = still unconfirmed, code must flag it
 (`verified=false` in `packages/market_rules`, shown on the rules page, C7). Rules change (KRX system 05/05/2025,
@@ -93,6 +93,13 @@ the exchange rules, so §2–§4 count as **verified (secondary)**; re-check aga
   later but count from the ex-date for valuation. **Fractional shares: rounded down to a whole share; the fraction is
   cancelled (most issuers) or paid in cash per the issuer's notice** [practice S6: PVS, NTP, DTP notices 2025–26];
   simulator default `round_down_cancel`, overridable per event.
+- **Which share issues adjust the reference price**: only issues that give existing holders a right on an ex-date (GDKHQ) —
+  stock dividend ("trả cổ tức bằng cổ phiếu"), bonus shares ("cổ phiếu thưởng", same formula, same economic event) and rights
+  to existing holders ("quyền mua cho cổ đông hiện hữu"); issues with **no ex-date** — ESOP (CBCNV), private placement (riêng lẻ),
+  convertible-bond conversion, merger/swap issue, public auction — are dilutive but **never** adjust the reference and never
+  enter `adj_factors` [verified S1 principle: adjustment only "khi thực hiện quyền" on the GDKHQ; kinds list = practice; first
+  free check = board `ref` on the issue date (F-016 R8). **Caution (V5 payloads, 26 VN30 names, 2026-10-26): V5 fills
+  `exrightDate` (= `recordDate`) for every kind, ESOP included, so classify by title, never by the presence of an ex-date**].
 - **Rights issue** ratio a:b at price S: adjusted reference = (P × a + S × b) / (a + b); exercising costs cash;
   no adjustment when S ≥ pre-ex average price [verified S1].
 - **Several events on one ex-date** combine in **one** reference formula, ratios summed in the denominator
@@ -146,6 +153,7 @@ crawl start; proprietary flow none; corporate actions ≥ 10 years.
 | §6 fractional bonus shares round down | practice S6 (issuer-specific) |
 | §6 CA formulas | principle verified S1; formulas practice |
 | §6 combined same-day formula, pre-ex inversion (2026-10-26) | practice S7; check = board `ref` on ex-date within 1 tick (F-016) |
+| §6 share-issue kinds that adjust vs not (2026-10-26) | principle verified S1 (GDKHQ only); kinds list practice + V5 payload check (B-05-1) |
 Totals: 13 verified (incl. secondary), 2 practice, 5 still [verify] (UPCoM end time, Saturday make-up, rounding
 direction, HNX/UPCoM max order, stock-dividend tax base). One value changed (HNX ETF tick 100 → 1 đ); one addition
 (UPCoM no ATC confirmed; PLO phases).
