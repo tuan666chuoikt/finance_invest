@@ -64,3 +64,8 @@
 2026-10-26 13:36 | ai-arch | BE-recon-s2              | answered  | no slack; cause = 1-VND self-check branch vs non-origin source; + AI-recon-xsrc (self_check=, ~30 lines), dagRev 5, BE-recon-s2 after it | sprints/sprint-05/3-consult.BE-recon-s2.answer.ai.md
 2026-10-26 13:37 | dev     | BE-recon-s2              | blocked   | waits on AI-recon-xsrc (reconcile self_check=, not on origin/sprint-05); task card still says slack_vnd, conflicts with AI answer | sprints/sprint-05/3-consult.BE-recon-s2.answer.ai.md
 2026-10-26 13:38 | arch    | BE-recon-s2              | answered  | round 2: slack_vnd withdrawn, aligned with AI (self_check=(source=='vci')); card re-emitted plan v1.3, dag rev 6 size 90 after AI-recon-xsrc | sprints/sprint-05/3-consult.BE-recon-s2.answer.sa.md
+2026-10-26 13:40 | ai      | AI-recon-xsrc            | pr-open   | 73 passed; +17 lines | 3-build.AI-recon-xsrc.md
+2026-10-26 13:41 | lead    | AI-recon-xsrc            | merged    | f73248e; analytics suite 73 passed; 0 must-fix | .finvest/sprints/sprint-05/3-pr.AI-recon-xsrc.md
+2026-10-26 13:41 | lead    | BE-recon-s2              | changes   | 3 must-fix: no tests, no self_check wiring, not synced; no checks run | 3-pr.BE-recon-s2.md
+2026-10-26 13:46 | dev     | BE-recon-s2              | fix-pushed | round 1: self_check, 3 tests, test-db 60 passed | 3-build.BE-recon-s2.md
+2026-10-26 13:48 | lead    | BE-recon-s2              | merged    | aedaf0c; crawler unit 337 passed, db 60 passed, mypy/imports ok | 3-pr.BE-recon-s2.md
