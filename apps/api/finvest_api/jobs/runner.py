@@ -126,7 +126,7 @@ def _run(engine: Engine, settings: Settings, job_id: int) -> None:
                 raise _Blocked(m)
         else:
             summary["no_session_today"] = True
-        target = _target(now)
+        target = _target(_now())  # re-read: step 1 may have run past the cut-off (platform.md 2.6)
         step(2, "bars_1d", target)
         before = _sessions(engine)
         m = run_bars_1d(settings, target, today=today, count=_count(engine, target), gap_max=GAP_MAX,
