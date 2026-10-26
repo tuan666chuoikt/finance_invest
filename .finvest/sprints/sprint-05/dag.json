@@ -1,7 +1,7 @@
 {
   "sprint": "sprint-05",
   "plan": "v1.0",
-  "dagRev": 1,
+  "dagRev": 2,
   "seats": {
     "fe": 2,
     "be": 2,
@@ -44,7 +44,7 @@
       "leadModel": "sonnet",
       "priority": 1,
       "manual": false,
-      "size": 150
+      "size": 260
     },
     {
       "id": "BE-ca-repo",

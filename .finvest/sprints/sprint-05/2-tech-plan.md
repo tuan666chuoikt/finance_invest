@@ -103,7 +103,7 @@ M3 = FE-shots. M0 was done by the architect at planning (no dag task). L1–L3 a
 - Out of scope: factors on the read path, step 3, reconstructed rows.
 
 #### BE-v5-adapter — F-014: VCI IQ events adapter (pure parse + fetch), fixture from the spike
-- Story: F-014 ; Side: be ; Effort: high ; Size: ~150 lines ; Lead: sonnet
+- Story: F-014 ; Side: be ; Effort: high ; Size: ~260 lines (re-estimated 2026-10-26 at consult: source ~145 + 8 acceptance tests ~115; was ~150) ; Lead: sonnet
 - Files: `services/crawler/finvest_crawler/adapters/vci/events.py` (new), `services/crawler/finvest_crawler/adapters/vci/payloads.py` (`VciEvent`, `VciEventsPage`),
   `packages/market_data/finvest_market_data/domain/models.py` (`CorporateAction` dataclass: fields of data.md §3 + `public_date`, `title`),
   `services/crawler/tests/fixtures/vci/events/FPT-2026.json` (copy of `.finvest/sprints/sprint-05/spike/v5-call4.json`), `services/crawler/tests/test_adapter_vci_events.py` (new)
