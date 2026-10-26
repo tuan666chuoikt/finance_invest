@@ -91,7 +91,7 @@ class CorporateAction:
 
     symbol: str
     type: Literal["cash_dividend", "stock_dividend", "rights", "split", "merge", "listing_change"]
-    ex_date: date
+    ex_date: date | None  # NULL only for listing_change (V5 may omit it)
     record_date: date | None
     pay_date: date | None
     ratio_a: int | None
