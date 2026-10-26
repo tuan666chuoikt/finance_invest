@@ -13,9 +13,9 @@ TRADING = datetime(2026, 10, 26, 16, 0, tzinfo=VN)  # Monday, after the close
 SUNDAY = datetime(2026, 10, 25, 10, 0, tzinfo=VN)
 
 
-def _m(rows=0, status="complete", source="kbs"):
+def _m(rows=0, status="complete", source="kbs", skipped=()):
     return SimpleNamespace(trading_date=date(2026, 10, 26), status=status, source=source, symbols_fetched=30,
-                           rows=rows, symbols_skipped=())
+                           rows=rows, symbols_skipped=skipped)
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ def make_client(make_client, tmp_path):
 def fakes(monkeypatch):
     """Fake crawler steps; `gate` holds the ticks step open, `calls` records them."""
     f = SimpleNamespace(gate=threading.Event(), calls=[], ticks_exc=None, now=TRADING,
-                        ticks_status="complete", bars_status="complete", bars_args=[])
+                        ticks_status="complete", bars_status="complete", bars_args=[], skipped=())
     f.gate.set()
 
     def ticks(settings, d, only, *, today, on_progress):
@@ -44,7 +44,7 @@ def fakes(monkeypatch):
         f.calls.append(("bars", count))
         f.bars_args.append((d, gap_max))
         on_progress(40, 40)
-        return _m(rows=0, status=f.bars_status, source="vci")
+        return _m(rows=0, status=f.bars_status, source="vci", skipped=f.skipped)
 
     monkeypatch.setattr(runner, "run_ticks", ticks)
     monkeypatch.setattr(runner, "run_bars_1d", bars)
@@ -149,6 +149,14 @@ def test_non_trading_day(make_client, fakes):
     assert [k for k, _ in fakes.calls] == ["bars"]
 
 
+def test_summary_counts_the_deferred_names(make_client, fakes):
+    fakes.skipped = (("A", "deferred"), ("B", "http_503"), ("C", "deferred"))
+    c = make_client()
+    c.post("/api/jobs", json={"kind": "crawl"})
+    b = _wait(c)["summary"]["bars_1d"]
+    assert (b["symbols_skipped"], b["symbols_deferred"]) == (3, 2)
+
+
 def test_count_rule(make_client, fakes):
     c = make_client()  # seed: last bar 2026-10-16, index_1d empty (ignored)
     c.post("/api/jobs", json={"kind": "crawl"})
@@ -178,6 +186,20 @@ def test_sessions_added_counts_new_dates(make_client, fakes, monkeypatch):
     monkeypatch.setattr(runner, "run_bars_1d", bars)
     c.post("/api/jobs", json={"kind": "crawl"})
     assert _wait(c)["summary"]["bars_1d"]["sessions_added"] == 1
+
+
+def test_board_day_in_bars_1d_counts_as_a_session_and_a_last_bar(make_client, fakes, monkeypatch):
+    c = make_client()  # seed: last bar in bars_1d_src 2026-10-16
+    eng = c.app.dependency_overrides[get_engine]()
+    bar = dict(symbol="FPT", trading_date=date(2026, 10, 23), o=1, h=1, l=1, c=1, v=1,
+               nominal_kind="observed", source="ssi", fetched_at=datetime.now(UTC))
+    before = runner._sessions(eng)
+    with eng.begin() as cn:
+        cn.execute(insert(tables.bars_1d), [bar])
+    assert runner._sessions(eng) == before + 1
+    c.post("/api/jobs", json={"kind": "crawl"})
+    _wait(c)
+    assert ("bars", 5) in fakes.calls  # newest bar 10-23, not 10-16 (-> 8): 1 + 2, min 5
 
 
 def test_bad_kind_and_empty_current(make_client):

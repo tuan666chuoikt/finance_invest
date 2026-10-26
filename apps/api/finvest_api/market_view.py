@@ -3,9 +3,9 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from finvest_analytics.domain.models import DailyBar, IndexBar
-from finvest_market_data.infrastructure.tables import bars_1d_src, index_1d
+from finvest_market_data.infrastructure.tables import bars_1d, bars_1d_src, index_1d
 from finvest_rules.calendar import CalendarNotMaintained, trading_days
-from sqlalchemy import func, select
+from sqlalchemy import func, select, union_all
 from sqlalchemy.engine import Engine
 
 _BASIS = "source_adjusted"
@@ -44,14 +44,22 @@ class SqlMarketView:
              .distinct(t.c.trading_date)  # Postgres DISTINCT ON: newest fetched_at per day
              .order_by(t.c.trading_date, t.c.fetched_at.desc()))
         bars = [DailyBar(symbol, *r[:6], _BASIS, r[6]) for r in self._rows(q)]
+        seen, o = {b.trading_date for b in bars}, bars_1d
+        obs = (select(o.c.trading_date, o.c.o, o.c.h, o.c.l, o.c.c, o.c.v, o.c.fetched_at)
+               .where(o.c.symbol == symbol, o.c.nominal_kind == "observed",
+                      o.c.trading_date.between(start, min(end, as_of))))
+        # shortcut: observed close served as adjusted; BE-market-view-ca multiplies by the cumulative factor
+        bars = sorted(bars + [DailyBar(symbol, *r[:6], _BASIS, r[6]) for r in self._rows(obs)
+                              if r[0] not in seen], key=lambda b: b.trading_date)
         if bars:
             newest = max(b.fetched_at for b in bars)
             self._served = newest if self._served is None else max(self._served, newest)
         return bars
 
     def first_bar_date(self, symbol: str) -> date | None:
-        q = select(func.min(bars_1d_src.c.trading_date)).where(bars_1d_src.c.symbol == symbol)
-        return self._rows(q)[0][0]
+        days = union_all(*(select(t.c.trading_date).where(t.c.symbol == symbol)
+                           for t in (bars_1d_src, bars_1d)))
+        return self._rows(select(func.min(days.subquery().c.trading_date)))[0][0]
 
     def index_1d(self, code: str, start: date, end: date, *, as_of: date) -> list[IndexBar]:
         t = index_1d
