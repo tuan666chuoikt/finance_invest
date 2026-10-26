@@ -30,6 +30,8 @@
 .sc-card dd .btn-icon { color: var(--text-muted); }
 .sc-card dd.headline { font-size: var(--fs-xl); line-height: var(--lh-xl); font-weight: 600; }
 .sc-card .note { font-size: var(--fs-xs); color: var(--text-muted); display: block; }
+.sc-card .shifts summary { display: inline; cursor: pointer; color: var(--primary); text-decoration: underline; }
+.sc-card .shifts ul { margin: 0; padding-left: var(--sp-4); }
 .sc-card .note-warn { font-size: var(--fs-xs); color: var(--warn); }
 .sc-card .note-warn details { display: inline; }
 .sc-card .chip-warn { align-self: flex-start; white-space: normal; }

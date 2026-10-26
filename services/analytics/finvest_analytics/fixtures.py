@@ -1,8 +1,9 @@
 """In-memory MarketView for tests. bars_1d/index_1d enforce as_of (the look-ahead guard)."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from .domain.models import DailyBar, IndexBar
+from .adjust.series import adjusted, events_by_ex_date, forward_factors
+from .domain.models import AdjBar, CorporateAction, DailyBar, IndexBar, NominalBar
 
 
 @dataclass
@@ -11,6 +12,8 @@ class FixtureView:
     index: dict[str, list[IndexBar]]
     snapshot_at: datetime
     basis: str = "source_adjusted"
+    actions: dict[str, list[CorporateAction]] = field(default_factory=dict)
+    _served: list[datetime] = field(default_factory=list, init=False, repr=False)  # CA fetched_at served
 
     def calendar(self, start: date, end: date) -> list[date]:
         days = (end - start).days + 1
@@ -25,8 +28,21 @@ class FixtureView:
     def index_1d(self, code: str, start: date, end: date, *, as_of: date) -> list[IndexBar]:
         return [b for b in self.index.get(code, []) if start <= b.trading_date <= min(end, as_of)]
 
+    def corporate_actions(self, symbol: str, start: date, end: date, *, as_of: date) -> list[CorporateAction]:
+        rows = [a for a in self.actions.get(symbol, []) if start <= a.ex_date <= min(end, as_of)]
+        self._served.extend(a.fetched_at for a in rows)
+        return rows
+
+    def adjusted_close(self, symbol: str, start: date, end: date, *, as_of: date) -> list[AdjBar]:
+        """Fixture bars are nominal observed closes; factors derive from CA rows with ex_date <= as_of."""
+        nominal = [NominalBar(b.symbol, b.trading_date, b.c, "observed")
+                   for b in self.bars_1d(symbol, date.min, as_of, as_of=as_of)]
+        applied = self.corporate_actions(symbol, date.min, as_of, as_of=as_of)
+        rows = adjusted(nominal, forward_factors(symbol, nominal, events_by_ex_date(applied)), as_of)
+        return [r for r in rows if start <= r.trading_date <= end]
+
     def snapshot(self) -> datetime:
-        return self.snapshot_at
+        return max([self.snapshot_at, *self._served])  # served rows only, like SqlMarketView (R9)
 
     def price_basis(self) -> str:
         return self.basis

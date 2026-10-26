@@ -21,16 +21,21 @@ from sqlalchemy import (
     tuple_,
     update,
 )
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.dialects.postgresql import distinct_on, insert
 
 from finvest_market_data.domain.manifest import Manifest
-from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
+from finvest_market_data.domain.models import Bar, CorporateAction, IndexBar, SymbolRecord, Tick
 from finvest_market_data.infrastructure.tables import (
+    adj_factors,
+    bars_1d,
     bars_1d_src,
+    corporate_action_log,
+    corporate_actions,
     crawl_runs,
     crawl_sessions,
     data_anomalies,
     index_1d,
+    recon_mismatches,
     symbols,
     ticks,
 )
@@ -272,6 +277,72 @@ def upsert_bars_1d_src(conn: Connection, bars: Sequence[Bar], fetched_at: dateti
         )
 
 
+def upsert_bars_1d(
+    conn: Connection, bars: Sequence[Bar], *, nominal_kind: str, fetched_at: datetime,
+    ref: dict[str, int] | None = None,
+) -> int:
+    """Upsert nominal daily bars on (symbol, trading_date); returns rows written. An `observed` row is never
+    replaced by a `reconstructed` one (F-015); every other combination is latest-wins. `ref` maps symbol ->
+    exchange reference price (NULL when absent). Keys must be unique within `bars`."""
+    written = 0
+    for chunk in batched(bars, BATCH):
+        ins = insert(bars_1d).values(
+            [
+                {"symbol": b.symbol, "trading_date": b.trading_date, "o": b.o, "h": b.h, "l": b.l, "c": b.c,
+                 "ref": (ref or {}).get(b.symbol), "v": b.v, "value": b.value, "nominal_kind": nominal_kind,
+                 "source": b.source, "fetched_at": fetched_at}
+                for b in chunk
+            ]
+        )
+        new = ins.excluded
+        res = conn.execute(
+            ins.on_conflict_do_update(
+                index_elements=["symbol", "trading_date"],
+                set_={k: getattr(new, k) for k in ("o", "h", "l", "c", "ref", "v", "value", "nominal_kind",
+                                                   "source", "fetched_at")},
+                where=or_(bars_1d.c.nominal_kind != "observed", new.nominal_kind == "observed"),
+            ).returning(bars_1d.c.symbol)  # rowcount is -1 for a batched insert
+        )
+        written += len(res.all())
+    return written
+
+
+def move_ssi_board_rows(conn: Connection) -> int:
+    """Migration 0010: the newest `fetched_at` ssi row per (symbol, trading_date) moves from `bars_1d_src` to
+    `bars_1d` as `observed` (ref NULL), then every ssi `bars_1d_src` row is deleted. Returns rows inserted.
+    Re-runnable: an existing `bars_1d` row is kept."""
+    n = conn.execute(
+        text(
+            """
+            INSERT INTO bars_1d (symbol, trading_date, o, h, l, c, v, value, nominal_kind, source, fetched_at)
+            SELECT DISTINCT ON (symbol, trading_date)
+                   symbol, trading_date, adj_o, adj_h, adj_l, adj_c, v, value, 'observed', 'ssi', fetched_at
+            FROM bars_1d_src WHERE source = 'ssi'
+            ORDER BY symbol, trading_date, fetched_at DESC
+            ON CONFLICT (symbol, trading_date) DO NOTHING
+            """
+        )
+    ).rowcount
+    conn.execute(text("DELETE FROM bars_1d_src WHERE source = 'ssi'"))
+    return n
+
+
+def restore_ssi_board_rows(conn: Connection) -> int:
+    """Migration 0010 downgrade: observed ssi rows go back to `bars_1d_src` (they are not derivable);
+    reconstructed rows are dropped with the table. Returns rows restored."""
+    return conn.execute(
+        text(
+            """
+            INSERT INTO bars_1d_src
+                (symbol, trading_date, source, fetched_at, adj_o, adj_h, adj_l, adj_c, v, value)
+            SELECT symbol, trading_date, source, fetched_at, o, h, l, c, v, value
+            FROM bars_1d WHERE nominal_kind = 'observed' AND source = 'ssi'
+            ON CONFLICT DO NOTHING
+            """
+        )
+    ).rowcount
+
+
 def upsert_index_1d(conn: Connection, bars: Sequence[IndexBar]) -> None:
     """Latest wins per (index_code, trading_date); index levels are not versioned."""
     for chunk in batched(bars, BATCH):
@@ -334,3 +405,114 @@ def repair_index_1d_value(conn: Connection) -> int:
                    index_1d.c.value / index_1d.c.v < 100, index_1d.c.value / index_1d.c.v > 10_000_000))
     .values(value=None)
     ).rowcount
+
+
+CA_FIELDS = ("type", "ex_date", "record_date", "pay_date", "ratio_a", "ratio_b", "cash_per_share",
+             "issue_price")
+
+
+def upsert_corporate_actions(
+    conn: Connection, rows: Sequence[CorporateAction], fetched_at: datetime
+) -> tuple[int, int]:
+    """Upsert on (source, source_event_id); return (rows upserted, log rows written). A changed field of an
+    existing row writes one `corporate_action_log` row; an unchanged row writes none, so a re-run is a no-op
+    apart from `fetched_at`. Row by row: a press holds a few dozen events per symbol."""
+    changes = 0
+    for r in rows:
+        vals = {**{f: getattr(r, f) for f in CA_FIELDS}, "symbol": r.symbol, "public_date": r.public_date,
+                "title": r.title, "fetched_at": fetched_at}
+        cur = conn.execute(select(corporate_actions).where(
+            corporate_actions.c.source == r.source, corporate_actions.c.source_event_id == r.source_event_id
+        )).first()
+        if cur is None:
+            conn.execute(insert(corporate_actions).values(
+                **vals, source=r.source, source_event_id=r.source_event_id))
+            continue
+        old = cur._mapping
+        log = [{"ca_id": cur.id, "changed_at": fetched_at, "field": f,
+                "old": None if old[f] is None else str(old[f]),
+                "new": None if vals[f] is None else str(vals[f])}
+               for f in CA_FIELDS if old[f] != vals[f]]
+        if log:
+            conn.execute(insert(corporate_action_log).values(log))
+            changes += len(log)
+        conn.execute(update(corporate_actions).where(corporate_actions.c.id == cur.id).values(**vals))
+    return len(rows), changes
+
+
+def ca_symbols_in_order(conn: Connection, limit: int | None = None) -> list[str]:
+    """Press order: VN30 (current members), then scenario symbols, then the rest by oldest
+    `ca_checked_at` (NULL first). Delisted names are excluded."""
+    # shortcut: api-owned table read by name; move to a view if a third reader appears
+    q = text("""
+        SELECT symbol FROM (
+          SELECT s.symbol, s.ca_checked_at,
+                 CASE WHEN EXISTS (SELECT 1 FROM symbol_index_membership m WHERE m.symbol = s.symbol
+                                   AND m.index_code = 'VN30' AND m.valid_to IS NULL) THEN 0
+                      WHEN s.symbol IN (SELECT DISTINCT symbol FROM scenarios) THEN 1 ELSE 2 END AS tier
+          FROM symbols s WHERE NOT s.is_delisted) t
+        ORDER BY tier, CASE WHEN tier = 2 THEN ca_checked_at END NULLS FIRST, symbol
+        LIMIT :n""")
+    return [r[0] for r in conn.execute(q, {"n": limit})]
+
+
+def mark_ca_checked(conn: Connection, syms: Sequence[str], at: datetime) -> None:
+    conn.execute(update(symbols).where(symbols.c.symbol.in_(list(syms))).values(ca_checked_at=at))
+
+
+def corporate_actions_for(conn: Connection, syms: Sequence[str]) -> dict[str, list[CorporateAction]]:
+    """Every requested symbol is a key (empty list when it has no events), events by ex_date then id."""
+    out: dict[str, list[CorporateAction]] = {s: [] for s in syms}
+    q = select(corporate_actions).where(corporate_actions.c.symbol.in_(list(syms))).order_by(
+        corporate_actions.c.ex_date, corporate_actions.c.id)
+    for r in conn.execute(q):
+        out[r.symbol].append(CorporateAction(
+            r.symbol, r.type, r.ex_date, r.record_date, r.pay_date, r.ratio_a, r.ratio_b,
+            r.cash_per_share, r.issue_price, r.source, r.source_event_id, r.public_date, r.title))
+    return out
+
+
+def replace_adj_factors(
+    conn: Connection, symbol: str, rows: Sequence[tuple[date, Decimal | str, int | None]], rules_version: str
+) -> None:
+    """Delete + insert one symbol's factors; rows are (ex_date, factor, ca_id). Pass `factor` as a 12-place
+    string or Decimal, never float."""
+    conn.execute(adj_factors.delete().where(adj_factors.c.symbol == symbol))
+    if rows:
+        conn.execute(insert(adj_factors).values([
+            {"symbol": symbol, "ex_date": d, "factor": Decimal(f), "ca_id": ca,
+             "rules_version": rules_version}
+            for d, f, ca in rows]))
+
+
+def adj_factors_for(conn: Connection, symbol: str) -> list[tuple[date, Decimal, int | None]]:
+    q = select(adj_factors.c.ex_date, adj_factors.c.factor, adj_factors.c.ca_id).where(
+        adj_factors.c.symbol == symbol).order_by(adj_factors.c.ex_date)
+    return [(r.ex_date, r.factor, r.ca_id) for r in conn.execute(q)]
+
+
+def replace_recon_mismatches(
+    conn: Connection, symbol: str, rows: Sequence[tuple[date, int, int, Decimal]]
+) -> None:
+    """Delete + insert one symbol's mismatches; rows are (trading_date, ours, theirs, diff_pct)."""
+    conn.execute(recon_mismatches.delete().where(recon_mismatches.c.symbol == symbol))
+    if rows:
+        conn.execute(insert(recon_mismatches).values([
+            {"symbol": symbol, "trading_date": d, "ours": o, "theirs": t, "diff_pct": p,
+             "checked_at": func.now()}
+            for d, o, t, p in rows]))
+
+
+def newest_src_bars(conn: Connection, symbol: str, source: str) -> list[tuple[date, int]]:
+    """(trading_date, adj_c) of the newest `fetched_at` version of each date."""
+    b = bars_1d_src
+    q = (select(b.c.trading_date, b.c.adj_c).where(b.c.symbol == symbol, b.c.source == source)
+         .ext(distinct_on(b.c.trading_date)).order_by(b.c.trading_date, b.c.fetched_at.desc()))
+    return [(r.trading_date, r.adj_c) for r in conn.execute(q)]
+
+
+def nominal_bars(conn: Connection, symbol: str) -> list[tuple[date, int, str, int | None]]:
+    """(trading_date, c, nominal_kind, ref) by date."""
+    q = select(bars_1d.c.trading_date, bars_1d.c.c, bars_1d.c.nominal_kind, bars_1d.c.ref).where(
+        bars_1d.c.symbol == symbol).order_by(bars_1d.c.trading_date)
+    return [(r.trading_date, r.c, r.nominal_kind, r.ref) for r in conn.execute(q)]

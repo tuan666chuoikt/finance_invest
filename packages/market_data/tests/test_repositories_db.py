@@ -9,8 +9,9 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from finvest_market_data.domain.manifest import Manifest
-from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
+from finvest_market_data.domain.models import Bar, CorporateAction, IndexBar, SymbolRecord, Tick
 from finvest_market_data.infrastructure import repositories as repo
 from finvest_market_data.infrastructure.tables import ticks
 from sqlalchemy import text
@@ -51,7 +52,8 @@ def eng():
 def conn(eng):
     with eng.begin() as c:
         for t in ("ticks", "crawl_runs", "crawl_sessions", "data_anomalies", "symbols", "bars_1d_src",
-                  "index_1d", "symbol_index_membership"):
+                  "bars_1d", "index_1d", "symbol_index_membership", "corporate_actions",
+                  "corporate_action_log", "adj_factors", "recon_mismatches", "scenarios"):
             c.execute(text(f"TRUNCATE {t}"))
         yield c
 
@@ -322,3 +324,118 @@ def test_repair_index_1d_value_nulls_out_of_band_rows_only(conn):
     rows = conn.execute(text("SELECT trading_date, v, value FROM index_1d ORDER BY 1")).all()
     assert [r[2] for r in rows] == [None, None, good] and [r[1] for r in rows] == [2, 400_000, 400_000]
     assert repo.repair_index_1d_value(conn) == 0
+
+
+def ssi_src(conn, symbol: str, day: int, c: int, fetched_at: datetime, source: str = "ssi") -> None:
+    conn.execute(
+        text("INSERT INTO bars_1d_src VALUES (:s, :d, :src, :f, :c, :c, :c, :c, 10, 1000)"),
+        {"s": symbol, "d": date(2026, 10, day), "src": source, "f": fetched_at, "c": c},
+    )
+
+
+def test_migration_0010_moves_ssi_rows_and_round_trips(eng):
+    cfg = Config(str(INI))
+    command.downgrade(cfg, "0009")
+    old, new = datetime(2026, 10, 15, 9, tzinfo=UTC), datetime(2026, 10, 15, 10, tzinfo=UTC)
+    with eng.begin() as c:
+        for t in ("bars_1d_src", "symbols"):
+            c.execute(text(f"TRUNCATE {t}"))
+        ssi_src(c, "FPT", 15, 93_000, old)
+        ssi_src(c, "FPT", 15, 93_500, new)  # newest fetched_at wins
+        ssi_src(c, "VNM", 15, 60_000, new)
+        ssi_src(c, "FPT", 15, 65_000, new, source="vci")
+    for _ in range(2):  # down then up again is idempotent
+        command.upgrade(cfg, "head")
+        with eng.connect() as c:
+            got = c.execute(text("SELECT symbol, c, nominal_kind, source, ref FROM bars_1d ORDER BY symbol"))
+            assert got.all() == [
+                ("FPT", 93_500, "observed", "ssi", None), ("VNM", 60_000, "observed", "ssi", None)]
+            assert c.execute(text("SELECT source FROM bars_1d_src")).scalars().all() == ["vci"]
+            col = text("SELECT count(*) FROM information_schema.columns "
+                       "WHERE table_name='symbols' AND column_name='ca_checked_at'")
+            assert c.execute(col).scalar_one() == 1
+        command.downgrade(cfg, "0009")
+        with eng.connect() as c:
+            gone = text("SELECT to_regclass('bars_1d'), to_regclass('adj_factors')")
+            assert c.execute(gone).one() == (None, None)
+            # observed rows are not lost on downgrade (the older duplicate version is not restored)
+            assert c.execute(text("SELECT count(*) FROM bars_1d_src WHERE source='ssi'")).scalar_one() == 2
+    command.upgrade(cfg, "head")
+    assert ScriptDirectory.from_config(cfg).get_heads() == ["0010"]
+
+
+def test_upsert_bars_1d_observed_is_never_replaced_by_a_reconstruction(conn):
+    f = datetime(2026, 10, 16, tzinfo=UTC)
+    obs = replace(bar("FPT", c=93_500), source="ssi")
+    rec = replace(bar("FPT", c=93_499), source="vci")
+    one = {"nominal_kind": "observed", "fetched_at": f}
+    assert repo.upsert_bars_1d(conn, [obs], ref={"FPT": 93_000}, **one) == 1
+    assert repo.upsert_bars_1d(conn, [rec], nominal_kind="reconstructed", fetched_at=f) == 0  # G9
+    q = text("SELECT c, nominal_kind, ref FROM bars_1d WHERE symbol='FPT'")
+    assert conn.execute(q).one() == (93_500, "observed", 93_000)
+    assert repo.upsert_bars_1d(conn, [obs], **one) == 1  # observed re-crawl wins
+    conn.execute(text("TRUNCATE bars_1d"))
+    assert repo.upsert_bars_1d(conn, [rec], nominal_kind="reconstructed", fetched_at=f) == 1
+    assert repo.upsert_bars_1d(conn, [obs], **one) == 1  # observed over reconstructed
+    assert conn.execute(q).one() == (93_500, "observed", None)
+    with pytest.raises(IntegrityError):
+        conn.execute(text("UPDATE bars_1d SET nominal_kind='guess'"))
+
+
+def ca(ex: date = date(2026, 11, 5), event: str = "e1", **kw) -> CorporateAction:
+    base = dict(symbol="FPT", type="cash_dividend", ex_date=ex, record_date=date(2026, 11, 6), pay_date=None,
+                ratio_a=None, ratio_b=None, cash_per_share=1_000, issue_price=None, source="vci",
+                source_event_id=event, public_date=None, title="t")
+    return CorporateAction(**{**base, **kw})  # type: ignore[arg-type]
+
+
+def test_upsert_corporate_actions_logs_each_changed_field_once(conn):
+    t1, t2, t3 = (datetime(2026, 10, d, tzinfo=UTC) for d in (20, 21, 22))
+    assert repo.upsert_corporate_actions(conn, [ca()], t1) == (1, 0)  # new row: no log
+    moved = ca(ex=date(2026, 11, 7))
+    assert repo.upsert_corporate_actions(conn, [moved], t2) == (1, 1)
+    assert repo.upsert_corporate_actions(conn, [moved], t3) == (1, 0)  # re-run: no new log row
+    assert conn.execute(text("SELECT field, old, new, changed_at FROM corporate_action_log")).all() == [
+        ("ex_date", "2026-11-05", "2026-11-07", t2)]
+    assert conn.execute(text("SELECT count(*), max(fetched_at) FROM corporate_actions")).one() == (1, t3)
+    got = repo.corporate_actions_for(conn, ["FPT", "VNM"])
+    assert got == {"FPT": [moved], "VNM": []}
+
+
+def test_ca_symbols_in_order_and_mark_checked(conn):
+    old, new = datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 10, 1, tzinfo=UTC)
+    repo.upsert_symbols(conn, [sym(s) for s in ("VN30M", "SCEN", "NULLS", "OLD", "NEW")] + [
+        sym("GONE", delisted=True)], old)
+    repo.sync_index_membership(conn, "VN30", {"VN30M"}, D)
+    conn.execute(text("INSERT INTO scenarios (name, symbol, style, amount_vnd, buy_date, created_at,"
+                      " updated_at) VALUES ('s', 'SCEN', 'lump_sum', 1, '2026-01-02', now(), now())"))
+    repo.mark_ca_checked(conn, ["OLD"], old)
+    repo.mark_ca_checked(conn, ["NEW", "VN30M", "SCEN"], new)
+    assert repo.ca_symbols_in_order(conn) == ["VN30M", "SCEN", "NULLS", "OLD", "NEW"]
+    assert repo.ca_symbols_in_order(conn, limit=2) == ["VN30M", "SCEN"]
+
+
+def test_adj_factors_round_trip_as_decimal(conn):
+    rows = [(date(2026, 11, 5), "0.980000000000", None)]
+    repo.replace_adj_factors(conn, "FPT", rows, "r1")
+    repo.replace_adj_factors(conn, "FPT", rows, "r1")
+    assert repo.adj_factors_for(conn, "FPT") == [(date(2026, 11, 5), Decimal("0.980000000000"), None)]
+    assert conn.execute(text("SELECT factor::text FROM adj_factors")).scalar() == "0.980000000000"
+
+
+def test_replace_recon_mismatches_is_idempotent(conn):
+    rows = [(D, 65_000, 64_000, Decimal("1.5625"))]
+    for _ in range(2):
+        repo.replace_recon_mismatches(conn, "FPT", rows)
+    assert conn.execute(text("SELECT count(*) FROM recon_mismatches")).scalar() == 1
+
+
+def test_newest_src_bars_and_nominal_bars(conn):
+    t1, t2 = datetime(2026, 10, 15, tzinfo=UTC), datetime(2026, 10, 16, tzinfo=UTC)
+    repo.upsert_bars_1d_src(conn, [bar("FPT", c=100)], t1)
+    repo.upsert_bars_1d_src(conn, [bar("FPT", c=101)], t2)
+    repo.upsert_bars_1d_src(conn, [bar("FPT", day=14, c=90)], t1)
+    assert repo.newest_src_bars(conn, "FPT", "vci") == [(date(2026, 10, 14), 90), (D, 101)]
+    repo.upsert_bars_1d(conn, [bar("FPT", c=93_500)], nominal_kind="observed", fetched_at=t1,
+                        ref={"FPT": 93_000})
+    assert repo.nominal_bars(conn, "FPT") == [(D, 93_500, "observed", 93_000)]

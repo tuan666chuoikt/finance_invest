@@ -1,0 +1,12 @@
+{
+  "hand": [
+    "as_of 10-06: ex 10-07 not applied; adj(10-01) = 51,000 * 0.98 = 49,980.00; bar 10-07 is after as_of -> absent"
+  ],
+  "op": "adjusted",
+  "symbol": "FPT",
+  "bars_fetched_at": "2026-10-26T16:14:00+07:00",
+  "nominal": {"2026-10-01": 51000, "2026-10-02": 50000, "2026-10-05": 49000, "2026-10-06": 49500, "2026-10-07": 38077},
+  "events": [{"ex_date": "2026-10-05", "type": "cash_dividend", "cash_per_share": 1000, "fetched_at": "2026-10-26T16:14:00+07:00"}, {"ex_date": "2026-10-07", "type": "stock_dividend", "ratio_a": 10, "ratio_b": 3, "fetched_at": "2026-10-26T16:14:00+07:00"}],
+  "as_of": "2026-10-06",
+  "expected": {"factors": {"2026-10-05": "0.980000000000"}, "adj": {"2026-10-01": "49980.00"}, "absent": ["2026-10-07"]}
+}
