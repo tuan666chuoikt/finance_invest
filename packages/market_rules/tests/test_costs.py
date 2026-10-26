@@ -1,12 +1,13 @@
 import hashlib
+import inspect
 from datetime import date
 from decimal import Decimal
 
 import pytest
-from finvest_rules import RULES, RULES_VERSION, Costs, Rule, RuleNotEffective, costs, rule
+from finvest_rules import RULES, RULES_VERSION, Costs, Rule, RuleNotEffective, corporate_actions, costs, rule
 
 # Bump RULES_VERSION in finvest_rules/costs.py, then update this hash, whenever a rule changes.
-RULES_HASH = "2019ac0ca54a268d"
+RULES_HASH = "dba5df004a930819"
 
 
 def test_costs_v1():
@@ -39,7 +40,10 @@ def test_before_first_entry_raises():
         rule("board_lot", date(2005, 1, 1))
 
 
+# The hash covers RULES and the corporate-action formula source (comments included: bump on any edit).
 def test_rules_changed_requires_version_bump():
-    h = hashlib.sha256(repr(sorted(RULES.items())).encode()).hexdigest()[:16]
+    h = hashlib.sha256(
+        (repr(sorted(RULES.items())) + inspect.getsource(corporate_actions)).encode()
+    ).hexdigest()[:16]
     msg = f"RULES changed (hash {h}): bump RULES_VERSION (now {RULES_VERSION}) and update RULES_HASH"
     assert h == RULES_HASH, msg
