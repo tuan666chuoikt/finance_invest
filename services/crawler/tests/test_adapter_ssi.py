@@ -121,6 +121,7 @@ def test_snapshot_fixture_aaa_and_row_accounting():
     got = (aaa.o, aaa.h, aaa.l, aaa.c, aaa.v, aaa.value, aaa.source)
     assert got == (7090, 7190, 7020, 7100, 684300, 4855893000, "ssi")
     assert aaa.ts == datetime(2026, 10, 15, 17, 0, tzinfo=UTC)
+    assert aaa.ref == 7000  # S1 refPrice, VND
     assert (len(bars), len(idle)) == (41, 5)  # 46 s|e rows = 41 traded + 5 without trades
 
 
@@ -129,6 +130,12 @@ def test_snapshot_filters_types_and_no_trade_rows():
             {"stockSymbol": "Z", "nmTotalTradedQty": 0}, {"stockSymbol": "Y", "openPrice": 0}]
     bars, idle = parse_snapshot(board(*rows), S1)
     assert [b.symbol for b in bars] == ["A"] and idle == ["Z", "Y"]
+
+
+def test_snapshot_ref_is_none_when_the_board_has_none():
+    bars, _ = parse_snapshot(board({"stockSymbol": "A"}, {"stockSymbol": "B", "refPrice": 0},
+                                   {"stockSymbol": "C", "refPrice": 10}), S1)
+    assert [b.ref for b in bars] == [None, None, 10]
 
 
 def test_snapshot_unknown_turnover_stays_none():
