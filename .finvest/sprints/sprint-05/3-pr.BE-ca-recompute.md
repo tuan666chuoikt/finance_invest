@@ -74,3 +74,46 @@ Size: 8 files, +298/-6 (296 without the lockfile) vs plan ~170, stop 255. No `3-
 
 ### Merge
 Not merged. The worktree is kept for round 2.
+
+## Round 2 — 2026-10-26, fi-tech-lead (BE)
+
+**Verdict: APPROVE.** Reviewed head H = `227f2e2fc9244fbcf6d5d900cf7f0edd0e1218fd` (already contains `origin/sprint-05` 97dcde1
+incl. AI-adjust-version; no sync merge needed).
+Files reviewed: `feeds/recompute.py`, `feeds/corporate_actions.py`, `cli.py`, `jobs/runner.py`, `infrastructure/repositories.py`,
+`tests/test_recompute.py`, `apps/api/tests/test_jobs.py`, `packages/market_data/tests/test_repositories_db.py`, `services/crawler/pyproject.toml` (+ `uv.lock`).
+Size: 10 files, +358/-11 (356 without the lockfile) vs card v1.1 ~340, stop 510; `3-consult.BE-ca-recompute.md` exists.
+
+### Round-1 must-fix status
+1. Size stop: consult written (late, stated). Closed.
+2. Per-version G (R6a, option A): `newest_src_bars` computes `last = max(trading_date) OVER (PARTITION BY fetched_at)` before the
+   `DISTINCT ON`; `_one` passes `AdjBar(..., r.last)` and divides O/H/L by `cumulative(factors, d, r.last)`, the same G that
+   `reconstruct` uses for the close (series.py:99). G13-db + G13b present. **Mutation check by the lead**: with `last` removed (None +
+   global last) G13 gives 51,020 on days 1-7 and G13b fails on the factor; reverted, worktree clean. Closed.
+3. Watermark set (platform.md v1.15 §2.6): `repo.recompute_set` = changed ∪ (max vci src fetched_at > max reconstructed fetched_at, or
+   none), filtered `ca_checked_at`; `since` gone. Self-healing holds: `upsert_bars_1d` updates `fetched_at` on conflict and the written
+   rows carry the newest src `fetched_at` (= the global max, since the newest version owns at least its own dates). Test covers in → out → back in. Closed.
+4. Reason: db test on the real `recompute_press` (NULL → `recompute: 2 symbols, 1 skipped`, `x` → `x; ...`); `concat_ws` skips NULL. Closed.
+Nits a, b done (no table import / SQL in `recompute.py`; skipped count in the reason). c, d decided by SA/AI (no change here; BE-mv-basis).
+
+### Nits (no action required)
+- a. The card's G13 text ("F0 12 days fetched before ex day 8") is not physically consistent; the dev's V0 days 1-10 / V1 days 8-12 /
+  ex day 11 tests the same mechanism (V0 rows with `last_v < E`), and G13b covers the `last_v < D` P branch. SA may align the card text.
+- b. `recompute_press` runs inside the runner's try: an exception there marks a press whose steps 1-3 succeeded as failed. Data is safe
+  (commit per symbol, the watermark heals next press), so acceptable; note for the tester.
+- c. `CorporateAction(..., datetime.now(UTC))` in `_one` is a throwaway field, not used in factors; harmless.
+- d. `finvest-analytics` workspace dependency for the crawler is outside the listed files but implied by "glue over
+  `finvest_analytics.adjust`"; import-linter green.
+
+### Hand checks
+- G7: P = 49,000 + 1,000 = 50,000; f = 0.98; D−1 49,000/0.98 = 50,000; D−2 48,000/0.98 = 48,979.6 → 48,980. Matches the test.
+- G9: 92,500/93,500 = 0.989304812834. Matches.
+- G12: 65,182 × 1.1 = 71,700.2 → 71,700 (card 71,701 ± 1). Matches.
+- G13: V1 day 10 = 49,000, last_v = 12 ≥ 11 → P = 50,000, f = 0.98; days 8-10 49,000/0.98 = 50,000; days 1-7 V0, last_v = 10 < 11 → G = 1 → 50,000. Matches.
+- G13b: day 10 is V0 (last_v = 10 < 11) → P = 50,000 with no inversion, f = 0.98. Matches.
+
+### Checks on H (real numbers)
+- `make test-kernel` (q.sh lead-carec2-kernel): exit 0, 335 passed, 47 deselected; ruff clean; mypy 5 files clean; import-linter 5 kept, 0 broken.
+- `pytest -m db -rs` on throwaway db `finvest_lead_carec2_test` (live db container, dropped after) (q.sh lead-carec2-db): exit 0, 47 passed.
+
+### Merge
+Merged into `sprint-05`: merge sha `0d69b8b2124f2461b8a80305d8a1336509d3d6e6` (base 97dcde1, head 227f2e2). Worktree removed.

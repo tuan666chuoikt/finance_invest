@@ -43,7 +43,10 @@ def reconcile(
     src_bars: list[AdjBar],
     *,
     threshold: Decimal = Decimal("0.1"),
+    self_check: bool = True,
 ) -> ReconResult:
+    """self_check=False when `src_bars` is not the source the reconstructed rows were inverted from (S2
+    cross-check): they are then judged like observed rows instead of to within 1 VND."""
     theirs_by_date = {b.trading_date: b for b in src_bars}
     if not theirs_by_date:
         return ReconResult([], 0, 0, None)
@@ -62,7 +65,7 @@ def reconcile(
         pct = min(pct, _PCT_MAX)  # diff_pct is NUMERIC(8,4): a x1000 unit slip would overflow
         checked += 1
         exact += diff == 0
-        if b.nominal_kind == "reconstructed":  # pre-crawl: self-consistency, <= 1 VND (R7)
+        if self_check and b.nominal_kind == "reconstructed":  # pre-crawl: self-consistency, <= 1 VND (R7)
             note = SELF_CONSISTENCY if diff > 1 else ""
         elif g == 1:  # exact equality, whatever the percentage
             note = UNIT_OR_ADAPTER if diff != 0 else ""

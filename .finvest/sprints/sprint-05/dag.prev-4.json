@@ -1,0 +1,301 @@
+{
+  "sprint": "sprint-05",
+  "plan": "v1.1",
+  "dagRev": 5,
+  "seats": {
+    "fe": 2,
+    "be": 2,
+    "ai": 1
+  },
+  "tasks": [
+    {
+      "id": "BE-mig-0010",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M1",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 1,
+      "manual": false,
+      "size": 200
+    },
+    {
+      "id": "BE-observed-bar",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M1",
+      "after": [
+        "BE-mig-0010"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 2,
+      "manual": false,
+      "size": 190
+    },
+    {
+      "id": "BE-v5-adapter",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M1",
+      "after": [],
+      "effort": "high",
+      "leadModel": "sonnet",
+      "priority": 1,
+      "manual": false,
+      "size": 260
+    },
+    {
+      "id": "BE-ca-repo",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M1",
+      "after": [
+        "BE-mig-0010"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 2,
+      "manual": false,
+      "size": 160
+    },
+    {
+      "id": "BE-ca-step3",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M1",
+      "after": [
+        "BE-v5-adapter",
+        "BE-ca-repo",
+        "BE-observed-bar"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 3,
+      "manual": false,
+      "size": 220
+    },
+    {
+      "id": "AI-ca-factors",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M1",
+      "after": [],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 1,
+      "manual": false,
+      "size": 170
+    },
+    {
+      "id": "AI-adjust-series",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [
+        "AI-ca-factors"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 2,
+      "manual": false,
+      "size": 220
+    },
+    {
+      "id": "AI-recon-rules",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [
+        "AI-adjust-series"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 3,
+      "manual": false,
+      "size": 130
+    },
+    {
+      "id": "AI-adjust-version",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [
+        "AI-adjust-series",
+        "AI-recon-rules"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 3,
+      "manual": false,
+      "size": 90
+    },
+    {
+      "id": "AI-recon-xsrc",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [
+        "AI-adjust-version"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 7,
+      "manual": false,
+      "size": 30
+    },
+    {
+      "id": "BE-ca-recompute",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [
+        "BE-ca-step3",
+        "AI-adjust-series",
+        "AI-adjust-version"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 4,
+      "manual": false,
+      "size": 340
+    },
+    {
+      "id": "BE-market-view-ca",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [
+        "BE-observed-bar",
+        "BE-ca-repo",
+        "AI-adjust-series"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 4,
+      "manual": false,
+      "size": 180
+    },
+    {
+      "id": "BE-mv-basis",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [
+        "BE-market-view-ca",
+        "BE-ca-recompute"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 6,
+      "manual": false,
+      "size": 80
+    },
+    {
+      "id": "BE-recon-cli",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [
+        "AI-recon-rules",
+        "BE-ca-recompute",
+        "AI-adjust-version"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 5,
+      "manual": false,
+      "size": 160
+    },
+    {
+      "id": "BE-recon-s2",
+      "side": "be",
+      "lane": "BE-1",
+      "milestone": "M2",
+      "after": [
+        "BE-recon-cli",
+        "AI-recon-xsrc"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 7,
+      "manual": false,
+      "size": 120
+    },
+    {
+      "id": "OPS-guards",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "opus",
+      "priority": 6,
+      "manual": false,
+      "size": 90
+    },
+    {
+      "id": "FE-e2e-carry",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M1",
+      "after": [],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 1,
+      "manual": false,
+      "size": 20
+    },
+    {
+      "id": "FE-crawl-step3",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M1",
+      "after": [
+        "FE-e2e-carry"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 2,
+      "manual": false,
+      "size": 120
+    },
+    {
+      "id": "FE-rw",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M1",
+      "after": [
+        "FE-crawl-step3"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 3,
+      "manual": false,
+      "size": 170
+    },
+    {
+      "id": "FE-shots",
+      "side": "fe",
+      "lane": "FE-1",
+      "milestone": "M3",
+      "after": [
+        "FE-rw"
+      ],
+      "effort": "medium",
+      "leadModel": "sonnet",
+      "priority": 8,
+      "manual": true,
+      "size": 60
+    }
+  ],
+  "_doc": {
+    "FE-shots": "manual: the FE tester runs it via /fi-test fe after FE-rw is merged; the watcher waits for its merge",
+    "AI-*": "blocks in 2-tech-plan.ai.md; the rest in 2-tech-plan.md",
+    "slip": "BE-recon-s2 first, then FE-rw (1-sprint-plan.md Capacity)",
+    "M0": "spike done by the architect at planning (data.md 1.2 V5/S2); no task",
+    "dagRev5": "ai-architect 2026-10-26: + AI-recon-xsrc (reconcile self_check=) before BE-recon-s2 tests (BE-recon-s2 consult); dagRev4 = dag.prev-3.json",
+    "dagRev3": "ai-architect 2026-10-26: + AI-adjust-version (R6a per-version last) before BE-ca-recompute round 2 / BE-recon-cli"
+  }
+}

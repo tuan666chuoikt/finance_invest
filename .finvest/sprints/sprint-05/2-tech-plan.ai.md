@@ -1,6 +1,6 @@
 # Sprint 05 — Tech plan (AI side: adjustment factors, adjusted/reconstructed series, reconciliation rules, `data_snapshot`)
 
-Owner: `fi-ai-architect`, 2026-10-26, plan v1.1 (v1 in `2-tech-plan.ai.prev-1.md`; v1.1 = R6/R7 per-version rule + G13 + AI-adjust-version, from the BE-ca-recompute consult). Inputs: `1-sprint-plan.md` (F-015, F-016, F-023; M2), `product/backlog.md`
+Owner: `fi-ai-architect`, 2026-10-26, plan v1.2 (v1.1 in `2-tech-plan.ai.prev-2.md`, v1 in `2-tech-plan.ai.prev-1.md`; v1.2 = R7 self-check only vs the origin source + AI-recon-xsrc, from the BE-recon-s2 consult; v1.1 = R6/R7 per-version rule + G13 + AI-adjust-version, from the BE-ca-recompute consult). Inputs: `1-sprint-plan.md` (F-015, F-016, F-023; M2), `product/backlog.md`
 F-013–F-016/F-023 worked examples, `knowledge/vn-market.md` **v1.1** (§3 reference price, **§6 incl. the new combined-event
 formula + inversion, source S7**), `architecture/data.md` §1.2 V2/S1/S2/V5, §1.4, §3 (`bars_1d`, `bars_1d_src`, `adj_factors`,
 `corporate_actions`, `recon_mismatches`), `architecture/analytics.md` §1.1 (`adjusted_close`, `snapshot`), §1.3,
@@ -44,7 +44,10 @@ R7 **Reconciliation** (F-016): `ours(d) = nominal(d) × G_v(d)` vs `theirs(d) = 
    Observed overlap: `diff_pct = |ours − theirs| / theirs × 100`, 4 places; `> 0.1000` → `recon_mismatches` row; a run deletes
    the symbol's old rows first (re-run idempotent). With **no ex-date between d and `last`**, `G = 1` and ours must equal theirs
    **exactly** (0 VND) — any diff there is a unit/adapter bug, not a factor bug. Pre-crawl dates: self-consistency
-   `|round(A/G) × G − A| ≤ 1 VND` (holds by construction for `G ≤ 1`; `G > 1` only after a merge). Report per symbol: days
+   `|round(A/G) × G − A| ≤ 1 VND` (holds by construction for `G ≤ 1`; `G > 1` only after a merge). **Only against the source the row was
+   inverted from** (v1.2, `self_check`): a second `theirs` (S2, 2-decimal thousand VND = 10-VND resolution) sees a reconstructed row
+   as any other row — `G_v = 1` → exact (a nominal close sits on the tick, VN§3, so 10-VND resolution loses nothing), else 0.1 %.
+   No VND slack anywhere: FPT 2026-09-18 vs S2 is 65,182.73 vs 65,180 = 0.0042 %, a pass by the percentage, not by a tolerance. Report per symbol: days
    checked, mismatches, **first mismatching date** (a mismatch streak that starts at date X means a missing or wrong event
    with ex-date X+1 — the data-quality hint F-014 needs). VN30 members from `symbol_index_membership`; report "30/30, k mismatches".
 R8 **Independent check on observed ex-dates** (VN§6 S7): `round_to_tick(f × P)` vs the exchange's own **reference price on
@@ -156,9 +159,22 @@ R9 **`data_snapshot`** = max `fetched_at` over the inputs **actually used**: bar
   → "29/30" and the missing name.
 - Out of scope: S2 cross-check fetching (SA), writing to the DB, the F-021 page.
 
+#### AI-recon-xsrc — F-016: `reconcile(self_check=)` — self-consistency only against the origin source (BE-recon-s2 consult)
+- Story: F-016 ; Side: ai ; Effort: medium ; Size: ~30 lines (≈ 3 prod + 25 tests) ; Lead: sonnet
+- Files: `services/analytics/finvest_analytics/adjust/recon.py`, `services/analytics/tests/test_recon.py`
+- Change:
+  - `reconcile(..., self_check: bool = True)`: the `nominal_kind == "reconstructed"` branch (≤ 1 VND) runs only when `self_check`;
+    otherwise reconstructed rows take the `G_v = 1` exact / 0.1 % branches like observed rows. Default keeps every caller and test.
+  - Docstring: `self_check=False` for a `theirs` that is not the source the rows were inverted from (S2 cross-check).
+- Contract: this plan R7 (v1.2); data.md §1.2 S2 (thousand VND, 2 decimals); VN§3 ticks.
+- Acceptance: reconstructed row ours 65,182.73 (nominal 71,701, f = 1/1.1) vs theirs 65,180.00: `self_check=True` → one
+  `self_consistency` mismatch (2.73 > 1); `self_check=False` → 0 mismatches, `checked = 1`; `self_check=False`, `G = 1`,
+  71,701 vs 71,700 → `unit_or_adapter` (exact rule untouched); existing tests unchanged.
+- Out of scope: the crawler call site (BE-recon-s2 passes `self_check=(source == "vci")`), any VND slack.
+
 Order: AI-ca-factors → AI-adjust-series → AI-recon-rules (series imports factors; recon imports series) → AI-adjust-version
-(v1.1, after both; BE-ca-recompute round 2 and BE-recon-cli wait for it). All can start before F-014's table lands (pure +
-fixtures); the SA glue tasks come after F-014 and AI-adjust-series. Total ≈ 610 lines.
+(v1.1, after both; BE-ca-recompute round 2 and BE-recon-cli wait for it) → AI-recon-xsrc (v1.2; BE-recon-s2 waits for it). All can start before F-014's table lands (pure +
+fixtures); the SA glue tasks come after F-014 and AI-adjust-series. Total ≈ 640 lines.
 
 ## SA-owned data-side tasks (software architect writes these blocks; the AI side only states what they must satisfy)
 
