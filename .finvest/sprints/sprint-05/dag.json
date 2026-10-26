@@ -1,7 +1,7 @@
 {
   "sprint": "sprint-05",
-  "plan": "v1.0",
-  "dagRev": 2,
+  "plan": "v1.1",
+  "dagRev": 4,
   "seats": {
     "fe": 2,
     "be": 2,
@@ -117,19 +117,35 @@
       "size": 130
     },
     {
+      "id": "AI-adjust-version",
+      "side": "ai",
+      "lane": "AI-1",
+      "milestone": "M2",
+      "after": [
+        "AI-adjust-series",
+        "AI-recon-rules"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 3,
+      "manual": false,
+      "size": 90
+    },
+    {
       "id": "BE-ca-recompute",
       "side": "be",
       "lane": "BE-1",
       "milestone": "M2",
       "after": [
         "BE-ca-step3",
-        "AI-adjust-series"
+        "AI-adjust-series",
+        "AI-adjust-version"
       ],
       "effort": "high",
       "leadModel": "opus",
       "priority": 4,
       "manual": false,
-      "size": 170
+      "size": 340
     },
     {
       "id": "BE-market-view-ca",
@@ -148,13 +164,29 @@
       "size": 180
     },
     {
+      "id": "BE-mv-basis",
+      "side": "be",
+      "lane": "BE-2",
+      "milestone": "M2",
+      "after": [
+        "BE-market-view-ca",
+        "BE-ca-recompute"
+      ],
+      "effort": "high",
+      "leadModel": "opus",
+      "priority": 6,
+      "manual": false,
+      "size": 80
+    },
+    {
       "id": "BE-recon-cli",
       "side": "be",
       "lane": "BE-1",
       "milestone": "M2",
       "after": [
         "AI-recon-rules",
-        "BE-ca-recompute"
+        "BE-ca-recompute",
+        "AI-adjust-version"
       ],
       "effort": "high",
       "leadModel": "opus",
@@ -247,6 +279,7 @@
     "FE-shots": "manual: the FE tester runs it via /fi-test fe after FE-rw is merged; the watcher waits for its merge",
     "AI-*": "blocks in 2-tech-plan.ai.md; the rest in 2-tech-plan.md",
     "slip": "BE-recon-s2 first, then FE-rw (1-sprint-plan.md Capacity)",
-    "M0": "spike done by the architect at planning (data.md 1.2 V5/S2); no task"
+    "M0": "spike done by the architect at planning (data.md 1.2 V5/S2); no task",
+    "dagRev3": "ai-architect 2026-10-26: + AI-adjust-version (R6a per-version last) before BE-ca-recompute round 2 / BE-recon-cli"
   }
 }

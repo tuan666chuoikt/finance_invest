@@ -33,3 +33,25 @@ Size: 177 insertions vs ~130 planned (1.36x, under the 1.5x stop). File set exac
 ### Checks on H (q.sh)
 - `make test-kernel`: exit 0 in 13s — 330 passed, 36 deselected; ruff clean; mypy 5 source files clean; lint-imports pass.
 - No migration/SQL touched, so `-m db` not required.
+
+## Round 2 — 2026-10-26, fi-tech-lead (BE) — APPROVE
+
+Reviewed head H = df68cb4 (fix c0ded3e + sync merge of origin/sprint-05, no conflicts, pushed).
+Files reviewed: `recon.py` (+2), `test_recon.py` (+6) since round 1; the sync merge brings only sprint-05's own API files.
+Size: 185 insertions vs ~130 planned (1.42x, under the 1.5x stop).
+
+### Must-fix from round 1
+1. Fixed. `recon.py:61` caps `pct` at `_PCT_MAX = Decimal("9999.9999")` before the threshold compare (cap only ever
+   raises a flagged value to the max, so verdicts are unchanged). Test
+   `test_thousand_vnd_adapter_diff_pct_is_capped_to_fit_numeric_8_4` (93500 vs 93.5 -> `unit_or_adapter`, 9999.9999)
+   would fail on 333b7d4 (99900.0000).
+
+### Must-fix
+None.
+
+### Checks on H (q.sh)
+- `make test-kernel`: exit 0 in 16s — 331 passed, 39 deselected; ruff clean; mypy 5 source files clean; lint-imports 5 kept, 0 broken.
+- No migration/SQL touched, so `-m db` not required.
+
+### Merge
+- `sm.sh merge` -> sprint-05 merge sha f92551a8ed0a962d70f6647d2a299b4408a61a55 (base 9cf1d44).

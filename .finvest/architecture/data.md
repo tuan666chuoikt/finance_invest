@@ -1,6 +1,6 @@
 # Finvest — Data design (sources, schemas, storage tiers, crawl schedule)
 
-Owner: `fi-software-architect`. Status: **v1.4, 2026-10-26** (S05 M0 spike: V5 field names + `toDate` rule, S2 re-probed, `bars_1d.ref`, `symbols.ca_checked_at`; v1.3 = `data.prev-4.md`; v1.3: V2 cap = 1 per S-v2-batch, 418 hold; v1.2 = `data.prev-3.md`; v1.2: V2 `accumulatedValue` mixed unit, S02 B2; v1.1 = `data.prev-1.md`). Units: all stored prices **VND integer**,
+Owner: `fi-software-architect`. Status: **v1.5, 2026-10-26** (§1.4 (4) source-version invariant: every row is divided by the G of its *own* version, from the BE-ca-recompute consult; §5 `adj_*` BIGINT note; v1.4 = `data.prev-5.md`; v1.4: S05 M0 spike: V5 field names + `toDate` rule, S2 re-probed, `bars_1d.ref`, `symbols.ca_checked_at`; v1.3 = `data.prev-4.md`; v1.3: V2 cap = 1 per S-v2-batch, 418 hold; v1.2 = `data.prev-3.md`; v1.2: V2 `accumulatedValue` mixed unit, S02 B2; v1.1 = `data.prev-1.md`). Units: all stored prices **VND integer**,
 volumes **shares**, timestamps **TIMESTAMPTZ (UTC)**, trading dates **DATE in Asia/Ho_Chi_Minh**. Rules cited as VN§n
 (`knowledge/vn-market.md`). Decisions: ADR-S-001 (storage), ADR-S-002 (sources), ADR-S-005 (money), ADR-S-008
 (tick idempotence/manifest).
@@ -81,6 +81,15 @@ on 2026-09-18 after the 10 % bonus). Hence:
    data-quality page (F-014 diff log, F-016 reconciliation).
 3. **Reconciliation (PR-012)** = ours (`observed nominal` × our factors) vs the newest source-adjusted series, on the
    overlap from crawl start; before crawl start the check is self-consistency only (reconstructed × factors == source).
+4. **A version is adjusted only as of its own last date.** A version = one fetch = one `fetched_at` per symbol (the
+   archive file's mtime, `feeds/bars_1d.py`); `last_v` = its max `trading_date`. Step 2 pulls the full history once and then
+   only the gap window (platform.md §2.6, min 5 sessions), so the "newest row per date" of a symbol is a **mix of versions**:
+   old dates come from a fetch that predates later ex-dates. Therefore every consumer of `bars_1d_src` applies the factors
+   of **that row's version**: `nominal(d) = A_v(d) / Π f_e` over `d < e ≤ last_v` (R6a in the S05 AI plan), never a
+   single `last` for the whole series (S05 lead finding: a 2 % cash dividend made every pre-crawl row +2.04 % wrong).
+   Assumed: the source applies an ex-date on that date, not the evening before (consistent with the FPT 2026-09-18 probe);
+   the R7 exact-0 check on the newest version flags it if ever false (a mismatch streak starting at a version boundary).
+   The simulator basis reads `bars_1d` (observed + reconstructed) × our factors, not `bars_1d_src` (S05 BE-mv-basis).
 
 ## 2. Storage tiers (ADR-S-001: PostgreSQL 16 + TimescaleDB, one database `finvest`)
 
@@ -119,7 +128,7 @@ bars_1d(symbol TEXT, trading_date DATE, o,h,l,c BIGINT /*nominal VND*/, ref BIGI
       ceiling BIGINT, floor BIGINT, v BIGINT, value BIGINT, nominal_kind TEXT CHECK (nominal_kind IN ('observed','reconstructed')),
       source TEXT /*ssi|vci*/, fetched_at TIMESTAMPTZ, PK(symbol,trading_date));   -- S05 migration 0010: the S1 board bar moves here from bars_1d_src (nominal, never adjusted); an observed row is never overwritten by a reconstruction
 bars_1d_src(symbol TEXT, trading_date DATE, source TEXT, adj_c BIGINT, adj_o,adj_h,adj_l BIGINT, v BIGINT, value BIGINT /*nominal VND, V2 accumulatedValue×1e6*/,
-      fetched_at TIMESTAMPTZ, PK(symbol,trading_date,source,fetched_at));      -- versioned source-adjusted series
+      fetched_at TIMESTAMPTZ, PK(symbol,trading_date,source,fetched_at));      -- versioned source-adjusted series; one fetched_at = one version, adjusted as of its own max trading_date (§1.4 (4)); adj_* BIGINT drops the source's 2 dp (≤ 0.5 VND, inside A18-A ± 1 tick; §5)
 index_1d(index_code TEXT, trading_date DATE, o,h,l,c NUMERIC(12,2), v BIGINT, value BIGINT, PK(index_code,trading_date));
 -- user data (S03) ------------------------------------------------------
 scenarios(id BIGINT GENERATED ALWAYS AS IDENTITY PK, name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 60), symbol TEXT NOT NULL,
@@ -175,5 +184,8 @@ K1 serves only the current session, so a past day is recorded as `missed: machin
   from V1 for the watchlist only and `ticks.side` is NULL elsewhere.
 - ~~V5 field names for pay date and cash per share~~ resolved 2026-10-26 (`payoutDate`, `valuePerShare`, §1.2 V5); the title fallback is needed only for rights issue prices.
 - Index symbol names on V2 for HNX-Index/HNX30/UPCoM-Index (`VNINDEX`, `VN30` confirmed).
+- `bars_1d_src.adj_*` is BIGINT while V2 carries 2 decimals (FPT 65,182.47): each reconstructed row loses ≤ 0.5 VND
+  before the division by G (≤ 0.55 VND at G = 0.909; G12 gives 71,700 vs 71,700.47). Inside A18-A's stated ± 1 tick,
+  so not changed in S05; candidate migration 0011 `NUMERIC(14,2)` + adapter when R7 wants sub-VND exactness.
 - Re-probe N1 (VNDirect) and C1 (cafef) for observed nominal history; if either works, `nominal_kind='observed'`
   can cover history too (A18 then disappears).

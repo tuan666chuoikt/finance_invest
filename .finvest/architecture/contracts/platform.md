@@ -1,6 +1,6 @@
 # Finvest — Platform contracts (REST, realtime, crawler → DB)
 
-Owner: `fi-software-architect`. Status: **v1.14, 2026-10-26 S05 plan** (§2.6 step 3 corporate actions, `symbols_deferred`, `/health.rules_version`; v1.13 = `platform.prev-14.md`; v1.13: §4 wording: `missed` never overwrites `partial`/`complete`, ledger row = richest manifest; v1.12 = `platform.prev-13.md`; v1.12: §2.6 step 2 = indices + S1 snapshot + capped gap fetch, target session, blocked rules and message; §4 live `bars_1d` ledger row, `deferred` skip, ledger repair; v1.11 = `platform.prev-12.md`; v1.11: §2.6 batch cap = `BATCH_MAX`; v1.10: §2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols) — R1 endpoints are normative; R2–R5 sections are shape
+Owner: `fi-software-architect`. Status: **v1.15, 2026-10-26 S05 BE-ca-recompute consult** (§2.6 recompute set = watermark on `fetched_at`, `reason` adds `, <k> skipped`; v1.14 = `platform.prev-15.md`; v1.14: §2.6 step 3 corporate actions, `symbols_deferred`, `/health.rules_version`; v1.13 = `platform.prev-14.md`; v1.13: §4 wording: `missed` never overwrites `partial`/`complete`, ledger row = richest manifest; v1.12 = `platform.prev-13.md`; v1.12: §2.6 step 2 = indices + S1 snapshot + capped gap fetch, target session, blocked rules and message; §4 live `bars_1d` ledger row, `deferred` skip, ledger repair; v1.11 = `platform.prev-12.md`; v1.11: §2.6 batch cap = `BATCH_MAX`; v1.10: §2.5 `message` wording for `POST /whatif` errors, §2.6 step 2 indices first + batched symbols) — R1 endpoints are normative; R2–R5 sections are shape
 previews the owning architect refines at sprint planning. Any deviation found in a PR is a blocker until this file
 is updated (CLAUDE.md). The API exports `openapi.json`; TS types are generated from it (codebase.md §6).
 
@@ -186,9 +186,12 @@ crawler, `./data` mounted at `/app/data`). One job at a time, enforced by a proc
   `symbols_deferred` = listed names not read this press (budget B = 40 requests, data.md §1.2 V5; order VN30 → saved-scenario
   symbols → `symbols.ca_checked_at` NULLS FIRST, oldest first). Step 3 runs after step 2 even when step 2 ended `partial`; a
   blocked step 3 → job `failed`, `error.code = "SourceBlocked"`, `error.source = "vci_iq"`, `summary` keeps steps 1–2 and the
-  partial step 3 counts. After step 3, for every symbol whose rows changed, factors and reconstructed `bars_1d` rows are
-  recomputed in the same job (F-015; 0 requests; `crawl_runs` feed `corporate_actions` carries `rows` = events, `reason` =
-  "recompute: <n> symbols"). `GET /api/health.rules_version` = `finvest_rules.costs.RULES_VERSION` (string, never null).
+  partial step 3 counts. After step 3, the **recompute set** = `changed_symbols` ∪ every symbol whose newest `bars_1d_src`
+  (vci) `fetched_at` is newer than its newest `reconstructed` `bars_1d.fetched_at` (or that has no reconstructed row), restricted
+  to `symbols.ca_checked_at IS NOT NULL` (the rest are *skipped*); a watermark, not "this press", so a replay, a blocked step 2
+  or a failed step 3 heal on the next press. Factors and reconstructed `bars_1d` rows are recomputed in the same job (F-015;
+  0 requests; `crawl_runs` feed `corporate_actions` carries `rows` = events, `reason` = "recompute: <n> symbols, <k> skipped";
+  v1.15 — a prior `reason` is kept: "<prior>; recompute: …"). `GET /api/health.rules_version` = `finvest_rules.costs.RULES_VERSION` (string, never null).
   After the recompute the job runs the local reconciliation (F-016, 0 requests) on VN30 + saved-scenario symbols and sets
   `summary.recon = {"symbols", "checked", "mismatches"} | null` (null when step 3 did not run).
 - Crash safety: on api start-up every `running` job is set `failed`, `error.code = "interrupted"` (the thread died with the
