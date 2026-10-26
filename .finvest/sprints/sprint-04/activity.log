@@ -43,3 +43,6 @@
 2026-10-25 17:45 | lead    | FE-fix-table             | merged    | 5dd0944; must-fix 0; tsc 0, vitest 87/87, new test fails on old code | 3-pr.FE-fix-table.md
 2026-10-25 17:45 | lead    | FE-fix-shell             | merged    | 696ee6d; tsc 0, vitest 87/87, 0 must-fix | 3-pr.FE-fix-shell.md
 2026-10-25 17:46 | lead    | BE-fix-index-value       | merged    | 7894e44; kernel 260 passed, db 28 passed, 0 must-fix | 3-pr.BE-fix-index-value.md
+2026-10-25 17:51 | pm      | sprint-04                | note      | review: 10/18 accepted (F-129,F-132,S04-RW); F-130,F-131 pending FE-shots-rw; tech review absent; retro 5 actions | 5-review.product.md
+2026-10-25 17:52 | software-architect | sprint-04                | review    | PASS, 18 tasks, OBS-7 carried to sprint-05 | 5-review.tech.md
+2026-10-26 11:32 | pm      | sprint-04                | note      | review round 3: 18/18 accepted (F-129,F-130,F-131,F-132,S04-RW); retro R5 tester copies report+shots to FI_ROOT | 5-review.product.md
