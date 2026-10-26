@@ -3,3 +3,47 @@
 2026-10-26 11:48 | ai-arch | sprint-plan              | note      | S05 AI plan v1: 3 tasks ~520 lines (factors/series/recon), 12 golden cases, 9 rules; vn-market.md v1.1 adds combined formula + inversion (S7 | sprints/sprint-05/2-tech-plan.ai.md
 2026-10-26 12:01 | sa      | M0                       | note      | V5/S2 spike by hand: 5 calls, toDate required, valuePerShare/payoutDate found, no block seen -> B=40/press; data.md v1.4, fixture spike/v5-c | sprints/sprint-05/spike/v5-call4.json
 2026-10-26 12:01 | sa      | sprint-plan              | note      | S05 tech plan v1.0: 17 tasks (BE 10 incl OPS, FE 4 incl manual FE-shots, AI 3) ~2,500 lines; platform v1.14 step 3; tester.md R5 + compose i | sprints/sprint-05/2-tech-plan.md
+2026-10-26 12:01 | sm      | BUILD                    | started   | sprint-05 16 tasks (+FE-shots manual) | -
+2026-10-26 12:02 | dev     | FE-e2e-carry             | pr-open   | 4 e2e files copied identical, node --check ok, +1 script line; npm test not run (no node_modules) | 3-build.FE-e2e-carry.md
+2026-10-26 12:03 | lead    | FE-e2e-carry             | merged    | 09505024; e2e diff 0 lines, node --check 4/4, vitest 87 passed | .finvest/sprints/sprint-05/3-pr.FE-e2e-carry.md
+2026-10-26 12:04 | dev     | BE-mig-0010              | pr-open   | db 33 passed, kernel 260 passed, ruff/mypy/lint-imports green, +245 lines | 3-build.BE-mig-0010.md
+2026-10-26 12:04 | dev     | BE-v5-adapter            | pr-open   | 8 adapter tests + kernel 268 passed, ruff/mypy/lint-imports clean, +257 lines | 3-build.BE-v5-adapter.md
+2026-10-26 12:04 | dev     | AI-ca-factors            | pr-open   | market_rules 28 passed, analytics 42 passed, ruff+mypy+lint-imports clean, diff +238/-5, G1-G5/G3b/G7/G7b + hypothesis round-trip | 3-build.AI-ca-factors.md
+2026-10-26 12:05 | dev     | OPS-guards               | pr-open   | audit 3 passed; compose config loopback 18080/18001/15432 only | 3-build.OPS-guards.md
+2026-10-26 12:07 | lead    | BE-mig-0010              | changes   | 1 must-fix (0010 DDL from live tables.py, freeze with op.create_table); db 30 passed, kernel 260 passed, ruff ok | 3-pr.BE-mig-0010.md
+2026-10-26 12:08 | dev     | FE-crawl-step3           | pr-open   | vitest 91 pass, tsc 0, +76/-15 | 3-build.FE-crawl-step3.md
+2026-10-26 12:08 | lead    | FE-crawl-step3           | merged    | 4132ed5; vitest 91 pass, tsc 0 | .finvest/sprints/sprint-05/3-pr.FE-crawl-step3.md
+2026-10-26 12:08 | lead    | BE-v5-adapter            | changes   | 1 must-fix (size stop skipped: 257 > 225 lines, no consult); kernel 268 passed, ruff/mypy/lint-imports clean | .finvest/sprints/sprint-05/3-pr.BE-v5-adapter.md
+2026-10-26 12:09 | dev     | BE-mig-0010              | pr-open   | fix round 1: frozen op.create_table DDL; db 30 passed, ruff/mypy/lint-imports green, size +293/-1 | 3-build.BE-mig-0010.md
+2026-10-26 12:09 | dev     | BE-v5-adapter            | consult   | size stop 258>225 lines (tests 113, source 144); asked architect to waive | 3-consult.BE-v5-adapter.md
+2026-10-26 12:10 | arch    | BE-v5-adapter            | answered  | waive: 258 lines vs stop 225; source 144 on estimate, tests 113 = 8 acceptance proofs; Size re-estimated ~260, dagRev 2 | 3-consult.BE-v5-adapter.answer.sa.md
+2026-10-26 12:10 | dev     | BE-v5-adapter            | changes   | fix round 2: size stop waived by SA; merged sprint-05, kernel 268 passed; head 4cb33a6 | 3-build.BE-v5-adapter.md
+2026-10-26 12:11 | lead    | AI-ca-factors            | merged    | 33e63c1; kernel 280 passed, rules 28 passed, lint-imports 5/0, 0 must-fix, 2 nits | 3-pr.AI-ca-factors.md
+2026-10-26 12:11 | dev     | FE-rw                    | pr-open   | tsc ok, vitest 93/93, diff 56+/8- | 3-build.FE-rw.md
+2026-10-26 12:12 | lead    | FE-rw                    | merged    | 80d47cb; tsc 0, vitest 93/93, 0 must-fix | .finvest/sprints/sprint-05/3-pr.FE-rw.md
+2026-10-26 12:13 | lead    | OPS-guards               | changes   | 3 must-fix (ruff E501 kernel red, ib-insync deny miss, shared live image tag); pytest 283 pass, audit 3 pass, ports ok; H db1eab0 | 3-pr.OPS-guards.md
+2026-10-26 12:14 | dev     | OPS-guards               | fix-round | 3 must-fix done, kernel green | 3-build.OPS-guards.md
+2026-10-26 12:16 | lead    | BE-mig-0010              | merged    | f5bb4dd; round 2 APPROVE, db 30 passed, kernel 280 passed, ruff/mypy/imports green | 3-pr.BE-mig-0010.md
+2026-10-26 12:16 | dev     | AI-adjust-series         | pr-open   | kernel 298 passed, analytics 60 passed, ruff/mypy/lint-imports clean, +458 lines (281 excl. golden JSON; over 330 stop, disclosed) | 3-build.AI-adjust-series.md
+2026-10-26 12:17 | lead    | BE-v5-adapter            | merged    | 7c8087b; round 2 APPROVE, size waived by SA, kernel 268 passed, ruff/mypy/lint-imports green, 0 must-fix | 3-pr.BE-v5-adapter.md
+2026-10-26 12:19 | lead    | OPS-guards               | merged    | a87190a; must-fix 3/3 fixed; kernel 293 passed, ruff/mypy/lint-imports green; audit 5 passed | 3-pr.OPS-guards.md
+2026-10-26 12:20 | dev     | BE-observed-bar          | pr-open   | kernel 284 passed, ruff+mypy+lint-imports clean, 113 lines; db test not run (no postgres) | 3-build.BE-observed-bar.md
+2026-10-26 12:20 | dev     | BE-ca-repo               | pr-open   | db 30 passed (5 new), kernel 288 passed, ruff/mypy/imports clean, own diff +179/-4 | 3-build.BE-ca-repo.md
+2026-10-26 12:22 | lead    | AI-adjust-series         | changes   | 2 must-fix (size stop 464>330 no consult; snapshot(as_of) port drift); kernel 311 passed, adjust 18 passed; H 65a1f6b | 3-pr.AI-adjust-series.md
+2026-10-26 12:24 | dev     | AI-adjust-series         | pr-open   | fix round 1: snapshot() restored w/ served-CA tracking, consult written; kernel 312 passed, ruff+mypy clean; head 6354a4f | 3-build.AI-adjust-series.md
+2026-10-26 12:25 | lead    | BE-observed-bar          | merged    | f6a6c673; 0 must-fix; kernel 297 passed, db 31 passed | 3-pr.BE-observed-bar.md
+2026-10-26 12:28 | lead    | BE-ca-repo               | merged    | ec4275a; 0 must-fix; db 36 passed, kernel 297 passed, ruff/mypy/imports clean | 3-pr.BE-ca-repo.md
+2026-10-26 12:31 | lead    | AI-adjust-series         | merged    | 695ca05; 0 must-fix; kernel 316 passed, analytics 61 passed, lint-imports 5/0 | 3-pr.AI-adjust-series.md
+2026-10-26 12:32 | dev     | BE-ca-step3              | pr-open   | 305 passed, ruff/mypy/imports clean, +288/-7 vs plan 220 | 3-build.BE-ca-step3.md
+2026-10-26 12:33 | dev     | AI-recon-rules           | pr-open   | kernel 322 passed, ruff+mypy+imports clean; recon tests 6 passed; 177 lines vs ~130; head cb94171 | 3-build.AI-recon-rules.md
+2026-10-26 12:36 | lead    | BE-ca-step3              | merged    | 5d1976a; 0 must-fix, 4 nits; kernel 324 passed, affected 25 passed, lint-imports 5/0 | .finvest/sprints/sprint-05/3-pr.BE-ca-step3.md
+2026-10-26 12:36 | dev     | BE-market-view-ca        | pr-open   | kernel 316 passed, db 39 passed, ruff/mypy/imports clean, diff +185/-12 | 3-build.BE-market-view-ca.md
+2026-10-26 12:37 | lead    | AI-recon-rules           | changes   | 1 must-fix (diff_pct overflows NUMERIC(8,4) on unit bug: 99900.0000); kernel 330 passed, ruff/mypy/imports clean; H=333b7d4 | 3-pr.AI-recon-rules.md
+2026-10-26 12:39 | dev     | AI-recon-rules           | changes   | fix round 1: diff_pct capped 9999.9999 + test; kernel 331 passed, ruff/mypy clean; head c0ded3e | 3-build.AI-recon-rules.md
+2026-10-26 12:41 | lead    | BE-market-view-ca        | merged    | 9cf1d44; 0 must-fix, 4 nits (whatif.py:143 snapshot -> ai); kernel 324 passed, db 39 passed | 3-pr.BE-market-view-ca.md
+2026-10-26 12:43 | dev     | BE-ca-recompute          | pr-open   | db 35 passed, kernel 324 passed, ruff/mypy/lint-imports clean, G7 0.98/50,000 G9 kept G12 f=0.909090909091 close 71,700, 296 lines vs ~170 p | .finvest/sprints/sprint-05/3-build.BE-ca-recompute.md
+2026-10-26 12:43 | lead    | AI-recon-rules           | merged    | f92551a; round 2, 0 must-fix; kernel 331 passed, ruff/mypy/lint-imports clean | 3-pr.AI-recon-rules.md
+2026-10-26 12:49 | lead    | BE-ca-recompute          | changes   | ESCALATE ai+sa: 4 must-fix (size 296>255 no consult; mixed src versions -> reconstructed 51,020 vs true 50,000; recompute set misses replay/ | .finvest/sprints/sprint-05/3-pr.BE-ca-recompute.md
+2026-10-26 12:53 | ai-arch | BE-ca-recompute          | answered  | option A: R6a per-version last (G_v over d<e<=last_v), G13/G13b, new task AI-adjust-version ~90 lines; dagRev 3; plan v1.1 | sprints/sprint-05/3-consult.BE-ca-recompute.answer.ai.md
+2026-10-26 12:56 | sa      | BE-ca-recompute          | answered  | option A per-version G (AI-adjust-version, R6a); watermark recompute set; reason adds k skipped; repo file set; size 170->340; new BE-mv-bas | .finvest/sprints/sprint-05/3-consult.BE-ca-recompute.answer.sa.md
+2026-10-26 12:56 | dev     | BE-ca-recompute          | blocked   | fix round not started: AI-adjust-version (AdjBar.last, needed for must-fix 2 / G13-db) is not on origin/sprint-05; no branch exists; head st | .finvest/sprints/sprint-05/3-pr.BE-ca-recompute.md

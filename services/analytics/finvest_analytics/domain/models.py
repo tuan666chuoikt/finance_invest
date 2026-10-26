@@ -95,6 +95,8 @@ class AdjBar:
     symbol: str
     trading_date: date
     c: Decimal
+    # max trading_date of the source version this row came from (R6a); None = the list's max date
+    last: date | None = None
 
 
 @dataclass(frozen=True)

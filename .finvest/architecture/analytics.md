@@ -67,6 +67,11 @@ The simulator replays **nominal** bars + events; charts/indicators/decomposition
 (`adjusted_close`, data.md §1.4). Agreement test (F-046): fractional, fee-free replay total return == adjusted-series
 return within 0.05 % over ≥ 3 years for 10 dividend payers. Pre-crawl dates carry `nominal_kind = reconstructed`
 (A18-A): the result gets `flags += [reconstructed_nominal]` and "how computed" states the ± 1 tick rounding error.
+Reconstruction inverts each `bars_1d_src` row with the factors of ex-dates **≤ the last date of that row's own fetch
+version** (`AdjBar.last`), never the newest date across versions: a full-history pull plus short per-press pulls mix
+versions, and a global cut-off re-divides pre-pull rows by a factor the source never applied (S05 BE-ca-recompute consult,
+tech plan R6a, G13). Until the what-if's `source_adjusted` basis (§1.3.1) reads ours (`adjusted_close`), it is exposed to
+the same mix at the window boundary.
 **If A18-B**: `what-if` rejects `buy_date < first_observed_date(symbol)` with error `NOMINAL_UNAVAILABLE`; backtests
 then run in `price_mode = adjusted` (no lot rounding, fees on adjusted value, no CA events) and show "approximate".
 

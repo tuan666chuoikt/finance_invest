@@ -87,3 +87,21 @@ def test_ref_check_within_one_tick():
     assert not ref_check(f, 50000, 49100, 50)
     g = Decimal("0.769230769231")  # x 93,500 = 71,923.08 -> 71,900 at tick 100
     assert ref_check(g, 93500, 71900, 100) and not ref_check(g, 93500, 72100, 100)
+
+
+def test_g13_recon_uses_each_rows_own_version_last():
+    fs = [Factor("FPT", D("2026-10-11"), Decimal("0.98"))]
+    nominal = [nom("2026-10-05", 50000, "reconstructed"), nom("2026-10-09", 50000, "reconstructed")]
+    v0 = AdjBar(
+        "FPT", D("2026-10-05"), Decimal("50000"), D("2026-10-10")
+    )  # fetched before the ex-date: G_v = 1
+    v1 = AdjBar("FPT", D("2026-10-09"), Decimal("49000"), D("2026-10-12"))  # after it: G_v = 0.98
+    r = reconcile(nominal, fs, [v0, v1])
+    assert (r.checked, r.exact_days, r.mismatches) == (2, 2, [])
+    # without `last` the list's max date (10-12) applies to the V0 row too: ours 49,000 vs 50,000
+    legacy = [
+        AdjBar("FPT", D("2026-10-05"), Decimal("50000")),
+        AdjBar("FPT", D("2026-10-09"), Decimal("49000")),
+        AdjBar("FPT", D("2026-10-12"), Decimal("49000")),
+    ]
+    assert reconcile(nominal, fs, legacy).exact_days == 1

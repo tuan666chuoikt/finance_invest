@@ -1,6 +1,6 @@
 # Sprint 05 — Tech plan (BE / FE / ops; AI blocks of `2-tech-plan.ai.md` merged into dag.json)
 
-Owner: `fi-software-architect`, 2026-10-26, plan v1.0. Inputs: `1-sprint-plan.md`, `2-tech-plan.ai.md` (3 AI tasks + the
+Owner: `fi-software-architect`, 2026-10-26, plan v1.1 (v1.0 = `2-tech-plan.prev-2.md`; v1.1 = BE-ca-recompute round 2 per the consult: per-version `last`, watermark recompute set, queries in the repo, size ~340; new BE-mv-basis; v0 = `2-tech-plan.prev-1.md`). Inputs: `1-sprint-plan.md`, `2-tech-plan.ai.md` (3 AI tasks + the
 "SA-owned" list), `product/backlog.md` F-013/F-014/F-015/F-016/F-023/F-033, `architecture/data.md` **v1.4** (§1.2 V5/S2 spike
 lines, §1.4, §3), `contracts/platform.md` **v1.14** (§2.6 step 3), `product/ux/app-shell.md` §Crawl button,
 `product/ux/visual-design.md` §4/§6.3/§6.4/§9, `sprints/sprint-04/6-retro.md` R1–R5, branch `sprint-05` = main `0de35b7`.
@@ -33,8 +33,14 @@ lines, §1.4, §3), `contracts/platform.md` **v1.14** (§2.6 step 3), `product/u
   symbols → `symbols.ca_checked_at NULLS FIRST, oldest first`; every read is a full pull (`fromDate=20100101`,
   `toDate=run_date+400d`, pages until `last`) so the diff log sees corrections to old events; a symbol costs
   `ceil(totalElements/50)` requests (FPT ≈ 1–2). ~1,600 names ≈ 40 presses to the first full coverage; VN30 on press 1.
-- **Recompute set per press** = names whose CA rows changed ∪ names step 2 wrote to `bars_1d_src`, restricted to
-  `ca_checked_at IS NOT NULL` (a name V5 never read would otherwise get `reconstructed = adjusted`, silently wrong).
+- **Recompute set per press** (v1.1, platform.md §2.6 v1.15) = `changed_symbols` ∪ names whose newest vci `bars_1d_src.fetched_at`
+  is newer than their newest `reconstructed` `bars_1d.fetched_at` (or that have no reconstructed row), restricted to
+  `ca_checked_at IS NOT NULL` (a name V5 never read would otherwise get `reconstructed = adjusted`, silently wrong). A watermark,
+  not "wrote this press": `fetched_at` is the archive mtime, so a replay, a blocked step 2 or a failed step 3 would otherwise lose
+  names until gap rotation (~40 presses). Reconstructed rows carry the newest src `fetched_at`, so the set empties itself.
+- **Source versions mix** (data.md §1.4 (4)): after the first full pull, step 2 adds ~5-row versions; "newest row per date" is
+  therefore a mix of versions and each row must be divided by the G of its own version (`last_v` = max `trading_date` of the
+  row's `fetched_at` group; AI plan R6a, task AI-adjust-version). The simulator basis must stop reading `bars_1d_src` (BE-mv-basis).
 - **Crawler imports `finvest_analytics.adjust`** (pure functions) — allowed by the import-linter contracts (only
   analytics → crawler/api is forbidden). No new package, no new dependency.
 - **Compose isolation** (tester.md §8): live stack = project `finvest-live` on 8080/8001; tests use `docker-compose.test.yml`
@@ -47,15 +53,15 @@ lines, §1.4, §3), `contracts/platform.md` **v1.14** (§2.6 step 3), `product/u
 ## Order and lanes
 
 ```
-BE-1  BE-mig-0010 → BE-observed-bar → BE-ca-recompute (after AI-adjust-series) → BE-recon-cli (after AI-recon-rules) → BE-recon-s2
-BE-2  BE-v5-adapter → BE-ca-repo (after BE-mig-0010) → BE-ca-step3 (after BE-observed-bar) → BE-market-view-ca (after AI-adjust-series) → OPS-guards (any time)
-AI-1  AI-ca-factors → AI-adjust-series → AI-recon-rules                      (2-tech-plan.ai.md, unchanged)
+BE-1  BE-mig-0010 → BE-observed-bar → BE-ca-recompute (after AI-adjust-series, AI-adjust-version) → BE-recon-cli (after AI-recon-rules) → BE-recon-s2
+BE-2  BE-v5-adapter → BE-ca-repo (after BE-mig-0010) → BE-ca-step3 (after BE-observed-bar) → BE-market-view-ca (after AI-adjust-series) → BE-mv-basis (after BE-ca-recompute) → OPS-guards (any time)
+AI-1  AI-ca-factors → AI-adjust-series → AI-recon-rules → AI-adjust-version   (2-tech-plan.ai.md v1.1)
 FE-1  FE-e2e-carry → FE-crawl-step3 → FE-rw → FE-shots (tester, manual)
 ```
 Milestones: M1 = BE-mig-0010, BE-observed-bar, BE-v5-adapter, BE-ca-repo, BE-ca-step3, OPS-guards, AI-ca-factors, FE-e2e-carry,
-FE-crawl-step3, FE-rw · M2 = AI-adjust-series, AI-recon-rules, BE-ca-recompute, BE-market-view-ca, BE-recon-cli, BE-recon-s2 ·
+FE-crawl-step3, FE-rw · M2 = AI-adjust-series, AI-recon-rules, AI-adjust-version, BE-ca-recompute, BE-market-view-ca, BE-mv-basis, BE-recon-cli, BE-recon-s2 ·
 M3 = FE-shots. M0 was done by the architect at planning (no dag task). L1–L3 are sm/sponsor clock milestones.
-**Slip order:** BE-recon-s2, then FE-rw. Never: BE-ca-step3, BE-ca-recompute.
+**Slip order:** BE-recon-s2, then FE-rw, then BE-mv-basis (v1.1; slipping it leaves the simulator on mixed src versions — PM/sponsor call). Never: BE-ca-step3, BE-ca-recompute.
 
 ## Tasks
 
@@ -103,7 +109,7 @@ M3 = FE-shots. M0 was done by the architect at planning (no dag task). L1–L3 a
 - Out of scope: factors on the read path, step 3, reconstructed rows.
 
 #### BE-v5-adapter — F-014: VCI IQ events adapter (pure parse + fetch), fixture from the spike
-- Story: F-014 ; Side: be ; Effort: high ; Size: ~150 lines ; Lead: sonnet
+- Story: F-014 ; Side: be ; Effort: high ; Size: ~260 lines (re-estimated 2026-10-26 at consult: source ~145 + 8 acceptance tests ~115; was ~150) ; Lead: sonnet
 - Files: `services/crawler/finvest_crawler/adapters/vci/events.py` (new), `services/crawler/finvest_crawler/adapters/vci/payloads.py` (`VciEvent`, `VciEventsPage`),
   `packages/market_data/finvest_market_data/domain/models.py` (`CorporateAction` dataclass: fields of data.md §3 + `public_date`, `title`),
   `services/crawler/tests/fixtures/vci/events/FPT-2026.json` (copy of `.finvest/sprints/sprint-05/spike/v5-call4.json`), `services/crawler/tests/test_adapter_vci_events.py` (new)
@@ -163,23 +169,33 @@ M3 = FE-shots. M0 was done by the architect at planning (no dag task). L1–L3 a
 - Out of scope: factor recompute (BE-ca-recompute), UI, the recon run.
 
 #### BE-ca-recompute — F-015: per-press recompute of factors and reconstructed nominal rows (glue over `finvest_analytics.adjust`)
-- Story: F-015 ; Side: be ; Effort: high ; Size: ~170 lines ; Lead: opus
+- Story: F-015 ; Side: be ; Effort: high ; Size: ~340 lines (v1.1: round 1 was 296 incl. ~130 test; round 2 adds ~45; the ~170 counted source only) ; Lead: opus
 - Files: `services/crawler/finvest_crawler/feeds/recompute.py` (new), `services/crawler/finvest_crawler/feeds/corporate_actions.py` (call site only),
   `services/crawler/finvest_crawler/cli.py` (`recompute --symbols`), `apps/api/finvest_api/jobs/runner.py` (recompute set after step 3),
-  `services/crawler/tests/test_recompute.py` (new)
+  `packages/market_data/finvest_market_data/infrastructure/repositories.py` (v1.1: the five queries move here, nit a),
+  `services/crawler/tests/test_recompute.py` (new), `apps/api/tests/test_jobs.py` (reason test). After AI-adjust-version (R6a).
 - Change:
   - `recompute(conn, symbols, *, rules_version=RULES_VERSION) -> dict[symbol, (factors, reconstructed_rows, anomalies)]`: per symbol load
     `corporate_actions_for`, `nominal_bars` (observed dates + `ref`), `newest_src_bars(source="vci")`; call `finvest_analytics.adjust.series.reconstruct`
     (R6; `InvalidCorporateAction` → `insert_anomaly(rule = adj_factor_invalid_input | adj_factor_no_pre_close, value = reason)`, symbol continues with the
     remaining events); `replace_adj_factors` (12-place strings, R4) and `upsert_bars_1d(nominal_kind="reconstructed", fetched_at = newest src fetched_at,
     source = "vci")` — observed rows untouched by the repo guard. Commit per symbol.
-  - Recompute set (Decisions): `changed_symbols` ∪ names step 2 wrote to `bars_1d_src` this press, filtered `ca_checked_at IS NOT NULL`; runner appends
-    `"recompute: <n> symbols"` to the `corporate_actions` run row `reason`; 0 source requests.
-- Contract: 2-tech-plan.ai.md R1–R6, R9 (`rules_version`); data.md §1.4 (1), §3 `adj_factors`; A18-A.
+  - v1.1 `newest_src_bars(conn, symbol, source) -> rows (trading_date, adj_o/h/l/c, v, value, fetched_at, last)`: `last = max(trading_date) OVER
+    (PARTITION BY fetched_at)` computed **before** the `DISTINCT ON (trading_date)` newest-per-date pick; the glue passes `AdjBar(..., last=row.last)`
+    so each row is divided by its own version's G (data.md §1.4 (4), R6a). The OHLC of a row uses the same G as its close.
+  - v1.1 Recompute set (Decisions, platform.md §2.6 v1.15): `recompute_set(conn, changed) -> (names, skipped)` = `changed` ∪ names whose max vci
+    `bars_1d_src.fetched_at` > max `reconstructed` `bars_1d.fetched_at` (none → included), filtered `ca_checked_at IS NOT NULL`; `since` is dropped.
+    Runner appends `"recompute: <n> symbols, <k> skipped"` to the `corporate_actions` run row `reason` (prior reason kept with "; "); 0 source requests.
+  - v1.1 layering: `recompute.py` imports no table and builds no SQL; `newest_src_bars`, anomaly dedupe, CA ids, `recompute_set`, `append_reason` live in
+    `repositories.py` like every other feed.
+- Contract: 2-tech-plan.ai.md R1–R6, R6a, R9 (`rules_version`); data.md §1.4 (1), (4), §3 `adj_factors`; platform.md §2.6 v1.15; A18-A.
 - Acceptance (`db`, fixtures): G7 — src `A(D−1) = 49,000`, cash 1,000 ex D → `adj_factors` row `0.980000000000`, `bars_1d` D−1 = 50,000 `reconstructed`;
   G9 — an observed 93,500 on an ex-date−1 stays; G12 — FPT fixture rows + the spike event → factor `10/11 = 0.909090909091`, reconstructed 2026-09-18
   close 71,701 (± 1 VND, recorded in the build note); a symbol with `ca_checked_at NULL` is skipped and counted; re-running changes no row (byte-identical
-  `adj_factors`).
+  `adj_factors`). v1.1: **G13-db** — full version F0 (12 days, nominal 50,000 every day, fetched before cash 1,000 ex E = day 8) plus a short version F1
+  (days 8–12, adjusted by f = 0.98, fetched after E): every day 1–7 reconstructs to 50,000 (fails on round 1: 51,020); **set** — a symbol whose src
+  `fetched_at` is older than any `since` and that has no reconstructed row is in the set, and is not after `recompute`; **reason** — `NULL` →
+  `recompute: 2 symbols, 1 skipped`, `x` → `x; recompute: 2 symbols, 1 skipped` (real `_recompute`, not faked).
 - Out of scope: the read path, recon, UI.
 
 #### BE-market-view-ca — F-023/F-015: `SqlMarketView` corporate actions, adjusted series, R9 snapshot; `/health.rules_version`; reproducibility test
@@ -200,6 +216,20 @@ M3 = FE-shots. M0 was done by the architect at planning (no dag task). L1–L3 a
   an observed close 50,000 on D−1 with factor 0.98 ex D is served as 49,000 by `bars_1d` and as `49,000.00` by `adjusted_close` with `as_of ≥ D`,
   as 50,000 with `as_of < D`.
 - Out of scope: the engine reading nominal (F-043/F-044), the F-021 page, versioned factors (F-088).
+
+#### BE-mv-basis — F-015: the simulator basis reads `bars_1d` (observed + reconstructed), not mixed `bars_1d_src` versions (v1.1, consult nit d)
+- Story: F-015 ; Side: be ; Effort: high ; Size: ~80 lines ; Lead: opus
+- Files: `apps/api/finvest_api/market_view.py`, `apps/api/tests/test_market_view_db.py`
+- Change:
+  - `SqlMarketView.bars_1d`: read `bars_1d` rows of both `nominal_kind`s × Π factors over `(d, today]` (the existing observed branch, applied to
+    every row); the `bars_1d_src` DISTINCT-ON read stays only as a **symbol-level fallback** when the symbol has no `reconstructed` row yet
+    (names V5 has not reached, platform.md §2.6 budget) — never mixed per date with `bars_1d` rows.
+  - `_served` unchanged (max `fetched_at` of the rows served + CA rows applied).
+- Contract: data.md §1.4 (4); platform.md §2.5 `data_snapshot`; 2-tech-plan.ai.md R5, R7 `ours`.
+- Acceptance (`db`): F0 full version (nominal 50,000, before cash 1,000 ex E) + F1 short version after E + reconstructed `bars_1d` rows from
+  BE-ca-recompute's G13-db → `bars_1d(start..end)` returns 49,000 on every pre-E day (never 51,020 × 0.98 = 50,000 for the old rows, i.e. no
+  step at the F1 window edge); a symbol with no reconstructed row returns the newest-version src rows (today's behaviour); G11 bytes unchanged.
+- Out of scope: `adjusted_close` (already on `bars_1d`), `first_bar_date`, dropping the fallback (when V5 coverage is full, S06).
 
 #### BE-recon-cli — F-016: `crawl recon` (0 source calls), VN30 + scenario symbols, R8 board check, run row, press hook
 - Story: F-016 ; Side: be ; Effort: high ; Size: ~160 lines ; Lead: opus

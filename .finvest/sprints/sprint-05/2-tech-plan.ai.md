@@ -1,6 +1,6 @@
 # Sprint 05 — Tech plan (AI side: adjustment factors, adjusted/reconstructed series, reconciliation rules, `data_snapshot`)
 
-Owner: `fi-ai-architect`, 2026-10-26, plan v1. Inputs: `1-sprint-plan.md` (F-015, F-016, F-023; M2), `product/backlog.md`
+Owner: `fi-ai-architect`, 2026-10-26, plan v1.1 (v1 in `2-tech-plan.ai.prev-1.md`; v1.1 = R6/R7 per-version rule + G13 + AI-adjust-version, from the BE-ca-recompute consult). Inputs: `1-sprint-plan.md` (F-015, F-016, F-023; M2), `product/backlog.md`
 F-013–F-016/F-023 worked examples, `knowledge/vn-market.md` **v1.1** (§3 reference price, **§6 incl. the new combined-event
 formula + inversion, source S7**), `architecture/data.md` §1.2 V2/S1/S2/V5, §1.4, §3 (`bars_1d`, `bars_1d_src`, `adj_factors`,
 `corporate_actions`, `recon_mismatches`), `architecture/analytics.md` §1.1 (`adjusted_close`, `snapshot`), §1.3,
@@ -30,7 +30,17 @@ R6 **Reconstruction** (A18-A, data.md §1.4, VN§6 inversion), per symbol, walki
    `P = A(D−1)/G(D) · (1 + r_s + r_r) − S·r_r + c` (rights term dropped and P recomputed when `S ≥ P`); then `f_D` from R2/R3
    with that P; `nominal(d) = round_half_up(A(d)/G(d))` for every d without an observed bar. Rows get `nominal_kind =
    reconstructed`; **an `observed` row is never overwritten** (F-015 last criterion; a test writes both and re-runs).
-R7 **Reconciliation** (F-016): `ours(d) = nominal(d) × G(d)` vs `theirs(d) = A(d)` of the newest source version.
+   **R6a Per-version `last` (v1.1).** `bars_1d_src` holds one full-history version plus a ~5-row version per press (platform.md
+   §2.6 `_count`), so "newest row per date" mixes versions. A row of version v (one `fetched_at`) carries the source's
+   adjustments for ex-dates `e ≤ last_v` only, `last_v = max trading_date` of that version (data.md §1.4: the source re-adjusts
+   on the ex-date). Hence `G_v(d) = Π f_e` over `d < e ≤ last_v` **of the row's own version**, never the global newest date;
+   `nominal(d) = round_half_up(A_v(d)/G_v(d))`. Pre-ex close at D with the latest source bar D−1 from version v: if `D ≤ last_v`
+   invert as above with `G_v`; if `last_v < D` the row is already nominal for D, so `P = nominal(D−1)` with no inversion.
+   Observed P (post-crawl) is unchanged. The newest version per date is still the one read (any version gives the same nominal
+   when the rule holds — R7 checks it). Mixing with the global `last` gives +2.04 % on every pre-window day for a 2 % cash
+   dividend (G13; found in the BE-ca-recompute review).
+R7 **Reconciliation** (F-016): `ours(d) = nominal(d) × G_v(d)` vs `theirs(d) = A_v(d)`, the newest source row per date with
+   its own version's `last_v` (R6a; `G_v = 1` when no ex-date lies in `(d, last_v]`).
    Observed overlap: `diff_pct = |ours − theirs| / theirs × 100`, 4 places; `> 0.1000` → `recon_mismatches` row; a run deletes
    the symbol's old rows first (re-run idempotent). With **no ex-date between d and `last`**, `G = 1` and ours must equal theirs
    **exactly** (0 VND) — any diff there is a unit/adapter bug, not a factor bug. Pre-crawl dates: self-consistency
@@ -65,6 +75,8 @@ R9 **`data_snapshot`** = max `fetched_at` over the inputs **actually used**: bar
 | G9 | observed 2026-10-14 close 93,500 with `nominal_kind = observed`; reconstruction would give 93,499 | row unchanged, kind stays `observed` |
 | G10 | recon 49,000 vs 48,900 → 0.2045 % row; 49,000 vs 48,980 → 0.0408 % no row; G = 1 and 93,500 vs 93,500 → 0.0000 | `recon_mismatches` exactly one row |
 | G11 | snapshot: bars fetched 2026-10-26T16:14+07, CA fetched 2026-10-27T16:22+07 with ex_date ≤ as_of | `data_snapshot = 2026-10-27T16:22:00+07:00`; same CA with ex_date > as_of → 2026-10-26T16:14 |
+| G13 | versions: true nominal 50,000 days 1–10, cash 1,000 ex day 11 (f = 0.98), 49,000 from day 11. V0 = days 1–10 fetched before E (A = 50,000, `last_v` = 10); V1 = days 8–12 fetched after E (A = 49,000 all five, `last_v` = 12) | P from V1 day 10: 49,000/0.98 = 50,000; nominal days 8–10 = 50,000; days 1–7 (V0, `G_v` = 1) = **50,000** (global-`last` rule gives 51,020 — must fail); recon diff 0.0000 on every day |
+| G13b | as G13 but V1 = days 12–16 (press gap; day 10 stays a V0 row, `last_v` = 10 < 11) | P = nominal(10) = 50,000 without inversion; f = 0.980000000000; days 1–10 = 50,000 |
 | G12 | real data (fixture `services/crawler/tests/fixtures/` FPT V2 rows around the 10 % bonus ex 2026-09-21) | f = 10/11; reconstructed 2026-09-18 close = round(65,182.47 × 1.1) = 71,701 ± 1 VND; tester compares with a public nominal history page by eye and records the value in `4-test.be.md` |
 
 ## Tasks (`services/analytics/**` + `packages/market_rules/**`; serial — `after` chain)
@@ -109,6 +121,24 @@ R9 **`data_snapshot`** = max `fetched_at` over the inputs **actually used**: bar
   identical `json.dumps(sort_keys=True)` bytes; a factor with `ex_date > as_of` leaves the series and the snapshot untouched.
 - Out of scope: SQL adapter (SA task BE-market-view-ca), scenario engine switching to nominal (F-043/F-044, R2), charts.
 
+#### AI-adjust-version — F-015: per-version `last` in `reconstruct` / `reconcile` (R6a; BE-ca-recompute consult)
+- Story: F-015, F-016 ; Side: ai ; Effort: high ; Size: ~90 lines (≈ 25 prod + 50 tests + 15 golden JSON) ; Lead: opus
+- Files: `services/analytics/finvest_analytics/domain/models.py` (`AdjBar`), `services/analytics/finvest_analytics/adjust/series.py`,
+  `services/analytics/finvest_analytics/adjust/recon.py`, `services/analytics/tests/test_adjust_series.py`,
+  `services/analytics/tests/test_recon.py`, `services/analytics/tests/golden/adjust/013-g13-versions.json`, `013b-g13b-version-gap.json`
+- Change:
+  - `AdjBar` gains `last: date | None = None` = max `trading_date` of the source version the row came from (None → the
+    list's max date, so every existing caller and golden file is unchanged).
+  - `reconstruct`: `G_v` uses `b.last or last` per row (R6a); pre-ex P at D from a prev row with `last_v < D` is `nominal(prev)`,
+    not an inversion; observed P unchanged. Events after the *global* newest bar still get no factor.
+  - `reconcile`: `g = cumulative(factors, d, b.last or last)` per theirs row (R7).
+  - No SQL: the crawler (BE-ca-recompute round 2) fills `last` with `max(trading_date) OVER (PARTITION BY fetched_at)`.
+- Contract: this plan R6a/R7; data.md §1.4 (2); VN§6.
+- Acceptance: G13 and G13b exactly (G13 must fail on the v1 code: 51,020); G1–G12 bytes unchanged; a Hypothesis property:
+  splitting any golden `src` list into two versions (a full one cut before an ex-date, a short one after it, each row
+  adjusted by its own version's factors) reconstructs the same nominal as the single-version input.
+- Out of scope: the `bars_1d_src` query and the recompute set (SA, BE-ca-recompute), the what-if `source_adjusted` basis.
+
 #### AI-recon-rules — F-016: reconciliation rules and run report (pure)
 - Story: F-016 ; Side: ai ; Effort: high ; Size: ~130 lines (≈ 50 prod + 80 tests) ; Lead: opus
 - Files: `services/analytics/finvest_analytics/adjust/recon.py` (new), `services/analytics/tests/test_recon.py` (new)
@@ -126,9 +156,9 @@ R9 **`data_snapshot`** = max `fetched_at` over the inputs **actually used**: bar
   → "29/30" and the missing name.
 - Out of scope: S2 cross-check fetching (SA), writing to the DB, the F-021 page.
 
-Order: AI-ca-factors → AI-adjust-series → AI-recon-rules (series imports factors; recon imports series). All three can
-start before F-014's table lands (pure + fixtures); the SA glue tasks come after F-014 and AI-adjust-series. Total ≈ 520
-lines.
+Order: AI-ca-factors → AI-adjust-series → AI-recon-rules (series imports factors; recon imports series) → AI-adjust-version
+(v1.1, after both; BE-ca-recompute round 2 and BE-recon-cli wait for it). All can start before F-014's table lands (pure +
+fixtures); the SA glue tasks come after F-014 and AI-adjust-series. Total ≈ 610 lines.
 
 ## SA-owned data-side tasks (software architect writes these blocks; the AI side only states what they must satisfy)
 
