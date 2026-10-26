@@ -56,6 +56,7 @@ def fakes(monkeypatch):
     monkeypatch.setattr(runner, "run_ticks", ticks)
     monkeypatch.setattr(runner, "run_bars_1d", bars)
     monkeypatch.setattr(runner, "run_corporate_actions", ca)
+    monkeypatch.setattr(runner, "_recompute", lambda e, r, t: f.calls.append(("recompute", 0)))
     monkeypatch.setattr(runner, "_now", lambda: f.now)
     yield f
     f.gate.set()
@@ -154,7 +155,7 @@ def test_non_trading_day(make_client, fakes):
     j = _wait(c)
     assert j["status"] == "done" and j["summary"]["ticks"] is None
     assert j["summary"]["no_session_today"] is True
-    assert [k for k, _ in fakes.calls] == ["bars", "ca"]
+    assert [k for k, _ in fakes.calls] == ["bars", "ca", "recompute"]
 
 
 def test_summary_counts_the_deferred_names(make_client, fakes):
@@ -253,7 +254,7 @@ def test_step_3_summary_and_progress(make_client, fakes):
     assert j["progress"]["label"] == "corporate_actions"
     assert j["summary"]["corporate_actions"] == {"status": "ok", "symbols_checked": 2, "events_upserted": 7,
                                                  "changes": 1, "symbols_deferred": 28}
-    assert [k for k, _ in fakes.calls] == ["ticks", "bars", "ca"]
+    assert [k for k, _ in fakes.calls] == ["ticks", "bars", "ca", "recompute"]
 
 
 def test_blocked_step_3_keeps_the_earlier_steps(make_client, fakes):

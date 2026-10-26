@@ -261,6 +261,7 @@ name = "finvest-crawler"
 version = "0.1.0"
 source = { editable = "services/crawler" }
 dependencies = [
+    { name = "finvest-analytics" },
     { name = "finvest-market-data" },
     { name = "finvest-rules" },
     { name = "httpx" },
@@ -270,6 +271,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "finvest-analytics", editable = "services/analytics" },
     { name = "finvest-market-data", editable = "packages/market_data" },
     { name = "finvest-rules", editable = "packages/market_rules" },
     { name = "httpx", specifier = ">=0.27" },

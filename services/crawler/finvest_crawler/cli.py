@@ -11,6 +11,7 @@ from finvest_rules.calendar import day
 from finvest_crawler.feeds.bars_1d import run_bars_1d
 from finvest_crawler.feeds.catchup import CatchupFailed, catchup
 from finvest_crawler.feeds.corporate_actions import run_corporate_actions
+from finvest_crawler.feeds.recompute import recompute
 from finvest_crawler.feeds.symbols import run_symbols
 from finvest_crawler.feeds.ticks import run_ticks
 from finvest_crawler.fetch import SourceBlocked
@@ -41,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--only", default=None, help="SYM,SYM", type=_symbols)
     c = sub.add_parser("corporate-actions", help="read V5 corporate events (budget ca_budget)")
     c.add_argument("--date", type=date.fromisoformat, default=datetime.now(VN).date())
+    r = sub.add_parser("recompute", help="recompute adj_factors + reconstructed bars_1d (0 source requests)")
+    r.add_argument("--symbols", required=True, type=_symbols, help="SYM,SYM")
     sub.add_parser("catchup", help="crawl every trading day missed since the last session")
     a = p.parse_args(argv)
 
@@ -64,6 +67,18 @@ def main(argv: list[str] | None = None) -> int:
         r = run_corporate_actions(Settings(), a.date)
         print(json.dumps({k: v for k, v in vars(r).items() if k != "changed_symbols"}))
         return 2 if r.status == "blocked" else 0
+
+    if a.cmd == "recompute":
+        settings = Settings()
+        eng = repositories.engine(settings.database_url)
+        try:
+            with eng.connect() as conn:
+                res = recompute(conn, a.symbols)
+        finally:
+            eng.dispose()
+        print(json.dumps({s: {"factors": len(f), "reconstructed": len(b), "anomalies": len(an)}
+                          for s, (f, b, an) in res.items()}))
+        return 0
 
     if a.cmd == "catchup":
         settings = Settings()

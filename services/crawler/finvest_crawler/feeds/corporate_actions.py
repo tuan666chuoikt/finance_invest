@@ -29,6 +29,7 @@ class CaResult:
     requests: int = 0
     changed_symbols: list[str] = field(default_factory=list)  # new or changed events: input of the recompute
     source: str = SOURCE
+    run_id: int = 0  # the crawl_runs row, so the runner can note the recompute on it
 
 
 def run_corporate_actions(
@@ -62,7 +63,7 @@ def _run(run_date, budget, on_progress, fetcher, conn, repo, commit) -> CaResult
     repo.fail_unfinished_runs(conn, FEED, run_date)
     run_id = repo.insert_crawl_run(conn, FEED, run_date, started)
     commit()
-    r = CaResult()
+    r = CaResult(run_id=run_id)
     try:
         order = repo.ca_symbols_in_order(conn)
         total = min(len(order), max(budget - 1, 0))  # every read costs at least one request
