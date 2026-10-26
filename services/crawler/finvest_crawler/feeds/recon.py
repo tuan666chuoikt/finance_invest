@@ -6,13 +6,19 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
+import httpx
 from finvest_analytics.adjust.recon import ReconResult, reconcile, ref_check, summary
 from finvest_analytics.domain.models import AdjBar, Factor, NominalBar
+from finvest_market_data.domain.ports import PayloadShapeError, SourceNoLongerServes
 from finvest_market_data.infrastructure import repositories as repo
 from finvest_rules.calendar import trading_days
 from finvest_rules.prices import tick_size
 from sqlalchemy import Connection, text
 
+from finvest_crawler.adapters.registry import make_source
+from finvest_crawler.feeds.bars_1d import COUNT
+from finvest_crawler.feeds.ticks import _fetcher
+from finvest_crawler.fetch import Fetcher, SourceBlocked
 from finvest_crawler.settings import Settings
 
 FEED = "recon"
@@ -29,6 +35,9 @@ class ReconRun:
     mismatches: int = 0
     anomalies: int = 0  # R8 findings
     run_id: int = 0
+    ssi_mismatches: int = 0  # --cross-check ssi: printed and in `reason` only (storing both waits for F-021)
+    ssi_requests: int = 0
+    ssi_blocked: bool = False
 
 
 def default_symbols(conn: Connection) -> list[str]:
@@ -40,6 +49,43 @@ def default_symbols(conn: Connection) -> list[str]:
           EXISTS (SELECT 1 FROM symbol_index_membership m WHERE m.symbol = s.symbol
                   AND m.index_code = 'VN30' AND m.valid_to IS NULL)
           OR s.symbol IN (SELECT DISTINCT symbol FROM scenarios)) ORDER BY s.symbol"""))]
+
+
+def _compare(conn: Connection, sym: str, source: str, nominal, factors) -> ReconResult | None:
+    src = repo.newest_src_bars(conn, sym, source)
+    if not src:
+        return None
+    return reconcile([NominalBar(sym, d, c, k) for d, c, k, _ in nominal],  # type: ignore[arg-type]
+                     [Factor(sym, d, f) for d, f, _ in factors],
+                     [AdjBar(sym, x.trading_date, Decimal(x.adj_c), x.last) for x in src],
+                     self_check=(source == "vci"))  # only V2 is what reconstructed rows were inverted from
+
+
+def _cross_check(conn: Connection, run_date: date, names: list[str], fetcher: Fetcher, r: ReconRun) -> None:
+    """S2 as a second `theirs` (F-016): fetch (archive-first), store as source 'ssi', reconcile. The first
+    blocked answer stops it; the local result stands."""
+    ssi = make_source("ssi", fetcher)
+    req0 = fetcher.requests
+    try:
+        for sym in names:
+            nominal = repo.nominal_bars(conn, sym)
+            if not nominal:
+                continue
+            try:
+                bars = ssi.bars([sym], "1d", run_date, COUNT)
+            except (SourceNoLongerServes, PayloadShapeError, httpx.HTTPError):
+                continue  # this name stays uncompared on S2; the others go on
+            if not bars:
+                continue
+            # fetched_at is the archive file's mtime, so a replay hits the same key
+            mtime = fetcher.archive.path("bars_1d_ssi", run_date, f"{sym}-1d-{COUNT}").stat().st_mtime
+            repo.upsert_bars_1d_src(conn, bars, datetime.fromtimestamp(mtime, UTC))
+            conn.commit()
+            res = _compare(conn, sym, "ssi", nominal, repo.adj_factors_for(conn, sym))
+            r.ssi_mismatches += len(res.mismatches) if res else 0
+    except SourceBlocked:
+        r.ssi_blocked = True
+    r.ssi_requests = fetcher.requests - req0
 
 
 def _r8(conn: Connection, sym: str, kind: tuple[str, str] | None, factors, nominal) -> int:
@@ -63,18 +109,26 @@ def _r8(conn: Connection, sym: str, kind: tuple[str, str] | None, factors, nomin
 
 
 def run_recon(settings: Settings, run_date: date, symbols: list[str] | None = None, *,
-              conn: Connection | None = None) -> ReconRun:
+              conn: Connection | None = None, cross_check: str | None = None,
+              fetcher: Fetcher | None = None) -> ReconRun:
+    if cross_check not in (None, "ssi"):
+        raise ValueError(f"unknown cross-check source {cross_check!r}")
     own = repo.engine(settings.database_url) if conn is None else None
     conn = conn or own.connect()  # type: ignore[union-attr]
+    client = httpx.Client() if cross_check and fetcher is None else None
+    if client:
+        fetcher = _fetcher(settings, client)
     try:
-        return _run(conn, run_date, symbols)
+        return _run(conn, run_date, symbols, fetcher if cross_check else None)
     finally:
+        if client:
+            client.close()
         if own:
             conn.close()
             own.dispose()
 
 
-def _run(conn: Connection, run_date: date, symbols: list[str] | None) -> ReconRun:
+def _run(conn: Connection, run_date: date, symbols: list[str] | None, fetcher: Fetcher | None) -> ReconRun:
     repo.fail_unfinished_runs(conn, FEED, run_date)
     run_id = repo.insert_crawl_run(conn, FEED, run_date, datetime.now(UTC))
     conn.commit()
@@ -84,14 +138,11 @@ def _run(conn: Connection, run_date: date, symbols: list[str] | None) -> ReconRu
         kinds = {s.symbol: (s.exchange, s.type) for s in repo.list_symbols(conn)}
         r.expected = len(names)
         for sym in names:
-            src = repo.newest_src_bars(conn, sym, SOURCE)
             nominal = repo.nominal_bars(conn, sym)
-            if not src or not nominal:  # listed by `missing` below
-                continue
             factors = repo.adj_factors_for(conn, sym)
-            res = reconcile([NominalBar(sym, d, c, k) for d, c, k, _ in nominal],  # type: ignore[arg-type]
-                            [Factor(sym, d, f) for d, f, _ in factors],
-                            [AdjBar(sym, x.trading_date, Decimal(x.adj_c), x.last) for x in src])
+            res = _compare(conn, sym, SOURCE, nominal, factors) if nominal else None
+            if not res:  # listed by `missing` below
+                continue
             repo.replace_recon_mismatches(conn, sym, [(m.trading_date, m.ours, m.theirs, m.diff_pct)
                                                       for m in res.mismatches])
             r.anomalies += _r8(conn, sym, kinds.get(sym), factors, nominal)
@@ -101,8 +152,12 @@ def _run(conn: Connection, run_date: date, symbols: list[str] | None) -> ReconRu
         r.checked, r.missing = len(done), sorted(set(names) - done)
         r.mismatches = sum(len(x.mismatches) for x in r.results.values())
         r.summary = summary(r.results, set(names))
+        if fetcher:
+            _cross_check(conn, run_date, names, fetcher, r)
+            r.summary += (f" | vci: {r.mismatches}, ssi: {r.ssi_mismatches} mismatches"
+                          + ("; ssi blocked, cross-check stopped" if r.ssi_blocked else ""))
         status = "partial" if r.missing else "ok"
-        repo.finish_crawl_run(conn, run_id, status, r.summary, 0, r.mismatches, None)
+        repo.finish_crawl_run(conn, run_id, status, r.summary, r.ssi_requests, r.mismatches, None)
         conn.commit()
     except Exception:
         conn.rollback()
