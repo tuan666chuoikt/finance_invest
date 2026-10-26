@@ -1,8 +1,9 @@
 """In-memory MarketView for tests. bars_1d/index_1d enforce as_of (the look-ahead guard)."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from .domain.models import DailyBar, IndexBar
+from .adjust.series import adjusted, events_by_ex_date, forward_factors
+from .domain.models import AdjBar, CorporateAction, DailyBar, IndexBar, NominalBar
 
 
 @dataclass
@@ -11,6 +12,7 @@ class FixtureView:
     index: dict[str, list[IndexBar]]
     snapshot_at: datetime
     basis: str = "source_adjusted"
+    actions: dict[str, list[CorporateAction]] = field(default_factory=dict)
 
     def calendar(self, start: date, end: date) -> list[date]:
         days = (end - start).days + 1
@@ -25,8 +27,21 @@ class FixtureView:
     def index_1d(self, code: str, start: date, end: date, *, as_of: date) -> list[IndexBar]:
         return [b for b in self.index.get(code, []) if start <= b.trading_date <= min(end, as_of)]
 
-    def snapshot(self) -> datetime:
-        return self.snapshot_at
+    def corporate_actions(self, symbol: str, start: date, end: date, *, as_of: date) -> list[CorporateAction]:
+        return [a for a in self.actions.get(symbol, []) if start <= a.ex_date <= min(end, as_of)]
+
+    def adjusted_close(self, symbol: str, start: date, end: date, *, as_of: date) -> list[AdjBar]:
+        """Fixture bars are nominal observed closes; factors derive from CA rows with ex_date <= as_of."""
+        nominal = [NominalBar(b.symbol, b.trading_date, b.c, "observed")
+                   for b in self.bars_1d(symbol, date.min, as_of, as_of=as_of)]
+        applied = self.corporate_actions(symbol, date.min, as_of, as_of=as_of)
+        rows = adjusted(nominal, forward_factors(symbol, nominal, events_by_ex_date(applied)), as_of)
+        return [r for r in rows if start <= r.trading_date <= end]
+
+    def snapshot(self, as_of: date | None = None) -> datetime:
+        seen = [a.fetched_at for acts in self.actions.values() for a in acts
+                if as_of is None or a.ex_date <= as_of]
+        return max([self.snapshot_at, *seen])
 
     def price_basis(self) -> str:
         return self.basis

@@ -4,6 +4,7 @@ from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
+from finvest_rules import CaEvent
 from pydantic import BaseModel, Field
 
 
@@ -69,3 +70,35 @@ def figure(value, unit: str, formula: str, inputs: dict, ctx: Ctx, cite: str | N
     """Ints become plain strings, Decimals 4 dp half-up."""
     return Figure(_s(value), unit, How(formula, {k: _s(v) for k, v in inputs.items()}, ctx.as_of,
                                        ctx.rules_version, cite))
+
+
+@dataclass(frozen=True)
+class CorporateAction:
+    symbol: str
+    ex_date: date
+    event: CaEvent
+    fetched_at: datetime
+
+
+@dataclass(frozen=True)
+class NominalBar:
+    symbol: str
+    trading_date: date
+    c: int
+    nominal_kind: str  # observed | reconstructed (A18-A)
+
+
+@dataclass(frozen=True)
+class AdjBar:
+    """Adjusted close: ours (R5) or the source's A(d) (R6); 2 dp."""
+
+    symbol: str
+    trading_date: date
+    c: Decimal
+
+
+@dataclass(frozen=True)
+class Factor:
+    symbol: str
+    ex_date: date
+    f: Decimal  # 12 places, one per (symbol, ex_date)

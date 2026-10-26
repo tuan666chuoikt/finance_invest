@@ -1,0 +1,10 @@
+{
+  "hand": [
+    "10-14 observed 93,500; source A = 93,499 would reconstruct to 93,499 -> row not emitted, observed stays"
+  ],
+  "op": "reconstruct",
+  "src": {"2026-10-13": "93500.00", "2026-10-14": "93499.00", "2026-10-15": "93500.00"},
+  "events": [],
+  "observed": {"2026-10-14": 93500},
+  "expected": {"nominal": {"2026-10-13": 93500, "2026-10-15": 93500}, "absent": ["2026-10-14"], "factors": {}}
+}
