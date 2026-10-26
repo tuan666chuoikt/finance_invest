@@ -85,3 +85,12 @@
 2026-10-26 15:39 | dev     | BE-fix-v5-iss            | pr-open   | kernel 339 passed (1 ruff E501 is B-05-4), db crawler+market_data 54 passed, 3 new tests red on old mapper; HPG 14+2 stock_dividend, 3 listi | 3-build.BE-fix-v5-iss.md
 2026-10-26 15:41 | be-dev  | BE-fix-recon-s2          | pr-open   | recon 13 passed, crawler 198 passed, ruff clean | 3-build.BE-fix-recon-s2.md
 2026-10-26 15:44 | lead    | BE-fix-v5-iss            | merged    | 85efde3; 0 must-fix, 2 nits; kernel 341 passed, db 54 passed; HPG 05-22 nominal 26,350 | .finvest/sprints/sprint-05/3-pr.BE-fix-v5-iss.md
+2026-10-26 15:45 | lead    | BE-fix-recon-s2          | merged    | 4d47710; recon 13 passed, crawler 201 passed, ruff clean | 3-pr.BE-fix-recon-s2.md
+2026-10-26 15:46 | dev     | BE-fix-ca-budget         | pr-open   | crawler 176 passed, db 30 passed, +11/-8 lines | 3-build.BE-fix-ca-budget.md
+2026-10-26 15:46 | dev     | OPS-fix-guards           | pr-open   | audit 6 passed; compose publishes 15433/18001/18080 only | 3-build.OPS-fix-guards.md
+2026-10-26 15:48 | lead    | BE-fix-ca-budget         | changes   | 1 must-fix (ruff E501 test_repositories_db.py:414); db 31 passed, kernel 340 passed | 3-pr.BE-fix-ca-budget.md
+2026-10-26 15:48 | dev     | BE-fix-ca-budget         | fix-round-1 | E501 fixed, ruff clean | 3-build.BE-fix-ca-budget.md
+2026-10-26 15:48 | lead    | OPS-fix-guards           | changes   | 1 must-fix (E501 line 31); pytest 342 passed, ruff red | sprints/sprint-05/3-pr.OPS-fix-guards.md
+2026-10-26 15:49 | dev     | OPS-fix-guards           | changes   | E501 fixed, make test-kernel exit 0 (342 passed) | 3-build.OPS-fix-guards.md
+2026-10-26 15:49 | lead    | BE-fix-ca-budget         | merged    | 2f5c6b7; ruff 0, crawler 176 passed, lint-imports ok | sprints/sprint-05/3-pr.BE-fix-ca-budget.md
+2026-10-26 15:50 | lead    | OPS-fix-guards           | merged    | 2df45e4; kernel 342 passed, ruff/mypy clean | .finvest/sprints/sprint-05/3-pr.OPS-fix-guards.md
