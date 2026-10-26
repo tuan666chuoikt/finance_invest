@@ -48,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     q = sub.add_parser("recon", help="reconcile our adjusted series with the source's (0 source requests)")
     q.add_argument("--date", type=date.fromisoformat, default=datetime.now(VN).date())
     q.add_argument("--symbols", default=None, type=_symbols, help="SYM,SYM (default VN30 + scenario symbols)")
+    q.add_argument("--cross-check", choices=["ssi"], default=None, help="also compare with SSI S2 (1 req/s)")
     sub.add_parser("catchup", help="crawl every trading day missed since the last session")
     a = p.parse_args(argv)
 
@@ -85,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if a.cmd == "recon":
-        r = run_recon(Settings(), a.date, a.symbols)
+        r = run_recon(Settings(), a.date, a.symbols, cross_check=a.cross_check)
         print(r.summary)
         for s, x in r.results.items():
             print(f"{s}: {x.checked} days checked, {len(x.mismatches)} mismatches"
