@@ -115,5 +115,7 @@ def test_self_check_false_judges_reconstructed_rows_like_observed():
     assert [m.note for m in reconcile(rows, fs, theirs).mismatches] == [SELF_CONSISTENCY]
     r = reconcile(rows, fs, theirs, self_check=False)
     assert (r.mismatches, r.checked) == ([], 1)
-    exact = reconcile([nom("2026-10-06", 71701, "reconstructed")], [], [src("2026-10-06", "71700")], self_check=False)
+    exact = reconcile(
+        [nom("2026-10-06", 71701, "reconstructed")], [], [src("2026-10-06", "71700")], self_check=False
+    )
     assert [m.note for m in exact.mismatches] == [UNIT_OR_ADAPTER]
