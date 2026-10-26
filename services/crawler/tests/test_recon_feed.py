@@ -1,17 +1,24 @@
 """`crawl recon` on a real db (needs FINVEST_DATABASE_URL, db name *_test; excluded from the kernel).
 Hand numbers are tech plan sprint-05 G10 (cash 1,000 on 50,000 -> f 0.98) and R8."""
 
+import gzip
+import json
 import os
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
+from finvest_crawler.archive import Archive
 from finvest_crawler.cli import main
+from finvest_crawler.feeds import recon as recon_mod
 from finvest_crawler.feeds.recon import run_recon
+from finvest_crawler.fetch import Fetcher
+from finvest_crawler.ratelimit import TokenBucket
 from finvest_crawler.settings import Settings
 from finvest_market_data.domain.models import Bar
 from finvest_market_data.infrastructure import repositories as repo
@@ -150,3 +157,68 @@ def test_r8_skips_upcom_whose_reference_is_the_previous_vwap(conn):  # VN§3
     conn.commit()
     assert run_recon(Settings(), TODAY, ["AAA"], conn=conn).anomalies == 0
     assert rows(conn, "data_anomalies") == []
+
+
+# --- F-016 / BE-recon-s2: --cross-check ssi (S2 as a second `theirs`) ---
+FPT_DAY, FPT_EX = date(2026, 9, 18), date(2026, 9, 21)
+FIX = Path(__file__).parent / "fixtures/ssi/history/FPT-1d.json.gz"
+
+
+def ssi_fetcher(tmp_path, status=200, close=None):
+    body = gzip.decompress(FIX.read_bytes())
+    if close is not None:  # hand-break the 2026-09-18 close (thousand VND)
+        d = json.loads(body)
+        i = [datetime.fromtimestamp(t, UTC).date() for t in d["data"]["t"]].index(FPT_DAY)
+        d["data"]["c"][i] = close
+        body = json.dumps(d).encode()
+    client = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(status, content=body)))
+    return Fetcher(client, {"ssi": TokenBucket(100)}, Archive(tmp_path), "ua", sleep=lambda s: None)
+
+
+def seed_fpt(conn):
+    """09-18 is pre-crawl (reconstructed from V2); ex-date 09-21 factor 1/1.1: ours 71,701 -> 65,182.73."""
+    v2 = {FPT_DAY: 65_183, date(2026, 9, 22): 65_000}  # V2 `last` >= ex-date
+    seed(conn, "FPT", {FPT_DAY: 71_701}, v2, kind="reconstructed")
+    repo.replace_adj_factors(conn, "FPT", [(FPT_EX, "0.9090909091", None)], "t")
+    conn.commit()
+
+
+def spy_self_check(monkeypatch):
+    calls = []
+    real = recon_mod.reconcile
+    monkeypatch.setattr(recon_mod, "reconcile",
+                        lambda *a, **k: calls.append(k.get("self_check")) or real(*a, **k))
+    return calls
+
+
+def test_s2_fpt_lands_as_65180_and_ours_65182_73_is_no_mismatch(conn, tmp_path, monkeypatch):
+    seed_fpt(conn)
+    calls = spy_self_check(monkeypatch)
+    r = run_recon(Settings(), TODAY, ["FPT"], conn=conn, cross_check="ssi", fetcher=ssi_fetcher(tmp_path))
+    (row,) = conn.execute(text("SELECT adj_c FROM bars_1d_src WHERE source='ssi' AND trading_date=:d"),
+                          {"d": FPT_DAY}).all()
+    assert row.adj_c == 65_180  # S2 65.18 thousand VND
+    assert (r.mismatches, r.ssi_mismatches, r.ssi_blocked) == (0, 0, False)  # 0.0042 % < 0.1 %
+    assert r.ssi_requests == 1 and r.summary.endswith("| vci: 0, ssi: 0 mismatches")
+    assert calls == [True, False]  # self-check against V2 only
+
+
+def test_s2_hand_broken_close_is_a_factor_or_event_mismatch(conn, tmp_path, monkeypatch):
+    seed_fpt(conn)
+    out = []
+    real = recon_mod.reconcile
+    monkeypatch.setattr(recon_mod, "reconcile", lambda *a, **k: out.append(real(*a, **k)) or out[-1])
+    r = run_recon(Settings(), TODAY, ["FPT"], conn=conn, cross_check="ssi",
+                  fetcher=ssi_fetcher(tmp_path, close=65.28))
+    # hand: |65,182.73 - 65,280| / 65,280 = 0.149 % > 0.1 %
+    (m,) = out[-1].mismatches
+    assert (m.note, m.theirs, r.ssi_mismatches, r.mismatches) == ("factor_or_event", 65_280, 1, 0)
+
+
+def test_s2_blocked_keeps_the_local_summary(conn, tmp_path):
+    seed_fpt(conn)
+    r = run_recon(Settings(), TODAY, ["FPT"], conn=conn, cross_check="ssi",
+                  fetcher=ssi_fetcher(tmp_path, status=418))
+    assert r.ssi_blocked and r.ssi_mismatches == 0 and r.mismatches == 0
+    assert r.summary.startswith("1/1, 0 mismatches") and "ssi blocked, cross-check stopped" in r.summary
+    assert conn.execute(text("SELECT status FROM crawl_runs")).scalar() == "ok"

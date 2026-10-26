@@ -7,13 +7,12 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import httpx
-
 from finvest_analytics.adjust.recon import ReconResult, reconcile, ref_check, summary
 from finvest_analytics.domain.models import AdjBar, Factor, NominalBar
+from finvest_market_data.domain.ports import PayloadShapeError, SourceNoLongerServes
 from finvest_market_data.infrastructure import repositories as repo
 from finvest_rules.calendar import trading_days
 from finvest_rules.prices import tick_size
-from finvest_market_data.domain.ports import PayloadShapeError, SourceNoLongerServes
 from sqlalchemy import Connection, text
 
 from finvest_crawler.adapters.registry import make_source
@@ -58,7 +57,8 @@ def _compare(conn: Connection, sym: str, source: str, nominal, factors) -> Recon
         return None
     return reconcile([NominalBar(sym, d, c, k) for d, c, k, _ in nominal],  # type: ignore[arg-type]
                      [Factor(sym, d, f) for d, f, _ in factors],
-                     [AdjBar(sym, x.trading_date, Decimal(x.adj_c), x.last) for x in src])
+                     [AdjBar(sym, x.trading_date, Decimal(x.adj_c), x.last) for x in src],
+                     self_check=(source == "vci"))  # only V2 is what reconstructed rows were inverted from
 
 
 def _cross_check(conn: Connection, run_date: date, names: list[str], fetcher: Fetcher, r: ReconRun) -> None:
