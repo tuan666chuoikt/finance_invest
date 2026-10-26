@@ -1,6 +1,6 @@
 # Finvest hand-off: read this first in a fresh session
 
-Owner: the Scrum Master. Updated **2026-10-24 17:40**. Keep under ~6 KB: current state only. History lives in git,
+Owner: the Scrum Master. Updated **2026-10-26 16:20**. Keep under ~6 KB: current state only. History lives in git,
 `product/sponsor-answers.md` and the activity logs.
 
 ## 0. Start here
@@ -10,20 +10,18 @@ Owner: the Scrum Master. Updated **2026-10-24 17:40**. Keep under ~6 KB: current
 3. Stack: `make up` (web http://127.0.0.1:8080, api 127.0.0.1:**8001**; 8000 belongs to the sponsor's gateway).
 
 ## 1. Status
-- Sprints 01–03 DONE, **main = bb3f588** (sprint-03 incl. sprint-02, fast-forward). Reviews tech/ai/product PASS, 30/30 pts.
-- **A23 (2026-10-24): crawling is manual only** — "Cào dữ liệu" button (F-034, POST /api/jobs). The systemd timer
-  is uninstalled. A press: ticks (≈1 500 KBS req, only on a trading day) + SSI full-board snapshot (3 req) + ≤40 V2 gaps.
-  VCI V2 blocks the IP after ~1.5 min of heavy use (418 after a 30 s hold, about 1 h); the job then fails with
-  "nguồn … đang chặn tạm, thử lại sau ~1 giờ". A cold catch-up may need 2 presses about 1 h apart.
-- Ticks for 2026-10-19..23 are lost (timer PermissionError; data/raw was root-owned, fixed 10-24 by chown via docker).
+- Sprints 01–05 DONE and on **main (f548323)**. S04 = visual design (A25), S05 = prices right (CA table, factors,
+  adjusted + reconstructed nominal, recon). Reviews PASS. Live recon VN30 30/30, 0 mismatches (2026-10-26 16:17).
+- **Live = gateways** (compose project `finvest-live`, own DB gateways/data/finance_invest, auto-deploy from main via
+  gw-poll). Dev checkout = project `finance_invest`; both bind 8080/8001, so dev/test stacks use other ports
+  (tester.md §8: 18080/18001/15433). Never stop gw-app@finance_invest. Pre-0010 backup: gateways/backups/.
+- Crawl is manual (A23). VCI V5 blocks after ~30 calls/h: ca_budget=28, so CA coverage grows ~25 names per press.
 
 ## 2. Next
-- **Sponsor decisions open:** A24-D1 (size limit counts production code only, not tests/i18n; SM recommends yes),
-  A24-R2 (spike a free source's block behaviour before planning crawl speed; SM recommends yes). See `sprints/sprint-03/6-retro.md`.
-- Clock milestone: sponsor presses the button Mon 2026-10-26 after 15:00 (first live tick path); SM checks the job by 23:00.
-- Sprint-04 carry-overs: T5b (session status regresses complete→blocked, arch), T5c (orphan bars_1d 10-24 row),
-  T6 (db test suite DSN/password), AI notes (i=-1 curve trap, ETF n/a wording, DCA holding_days), VNINDEX pre-2012
-  ratio smoke, pin `sell_date` in e2e. Then `/fi-sprint-plan` for sprint-04 per roadmap.
+- Sponsor presses on live after 15:00 on 10-27, 10-28, 10-29 (L1–L3; ticks lost if missed). SM checks the job.
+- Sprint-06 per roadmap.md (R2 rest: F-043/F-044/F-050 clear the approximate flag) + carry-overs: B-05-9
+  (insert_anomaly_once), recompute skips listing_change, "bấm lại sau ~1 giờ" hint (ux/app-shell.md), tests_be05 lint.
+- Sponsor decision open: **A24-D1** (SM recommends: keep counting tests, exclude i18n). Next free label A26.
 
 ## 3. Environment
 - Linux; `flock`, `md5sum`; no `gh` (merges via `sm.sh merge`). SSH push works for tuan666chuoikt.
