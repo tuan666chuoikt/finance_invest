@@ -21,4 +21,11 @@ describe("app.css base elements", () => {
   it("has a :focus-visible ring rule", () => {
     expect(rules().some((t) => t.includes(":focus-visible") && t.includes("outline: 2px solid var(--focus)"))).toBe(true);
   });
+
+  it("keeps the 32px top-bar hit target and nowrap brand/links (base rules)", () => {
+    const top = [...document.styleSheets].flatMap((s) => [...s.cssRules]).filter((r): r is CSSStyleRule => r instanceof CSSStyleRule);
+    const hit = top.find((r) => r.selectorText?.replace(/\s+/g, " ") === ".tb button, .tb a");
+    expect(hit?.style.getPropertyValue("min-height")).toBe("32px");
+    expect(top.find((r) => r.selectorText?.replace(/\s+/g, " ") === ".tb-brand, .tb-nav a")?.style.getPropertyValue("white-space")).toBe("nowrap");
+  });
 });
