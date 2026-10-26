@@ -41,15 +41,25 @@ function Body({ s, env }: { s: Scenario; env: WhatIfEnvelope }) {
   const pl = signedVnd(r.returns.pl_vnd.value);
   const pct = formatPct(r.returns.pl_pct.value);
   const dca = s.style === "dca";
+  const buyShifts = r.dates.shifts.filter((x) => x.field === "buy_date");
   return (
     <>
       <div className="muted fs-sm">
         {t("card.dates" + (s.sell_date ? "" : "_today"), { from: formatDate(s.buy_date), to: formatDate(s.sell_date ?? r.dates.sell) })}
-        {r.dates.shifts.map((x) => (
+        {r.dates.shifts.filter((x) => !dca || x.field !== "buy_date").map((x) => (
           <small key={x.field + x.from} className="note">
             {t(x.field === "buy_date" ? "card.shift_buy" : "card.shift_sell", { to: formatDate(x.to) })}
           </small>
         ))}
+        {dca && buyShifts.length > 0 && (
+          <small className="note shifts" data-testid="dca-shifts">
+            {t("card.shift_dca", { n: buyShifts.length })}{" "}
+            <details>
+              <summary>{t("card.shift_view")}</summary>
+              <ul>{buyShifts.map((x) => <li key={x.from}>{formatDate(x.from)} → {formatDate(x.to)}</li>)}</ul>
+            </details>
+          </small>
+        )}
       </div>
       {env.approximate && (
         <div data-testid="approximate-flag" className="chip chip-warn"><span aria-hidden="true">⚠ ≈ </span>{t("card.approximate")}</div>
