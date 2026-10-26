@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "e2e:shots": "node e2e/screens.mjs",
     "gen": "openapi-typescript ../../packages/contracts/openapi.json -o src/api/types.ts"
   },
   "dependencies": {
