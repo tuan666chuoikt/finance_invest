@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
-RULES_VERSION = "2026.10.16"
+RULES_VERSION = "2026.10.28"
 _FROM = date(2006, 1, 1)
 
 
@@ -53,6 +53,7 @@ RULES: dict[str, list[Rule]] = {
     ],
     "board_lot": [Rule(100, _FROM, True, date(2026, 10, 15), "S1, S2", "VN§4")],
     "settlement_days": [Rule(2, _FROM, True, date(2026, 10, 15), "S3 (T+2)", "VN§5")],
+    "ca_adjustment": [Rule(1, _FROM, False, None, "S7 broker/education pages 2026-10-26", "VN§6 v1.1")],
 }
 
 
