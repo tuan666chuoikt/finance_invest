@@ -93,6 +93,7 @@
   "card.shift_buy": "Ngày mua dời sang {{to}}",
   "card.shift_sell": "Ngày bán dời sang {{to}}",
   "card.shift_dca": "Ngày mua dời sang ngày giao dịch kế tiếp: {{n}} lần",
+  "card.shift_skip": "bỏ qua",
   "card.shift_view": "Xem",
   "card.approximate": "Gần đúng — giá điều chỉnh, chưa tính cổ tức",
   "card.invested": "Đã đầu tư",
