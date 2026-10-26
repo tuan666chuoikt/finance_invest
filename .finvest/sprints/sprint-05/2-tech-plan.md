@@ -1,6 +1,6 @@
 # Sprint 05 — Tech plan (BE / FE / ops; AI blocks of `2-tech-plan.ai.md` merged into dag.json)
 
-Owner: `fi-software-architect`, 2026-10-26, plan v1.1 (v1.0 = `2-tech-plan.prev-2.md`; v1.1 = BE-ca-recompute round 2 per the consult: per-version `last`, watermark recompute set, queries in the repo, size ~340; new BE-mv-basis; v0 = `2-tech-plan.prev-1.md`). Inputs: `1-sprint-plan.md`, `2-tech-plan.ai.md` (3 AI tasks + the
+Owner: `fi-software-architect`, 2026-10-26, plan v1.2 (v1.1 = `2-tech-plan.prev-3.md`; v1.2 = BE-recon-s2 per the consult: `reconcile(slack_vnd)` for S2's 10 VND resolution, file set += analytics recon.py/test_recon.py, size ~120; v1.0 = `2-tech-plan.prev-2.md`; v1.1 = BE-ca-recompute round 2 per the consult: per-version `last`, watermark recompute set, queries in the repo, size ~340; new BE-mv-basis; v0 = `2-tech-plan.prev-1.md`). Inputs: `1-sprint-plan.md`, `2-tech-plan.ai.md` (3 AI tasks + the
 "SA-owned" list), `product/backlog.md` F-013/F-014/F-015/F-016/F-023/F-033, `architecture/data.md` **v1.4** (§1.2 V5/S2 spike
 lines, §1.4, §3), `contracts/platform.md` **v1.14** (§2.6 step 3), `product/ux/app-shell.md` §Crawl button,
 `product/ux/visual-design.md` §4/§6.3/§6.4/§9, `sprints/sprint-04/6-retro.md` R1–R5, branch `sprint-05` = main `0de35b7`.
@@ -250,15 +250,20 @@ M3 = FE-shots. M0 was done by the architect at planning (no dag task). L1–L3 a
 - Out of scope: S2 cross-check (BE-recon-s2), the F-021 page.
 
 #### BE-recon-s2 — F-016: S2 cross-check as a second `theirs` (30 calls) — **first to slip**
-- Story: F-016 ; Side: be ; Effort: medium ; Size: ~90 lines ; Lead: sonnet
-- Files: `services/crawler/finvest_crawler/feeds/recon.py`, `services/crawler/finvest_crawler/cli.py` (`--cross-check ssi`), `services/crawler/tests/test_recon_feed.py`
+- Story: F-016 ; Side: be ; Effort: medium ; Size: ~120 lines ; Lead: sonnet
+- Files: `services/crawler/finvest_crawler/feeds/recon.py`, `services/crawler/finvest_crawler/cli.py` (`--cross-check ssi`), `services/crawler/tests/test_recon_feed.py`,
+  `services/analytics/finvest_analytics/adjust/recon.py` + `services/analytics/tests/test_recon.py` (**only** the `slack_vnd` keyword below; AI-recon-rules is merged, no overlap)
 - Change: with `--cross-check ssi`, for each symbol `SsiSource.bars([sym], "1d", run_date, COUNT)` (S2; thousand VND → VND in the adapter already) →
   `upsert_bars_1d_src(source="ssi", fetched_at = archive mtime)` → a second `reconcile` against `newest_src_bars("ssi")`, rows kept apart by a
   `source` column? **No** — `recon_mismatches` PK is `(symbol, trading_date)`: the S2 result is printed and counted in the run row `reason` only
   ("vci: k, ssi: m mismatches"); storing both sources waits for F-021. 1 req/s bucket, `SourceBlocked` → the cross-check stops, local result stands.
-- Contract: data.md §1.2 S2 (spike line), §3 `bars_1d_src`.
-- Acceptance: with the `ssi/history/FPT-1d.json.gz` fixture the S2 rows land in `bars_1d_src` with `source='ssi'`; FPT 2026-09-18 S2 close equals V2
-  65,182.47 → 0 mismatches between the two sources on that date; a 418 run keeps the local summary.
+  S2 is thousand VND with 2 decimals = **10 VND resolution** (data.md §1.2 S2), so `reconcile(..., slack_vnd: Decimal = Decimal(0))`:
+  `diff <= slack_vnd` is equal in every branch (reconstructed: `diff > max(1, slack_vnd)`; G = 1: `diff > slack_vnd`; `exact_days` counts
+  `diff <= slack_vnd`); the default 0 keeps every AI-recon-rules test byte-identical; the BE passes `slack_vnd=10` for `ssi` only, V2 stays exact.
+- Contract: data.md §1.2 S2 (spike line, resolution), §1.4 (4) last paragraph (slack rule), §3 `bars_1d_src`.
+- Acceptance: with the `ssi/history/FPT-1d.json.gz` fixture the S2 rows land in `bars_1d_src` with `source='ssi'` as **65,180** VND for 2026-09-18;
+  against V2 65,182 that date is 0 mismatches with `slack_vnd=10` and 1 mismatch (`unit_or_adapter`) with the default 0 (one analytics test
+  on `reconcile` for both, G = 1 and reconstructed branch); an 11 VND diff is still a mismatch at slack 10; a 418 run keeps the local summary.
 - Out of scope: storing S2 mismatches, anything on screen.
 
 #### OPS-guards — F-033: no-broker audit test; test compose override

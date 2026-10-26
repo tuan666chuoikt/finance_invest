@@ -1,6 +1,6 @@
 # Finvest — Analytics architecture (simulator, backtester, "why it moved", evals)
 
-Owner: `fi-ai-architect`. Status: **v1.2, 2026-10-25** (v1.2: §1.3.1 `holding_days` display-only note, S03 review note 3; v1.1 =
+Owner: `fi-ai-architect`. Status: **v1.4, 2026-10-26** (v1.4: §1.3 recon self-check only against the origin source, S05 BE-recon-s2 consult, v1.3 = `analytics.prev-4.md`; v1.3: §1.3 per-version `last`, v1.2 = `analytics.prev-3.md`; v1.2: §1.3.1 `holding_days` display-only note, S03 review note 3; v1.1 =
 `analytics.prev-2.md`; v1 = `analytics.prev-1.md`; inception after `system.md`/`data.md` v1). Inputs: `product/prd.md`
 (Approved v2, PR-030…039, PR-070…078, PR-090…095, PR-110), `product/backlog.md` (E4, E6, E7), `knowledge/vn-market.md`
 (VN§n, verified 2026-10-15), `architecture/system.md` §2–4, `data.md` §1.3–1.4, §3, `codebase.md` §2–3, ADR-S-001/005/006.
@@ -72,6 +72,8 @@ version** (`AdjBar.last`), never the newest date across versions: a full-history
 versions, and a global cut-off re-divides pre-pull rows by a factor the source never applied (S05 BE-ca-recompute consult,
 tech plan R6a, G13). Until the what-if's `source_adjusted` basis (§1.3.1) reads ours (`adjusted_close`), it is exposed to
 the same mix at the window boundary.
+Reconciliation (tech plan R7) checks a reconstructed row's 1-VND self-consistency only against the source it was inverted from
+(V2); against a cross-check source (S2, 10-VND resolution) it is an ordinary row: `G_v = 1` → exact, else 0.1 % (S05 BE-recon-s2 consult).
 **If A18-B**: `what-if` rejects `buy_date < first_observed_date(symbol)` with error `NOMINAL_UNAVAILABLE`; backtests
 then run in `price_mode = adjusted` (no lot rounding, fees on adjusted value, no CA events) and show "approximate".
 
