@@ -105,3 +105,15 @@ def test_g13_recon_uses_each_rows_own_version_last():
         AdjBar("FPT", D("2026-10-12"), Decimal("49000")),
     ]
     assert reconcile(nominal, fs, legacy).exact_days == 1
+
+
+def test_self_check_false_judges_reconstructed_rows_like_observed():
+    fs = [Factor("FPT", D("2026-10-05"), Decimal("0.909090909091"))]
+    last = src("2026-10-09", "70000")
+    rows, theirs = [nom("2026-10-02", 71701, "reconstructed")], [src("2026-10-02", "65180.00"), last]
+    # ours 71,701 x 0.909090909091 = 65,182.73 vs 65,180.00: 2.73 > 1 VND but 0.0042 % < 0.1 %
+    assert [m.note for m in reconcile(rows, fs, theirs).mismatches] == [SELF_CONSISTENCY]
+    r = reconcile(rows, fs, theirs, self_check=False)
+    assert (r.mismatches, r.checked) == ([], 1)
+    exact = reconcile([nom("2026-10-06", 71701, "reconstructed")], [], [src("2026-10-06", "71700")], self_check=False)
+    assert [m.note for m in exact.mismatches] == [UNIT_OR_ADAPTER]
