@@ -1,7 +1,7 @@
 """Reconciliation rules and run report (tech plan sprint-05 R7, R8; data.md §1.4 (3); VN§6 S7). Pure, no I/O.
 
 ours(d) = nominal(d) x G(d) against theirs(d) = A(d) of the newest source version; G counts only ex-dates
-<= the source's last bar (the source could not know later ones), so nothing here looks past that date.
+<= the row's own version's last bar (R6a; the source could not know later ones), so nothing looks past it.
 """
 
 from dataclasses import dataclass
@@ -44,17 +44,18 @@ def reconcile(
     *,
     threshold: Decimal = Decimal("0.1"),
 ) -> ReconResult:
-    theirs_by_date = {b.trading_date: b.c for b in src_bars}
+    theirs_by_date = {b.trading_date: b for b in src_bars}
     if not theirs_by_date:
         return ReconResult([], 0, 0, None)
-    last = max(theirs_by_date)
+    last = max(theirs_by_date)  # fallback for rows without their own version's `last` (R6a)
     out: list[Mismatch] = []
     checked = exact = 0
     for b in sorted(nominal_bars, key=lambda b: b.trading_date):
-        theirs = theirs_by_date.get(b.trading_date)
-        if theirs is None:
+        row = theirs_by_date.get(b.trading_date)
+        if row is None:
             continue
-        g = cumulative(factors, b.trading_date, last)
+        theirs = row.c
+        g = cumulative(factors, b.trading_date, row.last or last)
         ours = (b.c * g).quantize(_PX_PLACES, ROUND_HALF_UP)
         diff = abs(ours - theirs)
         pct = (diff / theirs * 100).quantize(_PCT_PLACES, ROUND_HALF_UP) if theirs > 0 else Decimal(100)
