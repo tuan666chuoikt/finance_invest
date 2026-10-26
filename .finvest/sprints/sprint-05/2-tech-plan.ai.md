@@ -172,6 +172,11 @@ R9 **`data_snapshot`** = max `fetched_at` over the inputs **actually used**: bar
   71,701 vs 71,700 → `unit_or_adapter` (exact rule untouched); existing tests unchanged.
 - Out of scope: the crawler call site (BE-recon-s2 passes `self_check=(source == "vci")`), any VND slack.
 
+#### AI-fix-lint — B-05-4: ruff E501 in `test_recon.py` (after AI-recon-xsrc)
+- Story: F-016 ; Side: ai ; Effort: medium ; Size: ~2 lines ; Lead: sonnet
+- Files: `services/analytics/tests/test_recon.py` ; Change: wrap line 118 to ≤ 110 chars (no logic change) ;
+  Acceptance: `make test-kernel` exit 0 (pytest, ruff, mypy, lint-imports all run).
+
 Order: AI-ca-factors → AI-adjust-series → AI-recon-rules (series imports factors; recon imports series) → AI-adjust-version
 (v1.1, after both; BE-ca-recompute round 2 and BE-recon-cli wait for it) → AI-recon-xsrc (v1.2; BE-recon-s2 waits for it). All can start before F-014's table lands (pure +
 fixtures); the SA glue tasks come after F-014 and AI-adjust-series. Total ≈ 640 lines.

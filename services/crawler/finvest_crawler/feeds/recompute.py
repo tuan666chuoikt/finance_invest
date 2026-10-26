@@ -45,7 +45,8 @@ def _one(conn: Connection, sym: str, acts: list, rules_version: str) -> Result:
     src = [AdjBar(sym, r.trading_date, Decimal(r.adj_c), r.last) for r in rows]
     observed = {d: c for d, c, kind, _ in repo.nominal_bars(conn, sym) if kind == "observed"}
     events = events_by_ex_date([CorporateAction(sym, a.ex_date, CaEvent(
-        a.type, a.ratio_a, a.ratio_b, a.cash_per_share, a.issue_price), datetime.now(UTC)) for a in acts])
+        a.type, a.ratio_a, a.ratio_b, a.cash_per_share, a.issue_price), datetime.now(UTC))
+        for a in acts if a.ex_date])  # NULL ex_date = listing_change: no factor
     first = src[0].trading_date
     anomalies: list[Anomaly] = [(d, "adj_factor_no_pre_close", "no_bar_before_ex_date")
                                 for d in sorted(events) if d <= first]  # R1: never guessed

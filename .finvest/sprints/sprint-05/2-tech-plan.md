@@ -1,6 +1,6 @@
 # Sprint 05 — Tech plan (BE / FE / ops; AI blocks of `2-tech-plan.ai.md` merged into dag.json)
 
-Owner: `fi-software-architect`, 2026-10-26, plan v1.3 (v1.2 = `2-tech-plan.prev-4.md`; v1.3 = BE-recon-s2 round 2: no slack, aligned with the AI answer — `self_check=(source == "vci")`, after AI-recon-xsrc, crawler file set only, size ~90; v1.1 = `2-tech-plan.prev-3.md`; v1.2 = BE-recon-s2 per the consult: `reconcile(slack_vnd)` (withdrawn in v1.3); v1.0 = `2-tech-plan.prev-2.md`; v1.1 = BE-ca-recompute round 2 per the consult: per-version `last`, watermark recompute set, queries in the repo, size ~340; new BE-mv-basis; v0 = `2-tech-plan.prev-1.md`). Inputs: `1-sprint-plan.md`, `2-tech-plan.ai.md` (3 AI tasks + the
+Owner: `fi-software-architect`, 2026-10-26, plan v1.4 (v1.3 = `2-tech-plan.prev-5.md`; v1.4 = Rework R1 at the end: B-05-1..7 + F-05-1, dag rev 7; v1.2 = `2-tech-plan.prev-4.md`; v1.3 = BE-recon-s2 round 2: no slack, aligned with the AI answer — `self_check=(source == "vci")`, after AI-recon-xsrc, crawler file set only, size ~90; v1.1 = `2-tech-plan.prev-3.md`; v1.2 = BE-recon-s2 per the consult: `reconcile(slack_vnd)` (withdrawn in v1.3); v1.0 = `2-tech-plan.prev-2.md`; v1.1 = BE-ca-recompute round 2 per the consult: per-version `last`, watermark recompute set, queries in the repo, size ~340; new BE-mv-basis; v0 = `2-tech-plan.prev-1.md`). Inputs: `1-sprint-plan.md`, `2-tech-plan.ai.md` (3 AI tasks + the
 "SA-owned" list), `product/backlog.md` F-013/F-014/F-015/F-016/F-023/F-033, `architecture/data.md` **v1.4** (§1.2 V5/S2 spike
 lines, §1.4, §3), `contracts/platform.md` **v1.14** (§2.6 step 3), `product/ux/app-shell.md` §Crawl button,
 `product/ux/visual-design.md` §4/§6.3/§6.4/§9, `sprints/sprint-04/6-retro.md` R1–R5, branch `sprint-05` = main `0de35b7`.
@@ -351,3 +351,110 @@ M3 = FE-shots. M0 was done by the architect at planning (no dag task). L1–L3 a
 3. Title parsing for rights issues is untested against real data (no rights event in the fixture) → `NULL` + anomaly by design; the first real rights
    event is a tester fixture, not a code guess.
 4. Three tasks touch `runner.py` serially (observed-bar → step3 → recompute → recon); any slip there delays M2. Mitigation: each is ≤ 30 runner lines.
+
+## Rework R1 (dag rev 7, plan v1.4) — BE test bugs `4-test.be.md` B-05-1..7, FE test bug `4-test.fe.md` F-05-1
+
+Decisions (sw-architect 2026-10-26; AI consult `3-consult.BE-fix-v5-iss.answer.ai.md`, VN§6 v1.2 "which share issues adjust the reference"):
+- **B-05-1 is money-correctness** (147 of 509 VN30 events dropped; HPG/SHB/ACB/MBB nominal history ~10 % per missed event). The mapper classifies
+  ISS by **title only**: V5 fills `exrightDate` for every ISS kind, ESOP included, so an ex-date never implies an adjusting event. Adjusting kinds →
+  `stock_dividend` / `rights`; non-adjusting kinds (ESOP, private placement, convertible conversion, merger issue, public auction) → `listing_change`,
+  stored, no anomaly, never in `adj_factors` (BE-ca-recompute already filters by type).
+- **Repair of stored data = the normal pipeline, no migration.** Live is at 0009 and step 3 never ran there: the first live press after the merge reads V5
+  with the fixed mapper. On any db that already ran step 3 (the test stack), `crawl corporate-actions --date <same run date>` replays the archive
+  (0 V5 requests, `Fetcher.replays`), the newly mapped events make the symbol `changed` (`set(ex) - known`, `feeds/corporate_actions.py:91`) and
+  the recompute rewrites `adj_factors` + reconstructed `bars_1d`; `crawl recompute --symbols …` is the same idempotent step by hand. Both are proven
+  idempotent by the tester (recompute ×2 md5-identical); the new db test below proves the re-run path end to end.
+- **B-05-2**: the block came after exactly 30 ok V5 calls (`data.md` §1.2 V5 v1.8). `ca_budget = 28`; the press order gets `ca_checked_at NULLS FIRST`
+  inside the VN30/scenario tier too, so a second press ≥ 1 h later (or the next day) reads the names the first one deferred instead of the same 26
+  again. Same-day second press: 26 archive replays + 4 fetches → recon 30/30. **UX text: none new** — the existing "· N mã chờ lượt sau" line already
+  says it; the PM may add "bấm lại sau ~1 giờ" to its title (ux/app-shell.md) at acceptance, not a build task.
+- **B-05-6**: S2 history is stored as `bars_1d_src.source = 'ssi_s2'` (0010 moves `source = 'ssi'` board rows into `bars_1d`: the same name would promote
+  S2 history to `observed` on a downgrade+upgrade). `crawl recon` exits 1 on any mismatch (vci or ssi) or missing name. 0010 downgrade keeping one
+  version per ssi row: documented in the migration, accepted (downgrade is a rehearsal path, not a product path).
+- **B-05-4** (ruff E501 in an AI test file) = `AI-fix-lint` in `2-tech-plan.ai.md`. **B-05-3 + B-05-7** share one OPS task (disjoint files, one dev cycle).
+- **F-05-1**: the analytics engine emits DCA shifts as `field: "contribution"` (`sim/dca.py` docstring, `sim/whatif.py:72-75`), `contracts/analytics.md`
+  §example shows only `buy_date` — FE treats `contribution` as the DCA buy-date shift. Note for the ai-architect at review: add `contribution` (and
+  `reason: after_end | no_bar`, `to: null`) to the `shifts` field list of `contracts/analytics.md`; no engine change.
+
+#### BE-fix-v5-iss — B-05-1: V5 `ISS` stock dividends mapped; non-adjusting issues → `listing_change`; re-run path proven (money correctness)
+- Story: F-014/F-015 ; Side: be ; Effort: high ; Size: ~110 lines ; Lead: opus
+- Files: `services/crawler/finvest_crawler/adapters/vci/events.py`, `services/crawler/tests/test_adapter_vci_events.py`,
+  `services/crawler/tests/fixtures/vci/events/HPG-2026.json` (new: gunzip of the captured press page
+  `/home/stein/Desktop/Learning/finance_invest-worktrees/test-be-05/data-test/raw/corporate_actions/2026-10-26/HPG-p0.json.gz`, unedited),
+  `services/crawler/tests/test_feed_corporate_actions.py`
+- Change (`_map`, ISS branch, NFC+casefold title, test in this order):
+  - `"quyền mua"` → `rights` (price regex as today; "Quyền mua CP cho Cổ đông hiện hữu" has no price → NULL + `corporate_action_amount_missing`, unchanged);
+  - `"cổ tức bằng cổ phiếu"` or `"thưởng"` → `stock_dividend` (ratio from `exerciseRatio`; r = 0 → ratio NULL + `corporate_action_amount_missing`);
+  - `"cbcnv"`, `"esop"`, `"riêng lẻ"`, `"trái phiếu chuyển đổi"`, `"sáp nhập"`, `"đấu giá"` → `listing_change`; the current `"phát hành thêm"` → `rights`
+    rule stays **after** these (it must not catch "Phát hành riêng lẻ" / "Phát hành rộng rãi qua đấu giá");
+  - anything else → unmapped (as today). `listing_change` without `exrightDate` → stored with `ex_date = NULL` (schema allows it; `corporate_actions`
+    key is `(source, source_event_id)`), **no** `corporate_action_unmapped`; every adjusting type without `exrightDate` → unmapped as today.
+  - `DIV` branch unchanged. One docstring line in `_map` citing VN§6 "which share issues adjust the reference price".
+- Contract: data.md §1.2 V5, §3 `corporate_actions`; VN§6 (v1.2 bullet); `3-consult.BE-fix-v5-iss.answer.ai.md`.
+- Acceptance:
+  - **Fails on the old mapper:** `HPG-2026.json` parses to 14 `stock_dividend` rows titled "Trả Cổ tức bằng Cổ phiếu" (ex 2026-05-25 10:1, 2025-06-26 5:1,
+    2022-06-17 10:3, 2021-05-31 20:7, …) + 2 "Cổ phiếu thưởng" (2024-05-23 10:1, 2015-05-08 10:3), 1 `rights` 2017-06-16 5:1 price NULL
+    (+ amount_missing), 3 `listing_change` (2 CBCNV, 1 convertible; the CBCNV row without `exrightDate` has `ex_date NULL`), **0** unmapped.
+  - FPT fixture still parses as before (4 rows, bonus 10:1, 2 ESOP → `listing_change`); a hand-made ISS "Phát hành riêng lẻ tỉ lệ 5.3%" → `listing_change`,
+    not `rights`; ISS "Quyền mua CP cho Cổ đông hiện hữu tỉ lệ 20.0%" → `rights`, price NULL.
+  - **Re-run path (`db`, in `test_feed_corporate_actions.py`):** run step 3 on a fixture-fed HPG with the *old* row set (monkeypatch `_map` to the old
+    behaviour or feed a payload whose stock-dividend rows carry a title the mapper ignores), then run it again with the real `HPG-2026.json` for the same
+    run date: the second run makes 0 source requests (archive replay), `changed_symbols == ["HPG"]`, 14 new `corporate_actions` rows, and after
+    `recompute(conn, ["HPG"])` `adj_factors` has `0.909090909091` at 2026-05-25. Worked money check with a seeded V2 close `A(2026-05-22) = 23,955`
+    (the tester's real value) and no later event: reconstructed nominal 2026-05-22 = 23,955 × 1.1 = **26,350 or 26,351** (± 1 VND), where the old
+    mapper left 23,955 (the ~10 % error of B-05-1).
+- Out of scope: the `DIV` path, budget/order (BE-fix-ca-budget), rights price parsing beyond today's regex, the F-021 page.
+
+#### BE-fix-ca-budget — B-05-2: V5 budget 28 and press order by `ca_checked_at` inside every tier
+- Story: F-014/F-016 ; Side: be ; Effort: medium ; Size: ~30 lines ; Lead: sonnet
+- Files: `services/crawler/finvest_crawler/settings.py` (`ca_budget: int = 28`), `packages/market_data/finvest_market_data/infrastructure/repositories.py`
+  (`ca_symbols_in_order`), `services/crawler/tests/test_feed_corporate_actions.py` (the `test_ca_symbols_in_order…` test) — **after BE-fix-v5-iss**
+  (same test file)
+- Change: `ORDER BY tier, ca_checked_at NULLS FIRST, symbol` for all tiers (drop the `CASE WHEN tier = 2`); comment cites data.md §1.2 V5 v1.8
+  ("blocked after 30 ok calls; 28 = 30 − 2 margin; a VN30 pass with 3 two-page names costs 33 → two presses ≥ 1 h apart").
+- Contract: data.md §1.2 V5 (v1.8 budget line), §3 `symbols.ca_checked_at`; platform.md §2.6 v1.14 `symbols_deferred`.
+- Acceptance (`db`): two VN30 names, one `ca_checked_at NULL`, one checked yesterday, a scenario name NULL → order = [VN30-NULL, VN30-checked, scenario];
+  `Settings().ca_budget == 28`; the existing budget test still defers the rest.
+- Out of scope: the daily "ex-date ≥ today − 7d" pass (data.md §1.3, later sprint), UI.
+
+#### BE-fix-runner-now — B-05-5: the press's `target` date is decided after the ticks step
+- Story: F-013 ; Side: be ; Effort: medium ; Size: ~20 lines ; Lead: sonnet
+- Files: `apps/api/finvest_api/jobs/runner.py`, `apps/api/tests/test_jobs.py`
+- Change: `target = _target(_now())` evaluated right before step 2 (not from the `now` taken before step 1); `today` for steps 3–4 stays the job's start date.
+- Contract: platform.md §2.6 (step 2 target rule); VN§2 session end.
+- Acceptance: `_now` monkeypatched to return 14:50 on the first call and 15:06 on the second (same open day) → step 2 targets that day; both calls 14:50 → previous
+  session; existing job tests green.
+- Out of scope: the cut-off constant, the status text.
+
+#### BE-fix-recon-s2 — B-05-6: S2 history stored as `ssi_s2`; `crawl recon` exit 1 on mismatches
+- Story: F-016 ; Side: be ; Effort: medium ; Size: ~25 lines ; Lead: sonnet
+- Files: `services/crawler/finvest_crawler/feeds/recon.py`, `services/crawler/finvest_crawler/cli.py`, `services/crawler/tests/test_recon_feed.py`
+- Change: `_cross_check` upserts and compares with `source = "ssi_s2"` (`newest_src_bars(conn, sym, "ssi_s2")`; `_compare(..., "ssi_s2", ...)` keeps
+  `self_check=(source == "vci")`); summary text "ssi" unchanged; `recon` returns `1 if r.missing or r.mismatches or r.ssi_mismatches else 0`.
+  Docstring: "`ssi` in `bars_1d_src` is reserved for the S1 board row that 0010 moves to `bars_1d`".
+- Contract: data.md §3 `bars_1d_src` (v1.8 source list `vci | ssi_s2`), §1.2 S2; backlog F-016.
+- Acceptance: the existing S2 test finds the 65,180 row under `source='ssi_s2'` and none under `'ssi'`; `main(["recon", …])` exit 1 with one seeded mismatch
+  and 0 missing, exit 0 with none.
+- Out of scope: storing S2 mismatches (F-021), migration 0010.
+
+#### OPS-fix-guards — B-05-3 + B-05-7: audit covers `.js/.jsx/.mjs/.cjs`; test db port 15433
+- Story: F-033 ; Side: be ; Effort: medium ; Size: ~15 lines ; Lead: sonnet
+- Files: `apps/api/tests/test_no_broker_audit.py`, `docker-compose.test.yml`, `README.md` (the "Stack test tách biệt" line)
+- Change: suffix set `+= .js .jsx .mjs .cjs` (still excluding tests, `node_modules`, `.venv`, `dist`); db port `127.0.0.1:15433:5432` (15432 is held by
+  `harbor-local-postgres-1` on the sponsor's machine); README line says 15433. `briefs/tester.md` §8 already updated by the architect.
+- Contract: PR-130; tester.md §8.
+- Acceptance: the tmp-dir probe with `apps/x/a.mjs` containing `placeOrder(` fails the audit (the tester's `tests_be05/test_f033_probe.py` xfail turns green);
+  `docker compose -f docker-compose.yml -f docker-compose.test.yml config` shows 15433 and no 15432/8080.
+- Out of scope: CI, runtime egress.
+
+#### FE-fix-dca-shifts — F-05-1: DCA contribution shifts aggregated into one line, from the real API shape
+- Story: S05-RW / F-057 ; Side: fe ; Effort: medium ; Size: ~30 lines ; Lead: sonnet
+- Files: `apps/web/src/features/scenarios/ScenarioCard.tsx`, `apps/web/src/features/scenarios/ScenarioCard.test.tsx`
+- Change: a DCA buy shift is `field === "buy_date" || field === "contribution"` (one local predicate used by `buyShifts` and the per-line filter); the
+  `<details>` list shows `from → to`, and `to: null` (reason `after_end`) renders as "bỏ qua" via the existing i18n fallback or a one-word key; lump-sum
+  `buy_date`/`sell_date` lines unchanged.
+- Contract: contracts/analytics.md `shifts` (+ the `contribution` note above); ux/visual-design.md §9 DCA line.
+- Acceptance: a vitest with the **real API payload** (HPG DCA 2.000.000 monthly, buy 2025-03-03, sell 2026-10-16, 5 shifts `field: "contribution"`, copied from
+  the tester's real-stack run or `curl` of the test api) renders exactly one `data-testid="dca-shifts"` line "… 5 lần" and **zero** "Ngày bán dời" lines —
+  fails on the current code; the old `buy_date` fixture still passes. Tester (FE-shots): `fe05-widths.mjs` DCA lines 8/8 pass.
+- Out of scope: table, panel, engine.

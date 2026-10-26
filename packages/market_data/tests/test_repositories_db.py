@@ -404,15 +404,16 @@ def test_upsert_corporate_actions_logs_each_changed_field_once(conn):
 
 def test_ca_symbols_in_order_and_mark_checked(conn):
     old, new = datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 10, 1, tzinfo=UTC)
-    repo.upsert_symbols(conn, [sym(s) for s in ("VN30M", "SCEN", "NULLS", "OLD", "NEW")] + [
+    repo.upsert_symbols(conn, [sym(s) for s in ("VN30M", "VN30N", "SCEN", "NULLS", "OLD", "NEW")] + [
         sym("GONE", delisted=True)], old)
-    repo.sync_index_membership(conn, "VN30", {"VN30M"}, D)
+    repo.sync_index_membership(conn, "VN30", {"VN30M", "VN30N"}, D)
     conn.execute(text("INSERT INTO scenarios (name, symbol, style, amount_vnd, buy_date, created_at,"
                       " updated_at) VALUES ('s', 'SCEN', 'lump_sum', 1, '2026-01-02', now(), now())"))
     repo.mark_ca_checked(conn, ["OLD"], old)
     repo.mark_ca_checked(conn, ["NEW", "VN30M", "SCEN"], new)
-    assert repo.ca_symbols_in_order(conn) == ["VN30M", "SCEN", "NULLS", "OLD", "NEW"]
-    assert repo.ca_symbols_in_order(conn, limit=2) == ["VN30M", "SCEN"]
+    # NULL first inside every tier
+    assert repo.ca_symbols_in_order(conn) == ["VN30N", "VN30M", "SCEN", "NULLS", "OLD", "NEW"]
+    assert repo.ca_symbols_in_order(conn, limit=2) == ["VN30N", "VN30M"]
 
 
 def test_adj_factors_round_trip_as_decimal(conn):

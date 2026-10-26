@@ -23,12 +23,15 @@ def banned_deps(root: Path) -> list[str]:
     return sorted({n for n in map(norm, names) if n in DENY})
 
 
+SUFFIXES = (".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")
+
+
 def order_hits(root: Path) -> list[str]:
     hits = []
     for top in ("apps", "services", "packages"):
         for p in (root / top).rglob("*"):
             parts = p.parts
-            if p.suffix not in (".py", ".ts", ".tsx") or "node_modules" in parts or ".venv" in parts:
+            if p.suffix not in SUFFIXES or "node_modules" in parts or ".venv" in parts:
                 continue
             if {"tests", "e2e"} & set(parts) or p.name.startswith("test_"):
                 continue
@@ -65,4 +68,10 @@ def test_audit_catches_normalised_name(tmp_path):
 def test_audit_catches_order_call(tmp_path):
     (tmp_path / "apps/x").mkdir(parents=True)
     (tmp_path / "apps/x/a.ts").write_text("api.placeOrder(1)\n")
+    assert len(order_hits(tmp_path)) == 1
+
+
+def test_audit_catches_order_call_in_mjs(tmp_path):
+    (tmp_path / "apps/x").mkdir(parents=True)
+    (tmp_path / "apps/x/a.mjs").write_text("placeOrder(1)\n")
     assert len(order_hits(tmp_path)) == 1
