@@ -13,6 +13,20 @@ function duration(t: TFunction, s: number) {
   return [m && t("crawl.minute", { n: m }), (s % 60 || !m) && t("crawl.second", { n: s % 60 })].filter(Boolean).join(" ");
 }
 
+// Parts for the steps that ran (ticks, daily prices, rights events); a failed job keeps them before its error line.
+function stepParts(t: TFunction, s: Rec): string[] {
+  const tk = s.ticks as Rec | null, b = (s.bars_1d ?? {}) as Rec, ca = s.corporate_actions as Rec | null;
+  const parts = [
+    s.no_session_today || !tk
+      ? t("crawl.done.nosession")
+      : t("crawl.done.ticks", { symbols: NUM.format(tk.symbols_fetched), rows: NUM.format(tk.rows) }) +
+        (tk.partial_until ? " " + t("crawl.done.partial", { at: hhmm(tk.partial_until) }) : ""),
+    t("crawl.done.sessions", { n: b.sessions_added ?? 0 }),
+  ];
+  if (ca) parts.push(t("crawl.done.events", { n: ca.events_upserted ?? 0, changes: ca.changes ?? 0 }));
+  return parts;
+}
+
 function text(t: TFunction, job: Job, now: number): ReactNode {
   const p: Rec = job.progress ?? {}, s: Rec = job.summary ?? {}, e: Rec = job.error ?? {};
   if (job.status === "running") {
@@ -21,8 +35,8 @@ function text(t: TFunction, job: Job, now: number): ReactNode {
       bits.push(
         t("crawl.step", {
           step: p.step, steps: p.steps, done: p.done, total: p.total,
-          what: p.step === 1 ? t("crawl.step1", { date: String(p.trading_date ?? "").split("-").reverse().slice(0, 2).join("/") }) : t("crawl.step2"),
-          unit: t(p.step === 1 ? "crawl.unit.symbols" : "crawl.unit.sessions"),
+          what: p.step === 1 ? t("crawl.step1", { date: String(p.trading_date ?? "").split("-").reverse().slice(0, 2).join("/") }) : t(p.step === 3 ? "crawl.step3" : "crawl.step2"),
+          unit: t(p.step === 2 ? "crawl.unit.sessions" : "crawl.unit.symbols"),
         }),
       );
     }
@@ -30,25 +44,22 @@ function text(t: TFunction, job: Job, now: number): ReactNode {
     return bits.join(" · ");
   }
   if (job.status === "done") {
-    const tk = s.ticks as Rec | null, b = (s.bars_1d ?? {}) as Rec;
-    const parts = [
-      s.no_session_today || !tk
-        ? t("crawl.done.nosession")
-        : t("crawl.done.ticks", { symbols: NUM.format(tk.symbols_fetched), rows: NUM.format(tk.rows) }) +
-          (tk.partial_until ? " " + t("crawl.done.partial", { at: hhmm(tk.partial_until) }) : ""),
-      t("crawl.done.sessions", { n: b.sessions_added ?? 0 }),
-    ];
+    const parts = stepParts(t, s);
+    const b = (s.bars_1d ?? {}) as Rec, tk = s.ticks as Rec | null;
     const skipped = (tk?.symbols_skipped ?? 0) + (b.symbols_skipped ?? 0);
     if (skipped) parts.push(t("crawl.done.skipped", { n: skipped }));
+    const deferred = (b.symbols_deferred ?? 0) + ((s.corporate_actions as Rec | null)?.symbols_deferred ?? 0);
+    if (deferred > 0) parts.push(t("crawl.done.deferred", { n: deferred }));
     if (typeof s.duration_s === "number") parts.push(duration(t, s.duration_s));
     return t("crawl.done", { at: hhmm(job.finished_at ?? job.created_at), parts: parts.join(" · ") });
   }
-  const where = [e.path && t("crawl.error.path", { path: e.path }), e.source && t("crawl.error.source", { source: e.source }),
+  const where = [e.path && t("crawl.error.path", { path: e.path }), e.source && t("crawl.error.source", { source: e.source === "vci_iq" ? "VCI IQ" : e.source }),
     e.http_status && t("crawl.error.http", { code: e.http_status })].filter(Boolean);
   const tk = (s.ticks ?? null) as Rec | null;
   const saved = tk?.symbols_fetched != null && p.total ? t("crawl.error.saved", { done: tk.symbols_fetched, total: p.total }) : null;
   return (
     <>
+      {s.bars_1d && stepParts(t, s).join(" · ") + " · "}
       {t("crawl.error", { message: e.message ?? "", code: e.code ?? "?" })}
       {where.map((w, i) => (
         <Fragment key={i}> · <code>{w}</code></Fragment>
