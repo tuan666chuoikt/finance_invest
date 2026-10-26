@@ -26,6 +26,7 @@ from sqlalchemy.dialects.postgresql import insert
 from finvest_market_data.domain.manifest import Manifest
 from finvest_market_data.domain.models import Bar, IndexBar, SymbolRecord, Tick
 from finvest_market_data.infrastructure.tables import (
+    bars_1d,
     bars_1d_src,
     crawl_runs,
     crawl_sessions,
@@ -270,6 +271,72 @@ def upsert_bars_1d_src(conn: Connection, bars: Sequence[Bar], fetched_at: dateti
                 set_={k: getattr(new, k) for k in ("adj_o", "adj_h", "adj_l", "adj_c", "v", "value")},
             )
         )
+
+
+def upsert_bars_1d(
+    conn: Connection, bars: Sequence[Bar], *, nominal_kind: str, fetched_at: datetime,
+    ref: dict[str, int] | None = None,
+) -> int:
+    """Upsert nominal daily bars on (symbol, trading_date); returns rows written. An `observed` row is never
+    replaced by a `reconstructed` one (F-015); every other combination is latest-wins. `ref` maps symbol ->
+    exchange reference price (NULL when absent). Keys must be unique within `bars`."""
+    written = 0
+    for chunk in batched(bars, BATCH):
+        ins = insert(bars_1d).values(
+            [
+                {"symbol": b.symbol, "trading_date": b.trading_date, "o": b.o, "h": b.h, "l": b.l, "c": b.c,
+                 "ref": (ref or {}).get(b.symbol), "v": b.v, "value": b.value, "nominal_kind": nominal_kind,
+                 "source": b.source, "fetched_at": fetched_at}
+                for b in chunk
+            ]
+        )
+        new = ins.excluded
+        res = conn.execute(
+            ins.on_conflict_do_update(
+                index_elements=["symbol", "trading_date"],
+                set_={k: getattr(new, k) for k in ("o", "h", "l", "c", "ref", "v", "value", "nominal_kind",
+                                                   "source", "fetched_at")},
+                where=or_(bars_1d.c.nominal_kind != "observed", new.nominal_kind == "observed"),
+            ).returning(bars_1d.c.symbol)  # rowcount is -1 for a batched insert
+        )
+        written += len(res.all())
+    return written
+
+
+def move_ssi_board_rows(conn: Connection) -> int:
+    """Migration 0010: the newest `fetched_at` ssi row per (symbol, trading_date) moves from `bars_1d_src` to
+    `bars_1d` as `observed` (ref NULL), then every ssi `bars_1d_src` row is deleted. Returns rows inserted.
+    Re-runnable: an existing `bars_1d` row is kept."""
+    n = conn.execute(
+        text(
+            """
+            INSERT INTO bars_1d (symbol, trading_date, o, h, l, c, v, value, nominal_kind, source, fetched_at)
+            SELECT DISTINCT ON (symbol, trading_date)
+                   symbol, trading_date, adj_o, adj_h, adj_l, adj_c, v, value, 'observed', 'ssi', fetched_at
+            FROM bars_1d_src WHERE source = 'ssi'
+            ORDER BY symbol, trading_date, fetched_at DESC
+            ON CONFLICT (symbol, trading_date) DO NOTHING
+            """
+        )
+    ).rowcount
+    conn.execute(text("DELETE FROM bars_1d_src WHERE source = 'ssi'"))
+    return n
+
+
+def restore_ssi_board_rows(conn: Connection) -> int:
+    """Migration 0010 downgrade: observed ssi rows go back to `bars_1d_src` (they are not derivable);
+    reconstructed rows are dropped with the table. Returns rows restored."""
+    return conn.execute(
+        text(
+            """
+            INSERT INTO bars_1d_src
+                (symbol, trading_date, source, fetched_at, adj_o, adj_h, adj_l, adj_c, v, value)
+            SELECT symbol, trading_date, source, fetched_at, o, h, l, c, v, value
+            FROM bars_1d WHERE nominal_kind = 'observed' AND source = 'ssi'
+            ON CONFLICT DO NOTHING
+            """
+        )
+    ).rowcount
 
 
 def upsert_index_1d(conn: Connection, bars: Sequence[IndexBar]) -> None:
