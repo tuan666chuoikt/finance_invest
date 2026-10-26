@@ -1,0 +1,23 @@
+# Isolated testing stack (tester.md section 8). Never touch project finvest-live / gw-app@finance_invest.
+# Use: docker compose -p finvest-test -f docker-compose.yml -f docker-compose.test.yml up -d --build
+# !override replaces the base ports instead of appending (so 8080/8001/55432 are not published).
+# Own image tag so the build never retags the one finvest-live runs from.
+services:
+  db:
+    ports: !override
+      - "127.0.0.1:15433:5432"
+    volumes: !override
+      - ./data-test/pg:/var/lib/postgresql/data
+  api:
+    image: finvest-test-app:local
+    ports: !override
+      - "127.0.0.1:18001:8000"
+    volumes: !override
+      - ./data-test:/app/data
+  web:
+    ports: !override
+      - "127.0.0.1:18080:80"
+  crawler:
+    image: finvest-test-app:local
+    volumes: !override
+      - ./data-test:/app/data
