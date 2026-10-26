@@ -1,9 +1,18 @@
 """SqlMarketView: analytics `MarketView` port over the market-data tables (contracts/analytics.md §1.4)."""
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
-from finvest_analytics.domain.models import DailyBar, IndexBar
-from finvest_market_data.infrastructure.tables import bars_1d, bars_1d_src, index_1d
+from finvest_analytics.adjust.series import adjusted, cumulative, round_vnd
+from finvest_analytics.domain.models import AdjBar, CorporateAction, DailyBar, Factor, IndexBar, NominalBar
+from finvest_market_data.infrastructure.tables import (
+    adj_factors,
+    bars_1d,
+    bars_1d_src,
+    corporate_actions,
+    index_1d,
+)
+from finvest_rules import CaEvent
 from finvest_rules.calendar import CalendarNotMaintained, trading_days
 from sqlalchemy import func, select, union_all
 from sqlalchemy.engine import Engine
@@ -12,12 +21,25 @@ _BASIS = "source_adjusted"
 _CENT = Decimal("0.01")
 
 
+def _today() -> date:
+    return datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).date()
+
+
 class SqlMarketView:
     """One instance per request: `snapshot()` covers the bar rows this instance has served."""
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
         self._served: datetime | None = None
+
+    def _serve(self, *stamps: datetime) -> None:
+        """R9: `snapshot()` = max fetched_at over everything this view served or applied."""
+        self._served = max([s for s in (self._served, *stamps) if s is not None], default=None)
+
+    def _factors(self, symbol: str, as_of: date) -> list[Factor]:
+        t = adj_factors
+        q = select(t.c.ex_date, t.c.factor).where(t.c.symbol == symbol, t.c.ex_date <= as_of)
+        return [Factor(symbol, d, Decimal(str(f))) for d, f in self._rows(q)]
 
     def _rows(self, stmt):
         with self._engine.connect() as c:
@@ -47,14 +69,47 @@ class SqlMarketView:
         seen, o = {b.trading_date for b in bars}, bars_1d
         obs = (select(o.c.trading_date, o.c.o, o.c.h, o.c.l, o.c.c, o.c.v, o.c.fetched_at)
                .where(o.c.symbol == symbol, o.c.nominal_kind == "observed",
-                      o.c.trading_date.between(start, min(end, as_of))))
-        # shortcut: observed close served as adjusted; BE-market-view-ca multiplies by the cumulative factor
-        bars = sorted(bars + [DailyBar(symbol, *r[:6], _BASIS, r[6]) for r in self._rows(obs)
-                              if r[0] not in seen], key=lambda b: b.trading_date)
+                      o.c.trading_date.between(start, min(end, as_of)))
+               .order_by(o.c.trading_date))
+        rows = [r for r in self._rows(obs) if r[0] not in seen]
+        if rows:
+            # source-adjusted basis: nominal x factors over (d, today] (R7 `ours`)
+            today = _today()
+            fs = self._factors(symbol, today)
+            self.corporate_actions(symbol, rows[0][0], today, as_of=today)  # rows applied move the snapshot
+            for r in rows:
+                g = cumulative(fs, r[0], today)
+                bars.append(DailyBar(symbol, r[0], *(round_vnd(x * g) for x in map(Decimal, r[1:5])), r[5],
+                                     _BASIS, r[6]))
+            bars.sort(key=lambda b: b.trading_date)
         if bars:
-            newest = max(b.fetched_at for b in bars)
-            self._served = newest if self._served is None else max(self._served, newest)
+            self._serve(max(b.fetched_at for b in bars))
         return bars
+
+    def corporate_actions(self, symbol: str, start: date, end: date, *, as_of: date) -> list[CorporateAction]:
+        """Rows with a stored factor, ex_date in [start, min(end, as_of)]; they count as applied (R9, G11)."""
+        c, f = corporate_actions, adj_factors
+        q = (select(c.c.ex_date, c.c.type, c.c.ratio_a, c.c.ratio_b, c.c.cash_per_share, c.c.issue_price,
+                    c.c.fetched_at)
+             .join(f, (f.c.symbol == c.c.symbol) & (f.c.ex_date == c.c.ex_date))
+             .where(c.c.symbol == symbol, c.c.ex_date.between(start, min(end, as_of)))
+             .order_by(c.c.ex_date, c.c.id))
+        out = [CorporateAction(symbol, r[0], CaEvent(*r[1:6]), r[6]) for r in self._rows(q)]
+        self._serve(*(a.fetched_at for a in out))
+        return out
+
+    def adjusted_close(self, symbol: str, start: date, end: date, *, as_of: date) -> list[AdjBar]:
+        """Our adjusted series (R5): nominal bars_1d x stored factors over (d, as_of]."""
+        o = bars_1d
+        q = (select(o.c.trading_date, o.c.c, o.c.nominal_kind, o.c.fetched_at)
+             .where(o.c.symbol == symbol, o.c.trading_date.between(start, min(end, as_of))))
+        rows = self._rows(q)
+        if not rows:
+            return []
+        self.corporate_actions(symbol, date.min, as_of, as_of=as_of)
+        self._serve(max(r[3] for r in rows))
+        nominal = [NominalBar(symbol, d, c, k) for d, c, k, _ in rows]
+        return adjusted(nominal, self._factors(symbol, as_of), as_of)
 
     def first_bar_date(self, symbol: str) -> date | None:
         days = union_all(*(select(t.c.trading_date).where(t.c.symbol == symbol)
