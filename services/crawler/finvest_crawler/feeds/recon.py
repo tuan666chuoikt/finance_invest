@@ -10,6 +10,7 @@ from finvest_analytics.adjust.recon import ReconResult, reconcile, ref_check, su
 from finvest_analytics.domain.models import AdjBar, Factor, NominalBar
 from finvest_market_data.infrastructure import repositories as repo
 from finvest_rules.calendar import trading_days
+from finvest_rules.prices import tick_size
 from sqlalchemy import Connection, text
 
 from finvest_crawler.settings import Settings
@@ -41,16 +42,10 @@ def default_symbols(conn: Connection) -> list[str]:
           OR s.symbol IN (SELECT DISTINCT symbol FROM scenarios)) ORDER BY s.symbol"""))]
 
 
-def tick_size(exchange: str, type_: str, price: int) -> int:
-    """VN market notes section 3 (matching sessions)."""
-    if exchange == "HOSE":
-        return 10 if type_ == "ETF" or price < 10_000 else 50 if price < 50_000 else 100
-    return 1 if exchange == "HNX" and type_ == "ETF" else 100
-
-
 def _r8(conn: Connection, sym: str, kind: tuple[str, str] | None, factors, nominal) -> int:
     """R8: our factor against the exchange's reference price on each observed ex-date; returns findings."""
-    if kind is None:  # not in the symbol master: the tick is unknown
+    # tick unknown, or UPCoM whose reference is the previous day's VWAP (not stored), not its close (VN§3)
+    if kind is None or kind[0] == "UPCOM":
         return 0
     by_date = {d: (c, k, ref) for d, c, k, ref in nominal}
     found = 0

@@ -11,7 +11,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from finvest_crawler.cli import main
-from finvest_crawler.feeds.recon import run_recon, tick_size
+from finvest_crawler.feeds.recon import run_recon
 from finvest_crawler.settings import Settings
 from finvest_market_data.domain.models import Bar
 from finvest_market_data.infrastructure import repositories as repo
@@ -49,7 +49,7 @@ def eng():
 def conn(eng):
     with eng.connect() as c:
         for t in ("symbols", "symbol_index_membership", "bars_1d_src", "bars_1d", "adj_factors",
-                  "recon_mismatches", "data_anomalies", "crawl_runs"):
+                  "recon_mismatches", "data_anomalies", "crawl_runs", "scenarios"):
             c.execute(text(f"TRUNCATE {t}"))
         c.commit()
         yield c
@@ -113,11 +113,15 @@ def test_29_of_30_vn30_names_names_the_missing_one_and_exits_1(conn, monkeypatch
             seed(conn, s, {D1: 50_000}, {D1: 50_000})
         else:  # in the master, no bars at all
             conn.execute(text(SYM), {"s": s})
+    seed(conn, "SCEN", {D1: 50_000}, {D1: 50_000})  # a scenario symbol outside VN30 joins the default set
+    conn.execute(text("INSERT INTO scenarios (name, symbol, style, amount_vnd, buy_date,"
+                      " created_at, updated_at)"
+                      " VALUES ('s', 'SCEN', 'lump_sum', 1, '2026-01-02', now(), now())"))
     conn.commit()
     monkeypatch.setenv("FINVEST_DATABASE_URL", URL)  # type: ignore[arg-type]
     assert main(["recon", "--date", TODAY.isoformat()]) == 1
     out = capsys.readouterr().out.splitlines()
-    assert out[0] == "29/30, 0 mismatches; missing V07"
+    assert out[0] == "30/31, 0 mismatches; missing V07"
     assert "V00: 1 days checked, 0 mismatches" in out
     assert conn.execute(text("SELECT status, reason FROM crawl_runs")).one() == ("partial", out[0])
 
@@ -139,7 +143,10 @@ def test_r8_skips_a_reconstructed_previous_bar(conn):
     assert run_recon(Settings(), TODAY, ["AAA"], conn=conn).anomalies == 0
 
 
-def test_tick_sizes_by_venue():  # VN market notes section 3
-    assert [tick_size("HOSE", "STOCK", p) for p in (9_990, 10_000, 49_950, 50_000)] == [10, 50, 50, 100]
-    kinds = (("HOSE", "ETF"), ("HNX", "STOCK"), ("HNX", "ETF"), ("UPCOM", "STOCK"))
-    assert [tick_size(e, t, 9_000) for e, t in kinds] == [10, 100, 1, 100]
+
+def test_r8_skips_upcom_whose_reference_is_the_previous_vwap(conn):  # VN§3
+    seed(conn, "AAA", {D2: 50_000, EX: 49_000}, {D2: 49_000, EX: 49_000}, "0.98", ref=49_200)
+    conn.execute(text("UPDATE symbols SET exchange = 'UPCOM'"))
+    conn.commit()
+    assert run_recon(Settings(), TODAY, ["AAA"], conn=conn).anomalies == 0
+    assert rows(conn, "data_anomalies") == []

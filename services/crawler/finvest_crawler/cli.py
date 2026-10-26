@@ -26,7 +26,7 @@ def _symbols(s: str) -> list[str]:
     for x in out:
         if not re.fullmatch(r"[A-Z0-9]{1,10}", x):
             raise argparse.ArgumentTypeError(f"bad symbol: {x!r}")
-    return out
+    return list(dict.fromkeys(out))  # `A,A` is one name
 
 
 def main(argv: list[str] | None = None) -> int:
