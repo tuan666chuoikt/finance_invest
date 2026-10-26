@@ -93,6 +93,7 @@
   "card.shift_buy": "Buy date moved to {{to}}",
   "card.shift_sell": "Sell date moved to {{to}}",
   "card.shift_dca": "Buy date moved to the next trading day: {{n}} times",
+  "card.shift_skip": "skipped",
   "card.shift_view": "View",
   "card.approximate": "Approximate — adjusted prices, dividends not included",
   "card.invested": "Invested",

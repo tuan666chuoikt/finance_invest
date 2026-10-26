@@ -247,6 +247,16 @@ def test_step_2_stores_the_last_final_session(make_client, fakes, now, target):
     assert fakes.bars_args == [(date.fromisoformat(target), 40)]
 
 
+@pytest.mark.parametrize("second, target", [(15, "2026-10-23"), (50, "2026-10-22")])
+def test_step_2_target_is_decided_after_step_1(make_client, fakes, monkeypatch, second, target):
+    t = [datetime(2026, 10, 23, 14, 50, tzinfo=VN), datetime(2026, 10, 23, 15, 6, tzinfo=VN)]
+    t[1] = t[1] if second == 15 else t[0]  # second call crosses the cut-off, or not
+    monkeypatch.setattr(runner, "_now", lambda: t.pop(0))
+    c = make_client()
+    c.post("/api/jobs", json={"kind": "crawl"})
+    assert _wait(c)["status"] == "done" and fakes.bars_args[0][0].isoformat() == target
+
+
 def test_step_3_summary_and_progress(make_client, fakes):
     fakes.bars_status = "partial"  # step 3 runs after a partial step 2 too
     c = make_client()
