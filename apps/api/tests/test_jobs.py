@@ -57,6 +57,8 @@ def fakes(monkeypatch):
     monkeypatch.setattr(runner, "run_bars_1d", bars)
     monkeypatch.setattr(runner, "run_corporate_actions", ca)
     monkeypatch.setattr(runner, "recompute_press", lambda e, c, r: f.calls.append(("recompute", 0)))
+    recon = SimpleNamespace(expected=30, checked=29, mismatches=3)
+    monkeypatch.setattr(runner, "run_recon", lambda settings, d: f.calls.append(("recon", d)) or recon)
     monkeypatch.setattr(runner, "_now", lambda: f.now)
     yield f
     f.gate.set()
@@ -155,7 +157,7 @@ def test_non_trading_day(make_client, fakes):
     j = _wait(c)
     assert j["status"] == "done" and j["summary"]["ticks"] is None
     assert j["summary"]["no_session_today"] is True
-    assert [k for k, _ in fakes.calls] == ["bars", "ca", "recompute"]
+    assert [k for k, _ in fakes.calls] == ["bars", "ca", "recompute", "recon"]
 
 
 def test_summary_counts_the_deferred_names(make_client, fakes):
@@ -254,7 +256,8 @@ def test_step_3_summary_and_progress(make_client, fakes):
     assert j["progress"]["label"] == "corporate_actions"
     assert j["summary"]["corporate_actions"] == {"status": "ok", "symbols_checked": 2, "events_upserted": 7,
                                                  "changes": 1, "symbols_deferred": 28}
-    assert [k for k, _ in fakes.calls] == ["ticks", "bars", "ca", "recompute"]
+    assert [k for k, _ in fakes.calls] == ["ticks", "bars", "ca", "recompute", "recon"]
+    assert j["summary"]["recon"] == {"symbols": 30, "checked": 29, "mismatches": 3}
 
 
 def test_blocked_step_3_keeps_the_earlier_steps(make_client, fakes):
@@ -267,6 +270,7 @@ def test_blocked_step_3_keeps_the_earlier_steps(make_client, fakes):
     assert j["error"]["message"] == "nguồn vci_iq đang chặn tạm, thử lại sau ~1 giờ"
     assert j["summary"]["bars_1d"]["symbols_fetched"] == 30
     assert j["summary"]["corporate_actions"]["status"] == "blocked"
+    assert j["summary"]["recon"]["symbols"] == 30  # the events so far are still reconciled
 
 
 def test_blocked_bars_skips_step_3(make_client, fakes):
@@ -275,3 +279,4 @@ def test_blocked_bars_skips_step_3(make_client, fakes):
     c.post("/api/jobs", json={"kind": "crawl"})
     j = _wait(c)
     assert j["summary"]["corporate_actions"] is None and "ca" not in [k for k, _ in fakes.calls]
+    assert j["summary"]["recon"] is None and "recon" not in [k for k, _ in fakes.calls]  # no step 3
