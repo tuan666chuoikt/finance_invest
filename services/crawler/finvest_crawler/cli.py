@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
                   + (f", first {x.first_mismatch}" if x.first_mismatch else ""))
         if r.anomalies:
             print(f"{r.anomalies} adj_factor_ref_mismatch anomalies (R8)")
-        return 1 if r.missing else 0  # a name that could not be compared is not a pass
+        return 1 if r.missing or r.mismatches or r.ssi_mismatches else 0  # uncompared or mismatched is not a pass
 
     if a.cmd == "catchup":
         settings = Settings()
